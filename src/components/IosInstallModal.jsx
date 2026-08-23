@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { X, Smartphone, Tablet, Share, PlusSquare, CheckCircle, Wifi, QrCode } from 'lucide-react';
 
 export default function IosInstallModal({ isOpen, onClose }) {
@@ -42,10 +42,11 @@ export default function IosInstallModal({ isOpen, onClose }) {
             <div className="text-xs text-slate-200 space-y-1">
               <p className="font-bold text-amber-300">아이폰/아이패드 Safari 브라우저에서 접속</p>
               <p className="text-slate-400">
-                같은 Wi-Fi 공유기에 연결된 상태에서 Safari 주소창에 아래 IP 주소를 입력하세요:
+                아이폰 Safari 주소창에 아래 주소를 입력하거나 북마크하세요:
               </p>
-              <div className="font-mono font-bold bg-slate-900 px-2.5 py-1 rounded text-sky-300 border border-slate-700 select-all">
-                http://172.30.1.52:5173
+              <div className="font-mono font-bold bg-slate-900 px-2.5 py-1.5 rounded text-sky-300 border border-slate-700 select-all text-xs flex items-center justify-between">
+                <span>{typeof window !== 'undefined' ? `${window.location.protocol}//${window.location.hostname}:${window.location.port || '5173'}` : 'http://localhost:5173'}</span>
+                <span className="text-[10px] text-amber-400 font-sans font-bold">터치하여 접속</span>
               </div>
             </div>
           </div>

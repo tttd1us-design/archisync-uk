@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { 
   Building2, 
   BookOpen, 
@@ -6,12 +6,14 @@ import {
   Layers, 
   FileText, 
   Sun, 
-  Moon 
+  Moon,
+  Smartphone
 } from 'lucide-react';
 
 export default function Header({ 
   onOpenGlossary, 
   onOpenSettings, 
+  onOpenIosInstall,
   activeTab, 
   setActiveTab, 
   theme = 'dark', 
@@ -79,8 +81,19 @@ export default function Header({
               </button>
             </div>
 
-            {/* Quick Actions (Glossary, Settings, Theme) */}
+            {/* Quick Actions (Glossary, iPhone App, Settings, Theme) */}
             <div className="flex items-center space-x-1 pl-2 border-l border-slate-700/50">
+              <button
+                onClick={onOpenIosInstall}
+                className={`p-1.5 rounded-lg border text-xs font-bold transition flex items-center gap-1 ${
+                  isDark ? 'bg-indigo-950/60 hover:bg-indigo-900/80 border-indigo-500/40 text-sky-300' : 'bg-indigo-50 hover:bg-indigo-100 border-indigo-200 text-indigo-700 shadow-xs'
+                }`}
+                title="아이폰 / 아이패드 홈 화면에 앱으로 설치하는 방법"
+              >
+                <Smartphone className="w-4 h-4 text-sky-400" />
+                <span className="hidden sm:inline">📱 iPhone 앱</span>
+              </button>
+
               <button
                 onClick={onOpenGlossary}
                 className={`p-1.5 rounded-lg border text-xs font-bold transition flex items-center gap-1 ${
