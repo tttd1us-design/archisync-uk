@@ -59,12 +59,17 @@ function localVoiceStoragePlugin() {
           req.on('end', () => {
             try {
               const data = JSON.parse(body)
-              const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)
-              const filename = `transcript_${timestamp}.txt`
+              const now = new Date()
+              const pad = (n) => n.toString().padStart(2, '0')
+              const dateStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`
+              const timeStr = `${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}`
+              const projectClean = (data.projectName || '실시간대화록').replace(/[^a-zA-Z0-9가-힣_-]/g, '_')
+              
+              const filename = data.filename || `${dateStr}_${timeStr}_${projectClean}.txt`
               const targetPath = path.join(voiceDir, filename)
 
               fs.writeFileSync(targetPath, data.content || body, 'utf-8')
-              console.log(`[ArchiSync Transcript Saved]: ${targetPath}`)
+              console.log(`[ArchiSync Auto-Saved Transcript]: ${targetPath}`)
 
               res.setHeader('Content-Type', 'application/json')
               res.end(JSON.stringify({ 

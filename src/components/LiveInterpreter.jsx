@@ -272,12 +272,78 @@ export default function LiveInterpreter({
     }
   }, [currentLiveTranslation]);
 
+  const sessionFilenameRef = useRef(null);
+  const autoSaveTimerRef = useRef(null);
+  const [autoSavedTime, setAutoSavedTime] = useState(null);
+
   // 📜 Auto-Scroll Backup Archive to Bottom (Always displays newest finalized card at bottom matching live stage)
   useEffect(() => {
     if (messagesBottomRef.current) {
       messagesBottomRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages]);
+
+  // 💾 Real-time Auto-Save Engine: Automatically writes backup to Documents\음성 on every message
+  useEffect(() => {
+    if (messages.length === 0) return;
+
+    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+    autoSaveTimerRef.current = setTimeout(async () => {
+      try {
+        const scenario = DEMO_SCENARIOS.find(s => s.id === selectedScenarioId) || DEMO_SCENARIOS[0];
+        const now = new Date();
+        const pad = (n) => n.toString().padStart(2, '0');
+
+        if (!sessionFilenameRef.current) {
+          const dateStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+          const timeStr = `${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}`;
+          const cleanTitle = (scenario.title || 'ArchiSync_Live').replace(/[^a-zA-Z0-9가-힣_-]/g, '_');
+          sessionFilenameRef.current = `${dateStr}_${timeStr}_${cleanTitle}_대화록.txt`;
+        }
+
+        const header = `=====================================================\n` +
+                       `  ArchiSync UK 실시간 다국어 통역 자동 백업 대화록\n` +
+                       `  프로젝트: ${scenario.title || 'Canary Wharf Mixed-Use Tower'}\n` +
+                       `  저장일시: ${now.toLocaleString()}\n` +
+                       `  총 대화 수: ${messages.length}건\n` +
+                       `=====================================================\n\n`;
+
+        const body = messages.map((m, idx) => {
+          const sentences = splitIntoSentences(m.original || '');
+          const transSentences = splitIntoSentences(m.translation || '');
+          const maxL = Math.max(sentences.length, transSentences.length, 1);
+          
+          let rows = '';
+          for (let i = 0; i < maxL; i++) {
+            rows += `  [${i + 1}] 원문: ${sentences[i] || m.original || ''}\n` +
+                    `      한글: ${transSentences[i] || m.translation || ''}\n`;
+          }
+
+          return `[${idx + 1}] [${m.timestamp || ''}] ${m.speaker || 'Speaker'} (${m.lang || 'en'})\n` +
+                 rows +
+                 `-----------------------------------------------------\n`;
+        }).join('\n');
+
+        await fetch('/api/save-transcript', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            filename: sessionFilenameRef.current,
+            projectName: scenario.title,
+            content: header + body
+          })
+        });
+
+        setAutoSavedTime(now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+      } catch (err) {
+        console.warn('Auto-save background notice:', err);
+      }
+    }, 1500);
+
+    return () => {
+      if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+    };
+  }, [messages, selectedScenarioId]);
 
   // ⌨️ Global Commercial Hotkeys (Spacebar Push-to-Talk, Ctrl+S Save)
   useEffect(() => {
@@ -1202,6 +1268,14 @@ export default function LiveInterpreter({
             }`}>
               {messages.length}건
             </span>
+            {autoSavedTime && (
+              <span className={`px-2 py-0.5 rounded-full text-[7pt] font-mono flex items-center gap-1 ${
+                isDark ? 'bg-emerald-950/60 text-emerald-300 border border-emerald-500/30' : 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+              }`} title="대화가 생길 때마다 내문서\음성 폴더에 자동으로 최신 내용이 실시간 저장됩니다">
+                <CheckCircle2 className="w-2.5 h-2.5 text-emerald-400" />
+                <span>자동저장됨 ({autoSavedTime})</span>
+              </span>
+            )}
           </div>
 
           <div className="flex items-center space-x-1.5">
@@ -1212,10 +1286,10 @@ export default function LiveInterpreter({
                   ? 'text-sky-400 hover:text-sky-300 bg-slate-800/80 border-slate-700 hover:border-sky-500/40' 
                   : 'text-sky-700 hover:text-sky-800 bg-white border-slate-300 hover:border-sky-400 shadow-xs'
               }`}
-              title="이전 대화와 음성을 내문서\음성 폴더에 저장"
+              title="이전 대화와 음성을 내문서\음성 폴더에 즉시 수동 저장"
             >
               <Save className="w-2.5 h-2.5 text-sky-500" />
-              <span>백업 저장</span>
+              <span>즉시 저장</span>
             </button>
           </div>
         </div>
