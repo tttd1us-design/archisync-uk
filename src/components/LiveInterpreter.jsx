@@ -257,6 +257,8 @@ export default function LiveInterpreter({
   const [starredIds, setStarredIds] = useState(new Set()); // Starred Pins
   const [isSummaryModalOpen, setIsSummaryModalOpen] = useState(false);
   const [summaryData, setSummaryData] = useState(null);
+  const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
+
   const messagesTopRef = useRef(null);
   const liveLeftViewportRef = useRef(null);
   const liveRightViewportRef = useRef(null);
