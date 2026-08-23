@@ -24,34 +24,49 @@ import { translateArchitectureText, detectMeetingIntent } from '../services/gemi
 import { findGlossaryMatches } from '../data/architectureGlossary';
 import { DEMO_SCENARIOS } from '../data/demoScenarios';
 
-// Smart Sentence & Clause Splitter for Real-Time Interpretation
-function splitIntoSentences(text) {
+// ⚡ Ultra-Short Micro-Chunk Splitter for Lightning-Fast English Comprehension
+function splitIntoMicroChunks(text) {
   if (!text || !text.trim()) return [];
 
   const raw = text.trim();
 
-  // 1. Split on standard punctuation or newlines
-  let parts = raw
-    .split(/(?<=[.?!])\s+|\n+/)
+  // 1. Primary split by standard punctuation, commas, semicolons, dashes, or newlines
+  let primaryChunks = raw
+    .split(/(?<=[.?!,;:\n—])\s+|\n+/)
     .map(s => s.trim())
     .filter(Boolean);
 
-  // 2. If a single part is still very long (more than 10 words without punctuation), split by conversational conjunctions
-  const refined = [];
-  for (const p of parts) {
-    const words = p.split(/\s+/);
-    if (words.length > 10) {
-      // Split on strong conversational boundaries like ", and ", ", but ", ", so ", ", also "
-      const subParts = p.split(/(?<=,)\s+(?=and\b|but\b|so\b|also\b|however\b|therefore\b|please\b)/i)
+  // 2. Secondary micro-split by conversational transition markers and prepositions
+  const microChunks = [];
+  const splitKeywordsRegex = /\b(?:and|but|so|then|because|however|therefore|regarding|about|with|for|which|that|please|make sure|we need|let's|in terms of|as well as)\b/i;
+
+  for (const chunk of primaryChunks) {
+    const words = chunk.split(/\s+/);
+    
+    // If chunk has more than 5 words, break it down further by connective keywords or word limit
+    if (words.length > 5) {
+      const subParts = chunk.split(new RegExp(`(?<=\\s)(?=${splitKeywordsRegex.source})`, 'i'))
         .map(s => s.trim())
         .filter(Boolean);
-      refined.push(...subParts);
+
+      for (const sp of subParts) {
+        const subWords = sp.split(/\s+/);
+        // Strict cap: If still longer than 7 words, hard split into 4-5 word bite-sized pieces
+        if (subWords.length > 7) {
+          for (let i = 0; i < subWords.length; i += 5) {
+            const slice = subWords.slice(i, i + 5).join(' ').trim();
+            if (slice) microChunks.push(slice);
+          }
+        } else {
+          microChunks.push(sp);
+        }
+      }
     } else {
-      refined.push(p);
+      microChunks.push(chunk);
     }
   }
 
-  return refined.length > 0 ? refined : [raw];
+  return microChunks.length > 0 ? microChunks : [raw];
 }
 
 export default function LiveInterpreter({ 
@@ -142,21 +157,21 @@ export default function LiveInterpreter({
           if (!finalText.trim()) return;
           if (interimTranslateTimerRef.current) clearTimeout(interimTranslateTimerRef.current);
 
-          // Split long spoken text into clean, individual sentences
-          const sentences = splitIntoSentences(finalText);
+          // Split long spoken text into ultra-short, bite-sized micro chunks (3-5 words)
+          const chunks = splitIntoMicroChunks(finalText);
 
-          for (const sentence of sentences) {
-            if (!sentence.trim()) continue;
+          for (const chunk of chunks) {
+            if (!chunk.trim()) continue;
 
             const translated = await translateArchitectureText({
-              text: sentence,
+              text: chunk,
               sourceLang: lang,
               targetLang: targetLang,
               apiKey: apiKey
             });
 
-            const matchedTerms = findGlossaryMatches(sentence);
-            const intent = detectMeetingIntent(sentence, translated);
+            const matchedTerms = findGlossaryMatches(chunk);
+            const intent = detectMeetingIntent(chunk, translated);
 
             const newMessage = {
               id: Date.now() + Math.random(),
@@ -164,14 +179,14 @@ export default function LiveInterpreter({
               speakerRole: lang === 'en-GB' ? 'UK Architect' : 'KR Director',
               lang: lang,
               accent: lang === 'en-GB' ? 'UK (London RP)' : 'Korean',
-              original: sentence,
+              original: chunk,
               translation: translated,
               intent: intent,
               terms: matchedTerms.map(t => t.term),
               timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
             };
 
-            // Put each concise sentence at the TOP
+            // Put each concise micro-chunk at the TOP
             setMessages(prev => [newMessage, ...prev]);
 
             // Auto speak translation if enabled
@@ -193,7 +208,7 @@ export default function LiveInterpreter({
     }
   };
 
-  // Handle Manual Text Submission with Sentence-by-Sentence Breakdown
+  // Handle Manual Text Submission with Micro-Chunk Breakdown
   const handleManualSend = async (e) => {
     e?.preventDefault();
     if (!customInput.trim()) return;
@@ -203,20 +218,20 @@ export default function LiveInterpreter({
     const textToSend = customInput;
     setCustomInput('');
 
-    const sentences = splitIntoSentences(textToSend);
+    const chunks = splitIntoMicroChunks(textToSend);
 
-    for (const sentence of sentences) {
-      if (!sentence.trim()) continue;
+    for (const chunk of chunks) {
+      if (!chunk.trim()) continue;
 
       const translated = await translateArchitectureText({
-        text: sentence,
+        text: chunk,
         sourceLang: sourceLang,
         targetLang: targetLang,
         apiKey: apiKey
       });
 
-      const matchedTerms = findGlossaryMatches(sentence);
-      const intent = detectMeetingIntent(sentence, translated);
+      const matchedTerms = findGlossaryMatches(chunk);
+      const intent = detectMeetingIntent(chunk, translated);
 
       const newMessage = {
         id: Date.now() + Math.random(),
@@ -224,7 +239,7 @@ export default function LiveInterpreter({
         speakerRole: sourceLang === 'en-GB' ? 'UK Architect' : 'KR Director',
         lang: sourceLang,
         accent: sourceLang === 'en-GB' ? 'UK (London RP)' : 'Korean',
-        original: sentence,
+        original: chunk,
         translation: translated,
         intent: intent,
         terms: matchedTerms.map(t => t.term),
