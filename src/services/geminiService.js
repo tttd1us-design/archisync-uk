@@ -45,6 +45,56 @@ Output ONLY the direct Korean translation, no quotes, no explanations.
 // In-memory cache for ultra-low latency repeat translations
 const translationCache = new Map();
 
+// 🧠 Persistent Self-Learning Memory Engine (Continuously Evolves through Live Interpreting)
+const LEARNING_STORAGE_KEY = 'archisync_learned_memory_v2';
+
+function loadLearnedMemoryFromStorage() {
+  if (typeof window === 'undefined') return new Map();
+  try {
+    const raw = localStorage.getItem(LEARNING_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      return new Map(Object.entries(parsed));
+    }
+  } catch (e) {
+    console.warn('Failed to load learned memory:', e);
+  }
+  return new Map();
+}
+
+const dynamicLearningMemory = loadLearnedMemoryFromStorage();
+
+export function saveLearnedCorrection(sourceText, targetKorean) {
+  if (!sourceText || !targetKorean) return;
+  const key = sourceText.toLowerCase().trim();
+  dynamicLearningMemory.set(key, targetKorean.trim());
+
+  if (typeof window !== 'undefined') {
+    try {
+      const obj = Object.fromEntries(dynamicLearningMemory.entries());
+      localStorage.setItem(LEARNING_STORAGE_KEY, JSON.stringify(obj));
+    } catch (e) {
+      console.warn('Failed to persist learned memory:', e);
+    }
+  }
+}
+
+export function getLearnedStats() {
+  return {
+    totalLearnedTerms: dynamicLearningMemory.size,
+    memoryKeys: Array.from(dynamicLearningMemory.keys())
+  };
+}
+
+export function applyLearnedMemory(text) {
+  if (!text) return null;
+  const key = text.toLowerCase().trim();
+  if (dynamicLearningMemory.has(key)) {
+    return dynamicLearningMemory.get(key);
+  }
+  return null;
+}
+
 // 🌐 0ms High-Precision Automatic Source Language Detection Engine
 export function detectSourceLanguage(text) {
   if (!text || !text.trim()) return 'en-GB';
@@ -174,6 +224,13 @@ export async function translateArchitectureText({ text, sourceLang = 'en-GB', ta
 
   if (translationCache.has(cacheKey)) {
     return translationCache.get(cacheKey);
+  }
+
+  // 0. 🧠 Persistent Adaptive Learning Memory (Highest Priority: Evolves Continuously)
+  const learnedMemoryMatch = applyLearnedMemory(cleanText);
+  if (learnedMemoryMatch) {
+    translationCache.set(cacheKey, learnedMemoryMatch);
+    return learnedMemoryMatch;
   }
 
   // 1. Instant 0ms Rule-based Matcher for common architectural dialogue
