@@ -1129,11 +1129,14 @@ export default function LiveInterpreter({
                 }`}
               >
                 {currentLiveOriginal ? (
-                  <div className="space-y-3">
+                  <div className="space-y-2.5">
                     {splitIntoSentences(currentLiveOriginal).map((sentence, idx) => (
-                      <p key={idx} className={`leading-relaxed ${isLiveSpeaking ? 'text-white drop-shadow-sm' : ''}`}>
-                        {sentence}
-                      </p>
+                      <div key={idx} className="flex items-start gap-2">
+                        <span className="font-mono text-[8pt] text-amber-500/80 font-bold shrink-0 mt-0.5">[{idx + 1}]</span>
+                        <p className={`leading-relaxed ${isLiveSpeaking ? 'text-white drop-shadow-sm' : ''}`}>
+                          {sentence}
+                        </p>
+                      </div>
                     ))}
                   </div>
                 ) : (
@@ -1191,11 +1194,14 @@ export default function LiveInterpreter({
                 }`}
               >
                 {currentLiveTranslation ? (
-                  <div className="space-y-3">
+                  <div className="space-y-2.5">
                     {splitIntoSentences(currentLiveTranslation).map((sentence, idx) => (
-                      <p key={idx} className="font-extrabold leading-relaxed text-amber-300">
-                        {sentence}
-                      </p>
+                      <div key={idx} className="flex items-start gap-2">
+                        <span className="font-mono text-[8pt] text-indigo-400 font-bold shrink-0 mt-0.5">[{idx + 1}]</span>
+                        <p className="font-extrabold leading-relaxed text-amber-300">
+                          {sentence}
+                        </p>
+                      </div>
                     ))}
                   </div>
                 ) : (
