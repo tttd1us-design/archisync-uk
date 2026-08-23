@@ -34,6 +34,48 @@ import {
 import { findGlossaryMatches } from '../data/architectureGlossary';
 import { DEMO_SCENARIOS } from '../data/demoScenarios';
 
+// 🏛️ Natural Clause & Sentence Splitter (Splits long speech streams into readable 5-9 word intelligible clauses)
+function splitIntoIntelligibleChunks(text) {
+  if (!text || !text.trim()) return [];
+  const raw = text.trim();
+
+  // 1. Split by sentence boundaries (. ? ! \n)
+  const sentences = raw
+    .split(/(?<=[.?!;:\n])\s+|\n+/)
+    .map(s => s.trim())
+    .filter(Boolean);
+
+  const cleanChunks = [];
+
+  for (const sentence of sentences) {
+    const words = sentence.split(/\s+/);
+    if (words.length <= 8) {
+      cleanChunks.push(sentence);
+      continue;
+    }
+
+    // 2. Split long sentences on natural clause connectives
+    const subClauses = sentence
+      .split(/(?<=,)\s+|\s+(?=\b(?:and|but|so|however|therefore|because|regarding|in terms of|as per|please|make sure|if you|until i|first up|never making|trying to)\b)/i)
+      .map(s => s.trim())
+      .filter(Boolean);
+
+    const merged = [];
+    for (let i = 0; i < subClauses.length; i++) {
+      const clause = subClauses[i];
+      const clauseWords = clause.split(/\s+/);
+      if (clauseWords.length < 3 && merged.length > 0) {
+        merged[merged.length - 1] += ` ${clause}`;
+      } else {
+        merged.push(clause);
+      }
+    }
+    cleanChunks.push(...(merged.length > 0 ? merged : [sentence]));
+  }
+
+  return cleanChunks.length > 0 ? cleanChunks : [raw];
+}
+
 // ⚡ Ultra-Clean Pure Content 8pt Card (No redundant speaker headers, 100% content focused)
 const MessageCardItem = React.memo(function MessageCardItem({
   msg,
@@ -356,58 +398,64 @@ export default function LiveInterpreter({
           if (!finalText.trim()) return;
           if (interimTranslateTimerRef.current) clearTimeout(interimTranslateTimerRef.current);
 
-          const fullSentence = finalText.trim();
-          const detectedLang = (lang === 'auto') ? detectSourceLanguage(fullSentence) : lang;
+          // 🏛️ Split stream into intelligible, human-readable clause chunks (5-9 words)
+          const chunks = splitIntoIntelligibleChunks(finalText);
 
-          const translated = await translateArchitectureText({
-            text: fullSentence,
-            sourceLang: detectedLang,
-            targetLang: targetLang,
-            apiKey: apiKey
-          });
+          for (const chunk of chunks) {
+            if (!chunk.trim()) continue;
 
-          const isZH = detectedLang.startsWith('zh');
-          const isJP = detectedLang.startsWith('ja');
-          const isEN = detectedLang.startsWith('en');
+            const detectedLang = (lang === 'auto') ? detectSourceLanguage(chunk) : lang;
 
-          const newMessage = {
-            id: Date.now() + Math.random(),
-            speaker: isZH ? 'Shanghai Lead Architect' : isJP ? 'Tokyo Lead Architect' : isEN ? 'UK Lead Architect' : 'Seoul Design Lead',
-            speakerRole: isZH ? 'CN Architect' : isJP ? 'JP Architect' : isEN ? 'UK Architect' : 'KR Director',
-            lang: detectedLang,
-            accent: isZH ? 'Chinese (Mandarin)' : isJP ? 'Japanese (Tokyo)' : detectedLang === 'en-GB' ? 'UK (London RP)' : detectedLang === 'en-US' ? 'US (General)' : 'Korean',
-            original: fullSentence,
-            translation: translated,
-            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-          };
+            const translated = await translateArchitectureText({
+              text: chunk,
+              sourceLang: detectedLang,
+              targetLang: targetLang,
+              apiKey: apiKey
+            });
 
-          // ⚡ Intelligent In-Place Deduplication & Merging (Prevents repetitive clutter cards)
-          setMessages(prev => {
-            if (prev.length > 0) {
-              const last = prev[0];
-              const cleanCurrent = fullSentence.toLowerCase().trim();
-              const cleanLast = last.original.toLowerCase().trim();
+            const isZH = detectedLang.startsWith('zh');
+            const isJP = detectedLang.startsWith('ja');
+            const isEN = detectedLang.startsWith('en');
 
-              // 1. Identical text => skip duplicate
-              if (cleanCurrent === cleanLast) return prev;
+            const newMessage = {
+              id: Date.now() + Math.random(),
+              speaker: isZH ? 'Shanghai Lead Architect' : isJP ? 'Tokyo Lead Architect' : isEN ? 'UK Lead Architect' : 'Seoul Design Lead',
+              speakerRole: isZH ? 'CN Architect' : isJP ? 'JP Architect' : isEN ? 'UK Architect' : 'KR Director',
+              lang: detectedLang,
+              accent: isZH ? 'Chinese (Mandarin)' : isJP ? 'Japanese (Tokyo)' : detectedLang === 'en-GB' ? 'UK (London RP)' : detectedLang === 'en-US' ? 'US (General)' : 'Korean',
+              original: chunk,
+              translation: translated,
+              timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+            };
 
-              // 2. Incremental sentence expansion => update in-place without spawning duplicate card
-              if (cleanCurrent.startsWith(cleanLast) || cleanCurrent.includes(cleanLast) || cleanLast.startsWith(cleanCurrent) || cleanLast.includes(cleanCurrent)) {
-                const updated = {
-                  ...last,
-                  original: fullSentence.length >= last.original.length ? fullSentence : last.original,
-                  translation: translated.length >= last.translation.length ? translated : last.translation,
-                  timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-                };
-                return [updated, ...prev.slice(1)];
+            // ⚡ Intelligent In-Place Deduplication & Merging on clause level
+            setMessages(prev => {
+              if (prev.length > 0) {
+                const last = prev[0];
+                const cleanCurrent = chunk.toLowerCase().trim();
+                const cleanLast = last.original.toLowerCase().trim();
+
+                // 1. Identical text => skip
+                if (cleanCurrent === cleanLast) return prev;
+
+                // 2. Incremental clause expansion => update in-place
+                if (cleanCurrent.startsWith(cleanLast) || cleanLast.startsWith(cleanCurrent)) {
+                  const updated = {
+                    ...last,
+                    original: chunk.length >= last.original.length ? chunk : last.original,
+                    translation: translated.length >= last.translation.length ? translated : last.translation,
+                    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+                  };
+                  return [updated, ...prev.slice(1)];
+                }
               }
-            }
-            return [newMessage, ...prev];
-          });
+              return [newMessage, ...prev];
+            });
 
-          // Auto speak translation if enabled
-          if (autoSpeakKorean && targetLang === 'ko-KR') {
-            speechService.speak(translated, 'ko-KR');
+            // Auto speak translation if enabled
+            if (autoSpeakKorean && targetLang === 'ko-KR') {
+              speechService.speak(translated, 'ko-KR');
+            }
           }
 
           setInterimText('');
