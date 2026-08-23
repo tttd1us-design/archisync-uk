@@ -43,14 +43,14 @@ export default function LiveInterpreter({
   const [audioLevel, setAudioLevel] = useState(0);
   const [autoSpeakKorean, setAutoSpeakKorean] = useState(false);
 
-  const messagesEndRef = useRef(null);
+  const messagesTopRef = useRef(null);
   const simulationTimerRef = useRef(null);
   const visualizerCleanupRef = useRef(null);
   const interimTranslateTimerRef = useRef(null);
 
-  // Auto scroll to bottom only when a new message is committed (prevents jitter/flicker)
+  // Auto scroll to TOP when a new message arrives (keeps newest content in view)
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesTopRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages.length]);
 
   // Audio level visualizer during active mic
@@ -133,7 +133,8 @@ export default function LiveInterpreter({
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
           };
 
-          setMessages(prev => [...prev, newMessage]);
+          // Put newest message at the TOP so it is always immediately visible
+          setMessages(prev => [newMessage, ...prev]);
           setInterimText('');
           setLiveStreamingTranslation('');
 
@@ -183,7 +184,8 @@ export default function LiveInterpreter({
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
     };
 
-    setMessages(prev => [...prev, newMessage]);
+    // Put newest message at the TOP
+    setMessages(prev => [newMessage, ...prev]);
     if (autoSpeakKorean && targetLang === 'ko-KR') {
       speechService.speak(translated, 'ko-KR');
     }
@@ -229,11 +231,11 @@ export default function LiveInterpreter({
 
     speechService.speak(item.original, item.lang, {
       onEnd: () => {
-        setMessages(prev => [...prev, {
+        setMessages(prev => [{
           ...item,
           id: Date.now() + idx,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-        }]);
+        }, ...prev]);
 
         setTimeout(() => {
           const targetLang = item.lang === 'en-GB' ? 'ko-KR' : 'en-GB';
@@ -270,7 +272,7 @@ export default function LiveInterpreter({
 
     const matchedTerms = findGlossaryMatches(testEnglishSentence);
 
-    setMessages(prev => [...prev, {
+    setMessages(prev => [{
       id: Date.now(),
       speaker: 'UK Lead Architect (Oliver)',
       speakerRole: 'UK Architect',
@@ -280,7 +282,7 @@ export default function LiveInterpreter({
       translation: translated,
       terms: matchedTerms.map(t => t.term),
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-    }]);
+    }, ...prev]);
 
     if (autoSpeakKorean) {
       setTimeout(() => {
@@ -314,8 +316,7 @@ export default function LiveInterpreter({
         <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-700/60">
           <div className="flex items-center space-x-2">
             <span className="relative flex h-3 w-3">
-              <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${activeMic ? 'bg-amber-400 opacity-75' : 'bg-emerald-400 opacity-50'}`} />
-              <span className={`relative inline-flex rounded-full h-3 w-3 ${activeMic ? 'bg-amber-500' : 'bg-emerald-500'}`} />
+              <span className={`relative inline-flex rounded-full h-3 w-3 ${activeMic ? 'bg-amber-400' : 'bg-emerald-500'}`} />
             </span>
             <span className="text-xs font-black tracking-wide text-white uppercase flex items-center gap-1.5">
               <Zap className="w-4 h-4 text-amber-400" />
@@ -404,8 +405,34 @@ export default function LiveInterpreter({
 
       </div>
 
-      {/* Main Conversation Stream */}
+      {/* Main Conversation Stream (Newest First at Top) */}
       <div className="flex-1 bg-slate-900/90 border border-slate-800 rounded-2xl p-4 overflow-y-auto space-y-4 shadow-inner">
+        <div ref={messagesTopRef} />
+
+        {/* 🌟 Live Interim Speech Bubble (Pinned at the TOP for Immediate Real-Time Viewing) */}
+        {interimText && (
+          <div className={`flex flex-col ${activeMic === 'en-GB' ? 'items-start' : 'items-end'} w-full transition-opacity duration-150`}>
+            <div className="w-full max-w-3xl bg-slate-950/95 border-2 border-amber-400 rounded-2xl p-4 text-slate-200 shadow-2xl space-y-2.5">
+              <div className="flex items-center justify-between pb-1.5 border-b border-slate-800">
+                <div className="flex items-center space-x-2 text-xs font-black text-amber-400">
+                  <span className="w-2.5 h-2.5 rounded-full bg-amber-400" />
+                  <span>{activeMic === 'en-GB' ? '🇬🇧 실시간 영국 음성 인식 중 (Speaking)' : '🇰🇷 실시간 한국어 음성 인식 중'}</span>
+                </div>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                  실시간 스트리밍
+                </span>
+              </div>
+              <p className="text-sm font-semibold text-slate-100 leading-relaxed">"{interimText}"</p>
+              {liveStreamingTranslation && (
+                <div className="bg-slate-900/90 p-3 rounded-xl text-xs font-bold text-amber-300 border border-slate-700/80 shadow-inner flex items-start gap-2">
+                  <Sparkles className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                  <span>실시간 번역: {liveStreamingTranslation}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {messages.length === 0 && !interimText && (
           <div className="h-full flex flex-col items-center justify-center text-center p-6 space-y-4">
             <div className="w-14 h-14 rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-center text-amber-400 shadow-xl">
@@ -416,13 +443,13 @@ export default function LiveInterpreter({
                 영국 현지 건축가와의 실시간 통역 준비
               </h3>
               <p className="text-xs text-slate-400 mt-1 leading-relaxed">
-                하단의 <strong className="text-amber-400">🇬🇧 영국 마이크 켜기</strong>를 누르면 말하는 즉시 한국어 뜻을 알려줍니다. 상단의 <strong>[원터치 영국 음성 테스트]</strong> 버튼을 눌러 바로 확인해보세요.
+                하단의 <strong className="text-amber-400">🇬🇧 영국 마이크 켜기</strong>를 누르면 말하는 즉시 한국어 뜻을 알려줍니다. 새롭게 발화되는 내용은 항상 <strong>화면 맨 위</strong>에 표시됩니다.
               </p>
             </div>
           </div>
         )}
 
-        {/* Message Bubble List */}
+        {/* Message Bubble List (Newest on Top) */}
         {messages.map((msg) => {
           const isUK = msg.lang === 'en-GB' || msg.lang?.startsWith('en');
           return (
@@ -509,26 +536,6 @@ export default function LiveInterpreter({
             </div>
           );
         })}
-
-        {/* Live Interim Speech Bubble */}
-        {interimText && (
-          <div className={`flex flex-col ${activeMic === 'en-GB' ? 'items-start' : 'items-end'}`}>
-            <div className="max-w-2xl bg-slate-800/90 border border-amber-400/60 rounded-2xl p-4 text-slate-300 shadow-xl animate-pulse space-y-2">
-              <div className="flex items-center space-x-2 text-xs font-bold text-amber-400">
-                <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
-                <span>{activeMic === 'en-GB' ? '🇬🇧 실시간 영국 음성 인식 중...' : '🇰🇷 실시간 한국어 음성 인식 중...'}</span>
-              </div>
-              <p className="text-sm font-medium italic text-slate-200">"{interimText}"</p>
-              {liveStreamingTranslation && (
-                <div className="bg-slate-900 p-2.5 rounded-xl text-xs font-bold text-amber-300 border border-slate-700">
-                  ⚡ 실시간 뜻: {liveStreamingTranslation}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        <div ref={messagesEndRef} />
       </div>
 
       {/* Bottom Microphone & Text Input Dock */}
