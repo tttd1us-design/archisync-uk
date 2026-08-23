@@ -725,29 +725,17 @@ export default function LiveInterpreter({
                 isDark ? 'text-slate-100' : 'text-slate-900'
               }`}>
                 {interimText ? (
-                  <div className="space-y-2">
-                    <span className={`${isDark ? 'text-white' : 'text-slate-950 font-bold'} drop-shadow-sm`}>
-                      "{interimText}"
-                    </span>
-                  </div>
+                  <span className={`${isDark ? 'text-white' : 'text-slate-950 font-bold'} drop-shadow-sm`}>
+                    "{interimText}"
+                  </span>
+                ) : messages[0]?.original ? (
+                  <p className="font-semibold leading-relaxed">
+                    "{messages[0]?.original}"
+                  </p>
                 ) : (
-                  <div className="space-y-2.5">
-                    {messages[0]?.original ? (
-                      <p className="font-semibold leading-relaxed">
-                        "{messages[0]?.original}"
-                      </p>
-                    ) : (
-                      <p className={`${isDark ? 'text-slate-500' : 'text-slate-400'} font-normal italic`}>
-                        외국어(영·일·중) 음성을 실시간 수신합니다. (하단 마이크 또는 테스트 버튼 클릭)
-                      </p>
-                    )}
-                    {messages[1]?.original && (
-                      <p className={`text-[11pt] pt-2 border-t ${isDark ? 'border-slate-800/60 text-slate-400' : 'border-slate-200 text-slate-600'}`}>
-                        <span className="text-[9pt] font-bold text-slate-500 mr-2">[이전 발화]</span>
-                        "{messages[1]?.original}"
-                      </p>
-                    )}
-                  </div>
+                  <p className={`${isDark ? 'text-slate-500' : 'text-slate-400'} font-normal italic`}>
+                    외국어(영·일·중) 음성을 실시간 수신합니다. (하단 마이크 또는 테스트 버튼 클릭)
+                  </p>
                 )}
               </div>
             </div>
@@ -793,27 +781,15 @@ export default function LiveInterpreter({
                 isDark ? 'text-amber-300' : 'text-indigo-950'
               }`}>
                 {liveStreamingTranslation ? (
-                  <div className="space-y-2">
-                    <span>{liveStreamingTranslation}</span>
-                  </div>
+                  <span>{liveStreamingTranslation}</span>
+                ) : messages[0]?.translation ? (
+                  <p className="font-extrabold leading-relaxed text-amber-300">
+                    {messages[0]?.translation}
+                  </p>
                 ) : (
-                  <div className="space-y-2.5">
-                    {messages[0]?.translation ? (
-                      <p className="font-extrabold leading-relaxed text-amber-300">
-                        {messages[0]?.translation}
-                      </p>
-                    ) : (
-                      <p className={`${isDark ? 'text-slate-400' : 'text-slate-500'} font-normal`}>
-                        외국어(영·일·중)로 말하면 우측에 12pt 크기의 한국어 번역이 100% 실시간으로 표시됩니다.
-                      </p>
-                    )}
-                    {messages[1]?.translation && (
-                      <p className={`text-[11pt] pt-2 border-t ${isDark ? 'border-indigo-500/30 text-amber-200/70' : 'border-indigo-200 text-indigo-800'}`}>
-                        <span className="text-[9pt] font-bold text-indigo-400 mr-2">[이전 번역]</span>
-                        {messages[1]?.translation}
-                      </p>
-                    )}
-                  </div>
+                  <p className={`${isDark ? 'text-slate-400' : 'text-slate-500'} font-normal`}>
+                    외국어(영·일·중)로 말하면 우측에 12pt 크기의 한국어 번역이 100% 실시간으로 표시됩니다.
+                  </p>
                 )}
               </div>
             </div>
