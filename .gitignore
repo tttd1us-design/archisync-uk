@@ -1,4 +1,4 @@
-﻿node_modules
+node_modules
 dist
 dist-ssr
 *.local
@@ -6,3 +6,23 @@ dist-ssr
 .env.*
 .DS_Store
 Thumbs.db
+
+# 🎙️ Local Audio Recordings & Meeting Transcripts (Saved strictly to local Documents/음성)
+*.webm
+*.wav
+*.mp3
+*.m4a
+*.ogg
+*.aac
+*.flac
+transcript_*.txt
+voice_recording_*.webm
+voice_recording_*.wav
+voice_recording_*
+transcripts/
+recordings/
+audio/
+음성/
+백업/
+backup/
+*.log

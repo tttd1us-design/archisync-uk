@@ -11,6 +11,9 @@ import { DEMO_SCENARIOS } from './data/demoScenarios';
 export default function App() {
   const [activeTab, setActiveTab] = useState('interpreter'); // 'interpreter' | 'minutes'
   const [selectedScenarioId, setSelectedScenarioId] = useState('canary-wharf-stage3');
+  const [theme, setTheme] = useState(() => {
+    return localStorage.getItem('archisync_theme') || 'dark';
+  });
   
   const [currentProject, setCurrentProject] = useState({
     title: 'Canary Wharf Mixed-Use Tower (Phase 2)',
@@ -30,6 +33,13 @@ export default function App() {
   const [isDrawingsOpen, setIsDrawingsOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isIosInstallOpen, setIsIosInstallOpen] = useState(false);
+
+  // Toggle Theme (dark/black <-> light/white)
+  const toggleTheme = () => {
+    const nextTheme = theme === 'dark' ? 'light' : 'dark';
+    setTheme(nextTheme);
+    localStorage.setItem('archisync_theme', nextTheme);
+  };
 
   // Sync project info when scenario changes
   const handleScenarioChange = (scenarioId) => {
@@ -56,8 +66,14 @@ export default function App() {
     setIsGlossaryOpen(true);
   };
 
+  const isDark = theme === 'dark';
+
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-amber-500 selection:text-slate-950">
+    <div className={`min-h-screen flex flex-col font-sans transition-colors duration-200 ${
+      isDark 
+        ? 'bg-slate-950 text-slate-100 selection:bg-amber-500 selection:text-slate-950' 
+        : 'bg-slate-100 text-slate-900 selection:bg-indigo-500 selection:text-white'
+    }`}>
       
       {/* Top Application Header */}
       <Header
@@ -71,6 +87,8 @@ export default function App() {
         isLive={messages.length > 0}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
+        theme={theme}
+        onToggleTheme={toggleTheme}
       />
 
       {/* Main Workspace Body */}
@@ -83,6 +101,7 @@ export default function App() {
             selectedScenarioId={selectedScenarioId}
             onSelectedScenarioChange={handleScenarioChange}
             onOpenGlossaryWithTerm={handleOpenGlossaryWithTerm}
+            theme={theme}
           />
         ) : (
           <MeetingMinutes
@@ -90,6 +109,7 @@ export default function App() {
             currentProject={currentProject}
             apiKey={apiKey}
             onUpdateProject={setCurrentProject}
+            theme={theme}
           />
         )}
       </main>
