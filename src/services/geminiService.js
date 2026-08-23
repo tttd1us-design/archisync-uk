@@ -1,4 +1,4 @@
-﻿import { ARCHITECTURE_GLOSSARY, findGlossaryMatches } from '../data/architectureGlossary';
+import { ARCHITECTURE_GLOSSARY, findGlossaryMatches } from '../data/architectureGlossary';
 
 // Gemini AI & Contextual Architectural Translation Engine
 const SYSTEM_PROMPT_TRANSLATION = `
@@ -32,14 +32,14 @@ export async function translateArchitectureText({ text, sourceLang = 'en-GB', ta
     return translationCache.get(cacheKey);
   }
 
-  // Check direct architectural rule-based matches first for instant 0ms response
+  // 1. Check direct architectural rule-based matches first for instant 0ms response
   const instantMatch = getInstantArchitecturalTranslation(cleanText, sourceLang, targetLang);
   if (instantMatch && !apiKey) {
     translationCache.set(cacheKey, instantMatch);
     return instantMatch;
   }
 
-  // If Gemini API Key exists, call Gemini 1.5 Flash for deep context
+  // 2. If Gemini API Key exists, call Gemini 1.5 Flash for deep context
   if (apiKey && apiKey.trim()) {
     try {
       const matchedTerms = findGlossaryMatches(cleanText);
@@ -78,14 +78,76 @@ export async function translateArchitectureText({ text, sourceLang = 'en-GB', ta
         }
       }
     } catch (err) {
-      console.warn('Gemini API call failed, using intelligent local engine:', err);
+      console.warn('Gemini API call failed, falling back to real-time engine:', err);
     }
   }
 
-  // High-performance intelligent local fallback translation
+  // 3. Ultra-fast Web Translation Engine with UK Architecture Glossary Enhancement
+  try {
+    const sl = sourceLang.startsWith('en') ? 'en' : 'ko';
+    const tl = targetLang.startsWith('ko') ? 'ko' : 'en';
+    const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${sl}&tl=${tl}&dt=t&q=${encodeURIComponent(cleanText)}`;
+    
+    const response = await fetch(url);
+    if (response.ok) {
+      const data = await response.json();
+      if (Array.isArray(data) && Array.isArray(data[0])) {
+        let translatedText = data[0].map(item => item[0]).filter(Boolean).join('');
+        if (translatedText) {
+          // Apply UK architectural terminology refinement
+          translatedText = refineWithArchitecturalGlossary(translatedText, cleanText);
+          translationCache.set(cacheKey, translatedText);
+          return translatedText;
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('Web translation fallback notice:', err);
+  }
+
+  // 4. Fallback to smart local translation
   const result = instantMatch || smartLocalTranslation(cleanText, sourceLang, targetLang);
   translationCache.set(cacheKey, result);
   return result;
+}
+
+// Post-processing to ensure UK-specific architectural terms are preserved in Korean
+function refineWithArchitecturalGlossary(koreanText, englishSource) {
+  let refined = koreanText;
+  const lowerEng = englishSource.toLowerCase();
+
+  if (lowerEng.includes('ground floor')) {
+    refined = refined.replace(/지상층|1층/g, 'Ground Floor(1층)');
+  }
+  if (lowerEng.includes('first floor')) {
+    refined = refined.replace(/1층/g, 'First Floor(2층)');
+  }
+  if (lowerEng.includes('planning permission')) {
+    refined = refined.replace(/계획 허가|기획 허가/g, '도시계획 개발 인허가(Planning Permission)');
+  }
+  if (lowerEng.includes('building regulations')) {
+    refined = refined.replace(/건축 규정|건물 규정/g, '영국 건축법규(Building Regulations)');
+  }
+  if (lowerEng.includes('section 106')) {
+    refined = refined.replace(/106조|섹션 106/g, 'Section 106(공공기여 협약)');
+  }
+  if (lowerEng.includes('party wall')) {
+    refined = refined.replace(/파티 월|벽/g, '경계벽(Party Wall Act)');
+  }
+  if (lowerEng.includes('snagging')) {
+    refined = refined.replace(/스내깅|하자/g, '준공 전 결함 점검(Snagging)');
+  }
+  if (lowerEng.includes('curtain wall')) {
+    refined = refined.replace(/커튼 월/g, '외벽 커튼월(Curtain Wall)');
+  }
+  if (lowerEng.includes('brise-soleil') || lowerEng.includes('brise soleil')) {
+    refined = refined.replace(/브리즈 솔레일|차양/g, '일사차단 루버(Brise-soleil)');
+  }
+  if (lowerEng.includes('clash detection')) {
+    refined = refined.replace(/충돌 감지|간섭 감지/g, 'BIM 간섭 체크(Clash Detection)');
+  }
+
+  return refined;
 }
 
 // Instant 0ms Rule Matcher for UK Architectural Spoken English
@@ -147,26 +209,11 @@ function smartLocalTranslation(text, sourceLang, targetLang) {
     // English -> Korean Translation
     const matched = findGlossaryMatches(text);
     
-    // Pattern matching
-    if (lower.includes('what about') || lower.includes('how about')) {
-      if (matched.length > 0) {
-        return `${matched.map(m => m.krMeaning.split(' (')[0]).join(', ')} 관련 사항은 어떻게 진행되고 있습니까?`;
-      }
-      return `[질문] ${trimmed}에 대해 어떻게 생각하십니까?`;
-    }
-
-    if (lower.includes('we need to') || lower.includes('please issue') || lower.includes('must reduce')) {
-      if (matched.length > 0) {
-        return `${matched.map(m => m.krMeaning.split(' (')[0]).join(', ')} 관련 작업을 진행하고 수정 도면을 발행해야 합니다.`;
-      }
-      return `[요청/조치] ${trimmed}`;
-    }
-
     if (matched.length > 0) {
-      return `${trimmed} -> [건축 해설: ${matched.map(m => `${m.term}: ${m.krMeaning.split(' (')[0]}`).join(', ')}]`;
+      return `${trimmed} -> [건축 핵심용어: ${matched.map(m => `${m.term}: ${m.krMeaning.split(' (')[0]}`).join(', ')}]`;
     }
 
-    return `[실시간 통역] ${trimmed}`;
+    return trimmed;
   } else {
     // Korean -> UK English Translation
     if (lower.includes('커튼월') || lower.includes('u-value')) {
@@ -181,7 +228,7 @@ function smartLocalTranslation(text, sourceLang, targetLang) {
     if (lower.includes('간섭') || lower.includes('bim') || lower.includes('설비')) {
       return 'We completed the multi-discipline BIM clash detection between structure and M&E services.';
     }
-    return `[Live Translation] ${trimmed}`;
+    return trimmed;
   }
 }
 
