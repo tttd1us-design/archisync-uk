@@ -76,7 +76,7 @@ function splitIntoIntelligibleChunks(text) {
   return cleanChunks.length > 0 ? cleanChunks : [raw];
 }
 
-// ⚡ Ultra-Clean Pure Content 8pt Card (No redundant speaker headers, 100% content focused)
+// 💎 Commercial Grade 8pt High-Density Card with Crisp Contrast Alignment
 const MessageCardItem = React.memo(function MessageCardItem({
   msg,
   isDark,
@@ -92,44 +92,74 @@ const MessageCardItem = React.memo(function MessageCardItem({
   onSaveEdit
 }) {
   const isUK = msg.lang === 'en-GB' || msg.lang?.startsWith('en');
+  const isZH = msg.lang?.startsWith('zh');
+  const isJP = msg.lang?.startsWith('ja');
+  const flag = isZH ? '🇨🇳' : isJP ? '🇯🇵' : isUK ? '🇬🇧' : '🇰🇷';
 
   return (
-    <div className={`w-full rounded-lg p-2 border transition-all ${
-      isDark ? 'bg-slate-950/80 border-slate-800/80 text-slate-100' : 'bg-white border-slate-200 text-slate-900 shadow-xs'
-    }`}>
+    <div className={`w-full rounded-xl p-2.5 border transition-all ${
+      isDark 
+        ? 'bg-slate-950/85 border-slate-800/80 text-slate-100 hover:border-slate-700' 
+        : 'bg-white border-slate-200 text-slate-900 shadow-xs hover:border-slate-300'
+    } space-y-1.5`}>
       
-      {/* Pure Dual Column 8pt Layout: Left Spoken Original 8pt | Right Korean Translation 8pt */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 items-start text-[8pt] leading-snug">
-        
-        {/* ⬅️ LEFT: Original Spoken Speech (8pt) */}
-        <div className={`p-2 rounded-md border relative group ${
-          isDark ? 'bg-slate-900/70 border-slate-800 text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-800'
-        }`}>
-          <p className="select-text break-keep-all font-medium pr-12">
-            {msg.original}
-          </p>
-
-          {/* Floating Subtle Actions (Hover or compact) */}
-          <div className="absolute top-1.5 right-1.5 flex items-center space-x-1 opacity-70 group-hover:opacity-100 transition">
-            <button
-              onClick={() => onPlaySpeech(msg.original, msg.lang)}
-              className="p-0.5 hover:text-amber-400 text-slate-400 transition"
-              title="원문 듣기"
-            >
-              <Volume2 className="w-3 h-3" />
-            </button>
-            <button
-              onClick={() => onCopy(msg.id, `[원문] ${msg.original}\n[한글] ${msg.translation}`)}
-              className="p-0.5 hover:text-amber-400 text-slate-400 transition"
-              title="복사"
-            >
-              {copiedId === msg.id ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
-            </button>
-          </div>
+      {/* 1. Subtle Mini Meta Bar: Flag, Timestamp, Quick Action Dock */}
+      <div className={`flex items-center justify-between pb-1 border-b text-[7.5pt] ${
+        isDark ? 'border-slate-800/70 text-slate-400' : 'border-slate-100 text-slate-500'
+      }`}>
+        <div className="flex items-center space-x-1.5">
+          <span>{flag}</span>
+          <span className="font-mono text-slate-400">{msg.timestamp}</span>
         </div>
 
-        {/* ➡️ RIGHT: Korean Real-time Translation (8pt) */}
-        <div className={`p-2 rounded-md border relative group ${
+        <div className="flex items-center space-x-1.5 shrink-0">
+          <button
+            onClick={() => onPlaySpeech(msg.original, msg.lang)}
+            className="px-1 py-0.5 hover:text-amber-400 text-slate-400 rounded transition flex items-center gap-0.5 text-[7.5pt]"
+            title="원어민 음성 듣기"
+          >
+            <Volume2 className="w-3 h-3 text-amber-500" />
+            <span>원문</span>
+          </button>
+          <button
+            onClick={() => onPlaySpeech(msg.translation, isUK ? 'ko-KR' : 'en-GB')}
+            className="px-1 py-0.5 hover:text-sky-400 text-slate-400 rounded transition flex items-center gap-0.5 text-[7.5pt]"
+            title="한국어 통역 듣기"
+          >
+            <Volume2 className="w-3 h-3 text-sky-400" />
+            <span>한글</span>
+          </button>
+          <button
+            onClick={() => onStartEdit(msg.id, msg.translation)}
+            className="px-1 py-0.5 hover:text-amber-400 text-slate-400 rounded transition text-[7.5pt]"
+            title="오역 수정 및 AI 영구 학습"
+          >
+            ✏️
+          </button>
+          <button
+            onClick={() => onCopy(msg.id, `[원문] ${msg.original}\n[한글] ${msg.translation}`)}
+            className="p-0.5 hover:text-amber-500 rounded transition text-slate-400"
+            title="대화 복사"
+          >
+            {copiedId === msg.id ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
+          </button>
+        </div>
+      </div>
+
+      {/* 2. Dual Column Layout: Left Original 8pt | Right Korean 8pt */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 items-start text-[8pt] leading-relaxed">
+        
+        {/* ⬅️ LEFT: Spoken Speech (8pt) */}
+        <div className={`p-2 rounded-lg border ${
+          isDark ? 'bg-slate-900/60 border-slate-800/80 text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-800'
+        }`}>
+          <p className="select-text break-keep-all font-medium whitespace-pre-wrap">
+            {msg.original}
+          </p>
+        </div>
+
+        {/* ➡️ RIGHT: Korean Translation (8pt) */}
+        <div className={`p-2 rounded-lg border ${
           isDark ? 'bg-indigo-950/30 border-indigo-500/30 text-amber-300' : 'bg-indigo-50/50 border-indigo-200 text-indigo-950'
         }`}>
           {editingId === msg.id ? (
@@ -137,7 +167,7 @@ const MessageCardItem = React.memo(function MessageCardItem({
               <textarea
                 value={editTranslationText}
                 onChange={(e) => onChangeEditText(e.target.value)}
-                className={`w-full p-1 text-[8pt] rounded border ${
+                className={`w-full p-1.5 text-[8pt] rounded border ${
                   isDark ? 'bg-slate-900 border-slate-700 text-slate-100' : 'bg-white border-slate-300 text-slate-900'
                 }`}
                 rows={2}
@@ -148,36 +178,16 @@ const MessageCardItem = React.memo(function MessageCardItem({
                 </button>
                 <button
                   onClick={() => onSaveEdit(msg.id, msg.original, editTranslationText)}
-                  className="px-1.5 py-0.5 text-[7.5pt] font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 rounded"
+                  className="px-2 py-0.5 text-[7.5pt] font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 rounded"
                 >
                   학습 저장
                 </button>
               </div>
             </div>
           ) : (
-            <>
-              <p className="select-text break-keep-all font-bold pr-12">
-                {msg.translation}
-              </p>
-
-              {/* Floating Action for Korean column */}
-              <div className="absolute top-1.5 right-1.5 flex items-center space-x-1 opacity-70 group-hover:opacity-100 transition">
-                <button
-                  onClick={() => onPlaySpeech(msg.translation, isUK ? 'ko-KR' : 'en-GB')}
-                  className="p-0.5 hover:text-sky-400 text-slate-400 transition"
-                  title="한글 번역 듣기"
-                >
-                  <Volume2 className="w-3 h-3 text-sky-400" />
-                </button>
-                <button
-                  onClick={() => onStartEdit(msg.id, msg.translation)}
-                  className="p-0.5 hover:text-amber-400 text-slate-400 transition text-[7.5pt]"
-                  title="번역 수정·학습"
-                >
-                  ✏️
-                </button>
-              </div>
-            </>
+            <p className="select-text break-keep-all font-bold whitespace-pre-wrap">
+              {msg.translation}
+            </p>
           )}
         </div>
 
@@ -773,13 +783,21 @@ export default function LiveInterpreter({
                 isDark ? 'text-slate-100' : 'text-slate-900'
               }`}>
                 {interimText ? (
-                  <span className={`${isDark ? 'text-white' : 'text-slate-950 font-bold'} drop-shadow-sm`}>
-                    "{interimText}"
-                  </span>
+                  <div className="space-y-2">
+                    {splitIntoIntelligibleChunks(interimText).map((chunk, idx) => (
+                      <p key={idx} className={`${isDark ? 'text-white' : 'text-slate-950 font-bold'} drop-shadow-sm leading-relaxed`}>
+                        "{chunk}"
+                      </p>
+                    ))}
+                  </div>
                 ) : messages[0]?.original ? (
-                  <p className="font-semibold leading-relaxed">
-                    "{messages[0]?.original}"
-                  </p>
+                  <div className="space-y-2.5">
+                    {splitIntoIntelligibleChunks(messages[0].original).map((chunk, idx) => (
+                      <p key={idx} className="font-semibold leading-relaxed">
+                        "{chunk}"
+                      </p>
+                    ))}
+                  </div>
                 ) : (
                   <p className={`${isDark ? 'text-slate-500' : 'text-slate-400'} font-normal italic`}>
                     외국어(영·일·중) 음성을 실시간 수신합니다. (하단 마이크 또는 테스트 버튼 클릭)
@@ -829,11 +847,21 @@ export default function LiveInterpreter({
                 isDark ? 'text-amber-300' : 'text-indigo-950'
               }`}>
                 {liveStreamingTranslation ? (
-                  <span>{liveStreamingTranslation}</span>
+                  <div className="space-y-2">
+                    {splitIntoIntelligibleChunks(liveStreamingTranslation).map((chunk, idx) => (
+                      <p key={idx} className="leading-relaxed">
+                        {chunk}
+                      </p>
+                    ))}
+                  </div>
                 ) : messages[0]?.translation ? (
-                  <p className="font-extrabold leading-relaxed text-amber-300">
-                    {messages[0]?.translation}
-                  </p>
+                  <div className="space-y-2.5">
+                    {splitIntoIntelligibleChunks(messages[0].translation).map((chunk, idx) => (
+                      <p key={idx} className="font-extrabold leading-relaxed text-amber-300">
+                        {chunk}
+                      </p>
+                    ))}
+                  </div>
                 ) : (
                   <p className={`${isDark ? 'text-slate-400' : 'text-slate-500'} font-normal`}>
                     외국어(영·일·중)로 말하면 우측에 12pt 크기의 한국어 번역이 100% 실시간으로 표시됩니다.
