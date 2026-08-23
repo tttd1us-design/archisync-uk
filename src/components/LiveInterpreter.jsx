@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Mic, 
   MicOff, 
@@ -46,11 +46,12 @@ export default function LiveInterpreter({
   const messagesEndRef = useRef(null);
   const simulationTimerRef = useRef(null);
   const visualizerCleanupRef = useRef(null);
+  const interimTranslateTimerRef = useRef(null);
 
-  // Auto scroll to bottom
+  // Auto scroll to bottom only when a new message is committed (prevents jitter/flicker)
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, interimText, liveStreamingTranslation]);
+  }, [messages.length]);
 
   // Audio level visualizer during active mic
   useEffect(() => {
@@ -72,11 +73,13 @@ export default function LiveInterpreter({
   // Start / Stop Microphone with Real-time Streaming Translation
   const toggleMic = (lang) => {
     if (activeMic === lang) {
+      if (interimTranslateTimerRef.current) clearTimeout(interimTranslateTimerRef.current);
       speechService.stopRecognition();
       setActiveMic(null);
       setInterimText('');
       setLiveStreamingTranslation('');
     } else {
+      if (interimTranslateTimerRef.current) clearTimeout(interimTranslateTimerRef.current);
       speechService.stopRecognition();
       setActiveMic(lang);
       setInputLang(lang);
@@ -88,21 +91,26 @@ export default function LiveInterpreter({
       speechService.startRecognition({
         lang: lang,
         continuous: true,
-        onInterimResult: async (streamText) => {
+        onInterimResult: (streamText) => {
           setInterimText(streamText);
-          // Ultra-fast streaming translation for spoken words in progress
-          if (streamText.length > 3) {
-            const streamTrans = await translateArchitectureText({
-              text: streamText,
-              sourceLang: lang,
-              targetLang: targetLang,
-              apiKey: apiKey
-            });
-            setLiveStreamingTranslation(streamTrans);
+          
+          // Debounce interim translation (180ms) to eliminate flickering and jitter
+          if (interimTranslateTimerRef.current) clearTimeout(interimTranslateTimerRef.current);
+          if (streamText.length > 2) {
+            interimTranslateTimerRef.current = setTimeout(async () => {
+              const streamTrans = await translateArchitectureText({
+                text: streamText,
+                sourceLang: lang,
+                targetLang: targetLang,
+                apiKey: apiKey
+              });
+              setLiveStreamingTranslation(streamTrans);
+            }, 180);
           }
         },
         onResult: async (finalText) => {
           if (!finalText.trim()) return;
+          if (interimTranslateTimerRef.current) clearTimeout(interimTranslateTimerRef.current);
 
           const translated = await translateArchitectureText({
             text: finalText,
@@ -138,7 +146,7 @@ export default function LiveInterpreter({
           console.warn('Speech recognition status:', err);
         },
         onEnd: () => {
-          // Continuous loop is handled inside speechService
+          // Handled safely in speechService
         }
       });
     }

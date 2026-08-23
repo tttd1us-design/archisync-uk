@@ -1,4 +1,4 @@
-﻿// Speech Recognition (STT) & Speech Synthesis (TTS) Service with Ultra-Low Latency Streaming
+// Speech Recognition (STT) & Speech Synthesis (TTS) Service with Ultra-Low Latency Streaming
 class SpeechService {
   constructor() {
     this.recognition = null;
@@ -53,14 +53,17 @@ class SpeechService {
 
     this.stopRecognition();
     this.autoRestart = continuous;
+    this.isListening = true;
 
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     this.recognition = new SpeechRecognition();
-    this.recognition.continuous = continuous;
+    this.recognition.continuous = true;
     this.recognition.interimResults = true;
     this.recognition.maxAlternatives = 1;
     this.recognition.lang = lang;
     this.currentLang = lang;
+
+    let lastFinalText = '';
 
     this.recognition.onresult = (event) => {
       let interimTranscript = '';
@@ -75,29 +78,41 @@ class SpeechService {
         }
       }
 
-      // Stream interim text immediately for live translation
+      // Stream interim text smoothly
       if (interimTranscript) {
         onInterimResult?.(interimTranscript.trim());
       }
-      if (finalTranscript) {
+      if (finalTranscript && finalTranscript.trim() !== lastFinalText) {
+        lastFinalText = finalTranscript.trim();
         onResult?.(finalTranscript.trim());
       }
     };
 
     this.recognition.onerror = (event) => {
-      if (event.error !== 'no-speech') {
-        console.warn('Speech recognition error:', event.error);
+      if (event.error === 'no-speech' || event.error === 'network') {
+        // Normal silence or brief network drop - keep session alive smoothly
+        return;
+      }
+      console.warn('Speech recognition status:', event.error);
+      if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+        this.isListening = false;
         onError?.(event);
       }
     };
 
     this.recognition.onend = () => {
       if (this.isListening && this.autoRestart) {
-        try {
-          this.recognition.start();
-        } catch (e) {
-          // ignore already started
-        }
+        // Safe 150ms debounce before restart to prevent browser lock & UI flicker
+        if (this.restartTimer) clearTimeout(this.restartTimer);
+        this.restartTimer = setTimeout(() => {
+          if (this.isListening && this.recognition) {
+            try {
+              this.recognition.start();
+            } catch (e) {
+              // Ignore if already active
+            }
+          }
+        }, 150);
       } else {
         this.isListening = false;
         onEnd?.();
@@ -106,11 +121,11 @@ class SpeechService {
 
     try {
       this.recognition.start();
-      this.isListening = true;
       return true;
     } catch (e) {
       console.error('Failed to start recognition:', e);
       onError?.(e);
+      this.isListening = false;
       return false;
     }
   }
@@ -118,6 +133,10 @@ class SpeechService {
   stopRecognition() {
     this.autoRestart = false;
     this.isListening = false;
+    if (this.restartTimer) {
+      clearTimeout(this.restartTimer);
+      this.restartTimer = null;
+    }
     if (this.recognition) {
       try {
         this.recognition.stop();
