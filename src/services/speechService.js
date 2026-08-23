@@ -88,6 +88,7 @@ class SpeechService {
     this.ukVoice = null;
     this.krVoice = null;
     this.jpVoice = null;
+    this.zhVoice = null;
     this.autoRestart = true;
 
     this.initVoices();
@@ -114,6 +115,11 @@ class SpeechService {
     // Find best Japanese voice (Kyoko, Otoya, Nanami, Ayumi, Haruka, Ichiro, etc.)
     this.jpVoice = voices.find(v => (v.lang === 'ja-JP' || v.lang === 'ja_JP') && (v.name.includes('Natural') || v.name.includes('Online') || v.name.includes('Kyoko') || v.name.includes('Nanami') || v.name.includes('Ayumi') || v.name.includes('Haruka') || v.name.includes('Ichiro'))) 
       || voices.find(v => v.lang.startsWith('ja'))
+      || null;
+
+    // Find best Chinese voice (Xiaoxiao, Yunxi, Huihui, Yaoyao, Kangkang, etc.)
+    this.zhVoice = voices.find(v => (v.lang === 'zh-CN' || v.lang === 'zh_CN') && (v.name.includes('Natural') || v.name.includes('Online') || v.name.includes('Xiaoxiao') || v.name.includes('Yunxi') || v.name.includes('Huihui') || v.name.includes('Yaoyao'))) 
+      || voices.find(v => v.lang.startsWith('zh'))
       || null;
   }
 
@@ -306,6 +312,8 @@ class SpeechService {
       if (this.krVoice) utterance.voice = this.krVoice;
     } else if (lang.startsWith('ja')) {
       if (this.jpVoice) utterance.voice = this.jpVoice;
+    } else if (lang.startsWith('zh')) {
+      if (this.zhVoice) utterance.voice = this.zhVoice;
     }
 
     if (onStart) utterance.onstart = onStart;

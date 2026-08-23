@@ -2,38 +2,44 @@ import { ARCHITECTURE_GLOSSARY, findGlossaryMatches } from '../data/architecture
 
 // Gemini AI & Contextual Architectural STT Restorer & Multilingual Translation Engine
 const SYSTEM_PROMPT_TRANSLATION = `
-You are ArchiSync UK, an elite architectural AI interpreter with built-in STT Phonetic Error Recovery specializing in UK & US architectural design, Japanese architecture & engineering (耐震構造, 意匠設計, 納まり), MEP engineering, and construction meetings.
+You are ArchiSync UK, an elite global architectural AI interpreter with built-in STT Phonetic Error Recovery specializing in UK & US architectural design, Japanese architecture (耐震構造, 意匠設計, 納まり), and Chinese architectural engineering (幕墙, 容积率, 施工图, 报建审批, 抗震设防).
 
-Supported Languages:
+Supported Input Languages:
 - 🇬🇧/🇺🇸 English (UK/US Architect)
-- 🇯🇵 Japanese (Japanese Engineer/Architect)
-- 🇰🇷 Korean (Korean Lead Director)
+- 🇯🇵 Japanese (Japanese Structural/Design Architect)
+- 🇨🇳 Chinese (Chinese Construction/Engineering Lead)
+- 🇰🇷 Korean (Korean Project Director)
 
-Key Responsibilities:
-1. STT Acoustic Error Recovery: The input text is transcribed via live microphone and may contain phonetic misrecognitions from UK/US/Japanese regional accents. Intelligently deduce and restore the intended architectural meaning before translating.
-2. UK Architectural Standards:
-   - "Ground Floor" in UK = Ground level (한국 1층). "First Floor" in UK = Level above ground (한국 2층).
+Key Rule:
+Translate ALL incoming foreign languages (English, Japanese, Chinese) directly and naturally into accurate, professional, concise Korean architectural terminology.
+
+Key Multilingual Architectural Standards:
+1. UK/US Standards:
+   - "Ground Floor" = Ground level (한국 1층). "First Floor" = Level above ground (한국 2층).
    - "Planning Permission" = 영국 도시계획 개발 인허가.
-   - "Building Regulations" = 영국 건축법규 (Part B 화재안전, Part L 에너지/단열, Part M 배리어프리/접근성, Part K 계단안전).
-   - "RIBA Plan of Work" = 영국 왕립건축가협회 표준 업무 단계 (Stage 0~7).
-   - "Section 106 (S106)" = 개발 허가 조건 공공기여 협약.
-   - "Party Wall Act" = 인접 대지 경계벽 법적 통지.
-   - "Snagging list" = 준공 전 결함/미비점 점검 리스트.
-   - "Bill of Quantities (BOQ)" = 공사 물량 내역서.
-   - "Curtain walling", "Brise-soleil (차양 루버)", "Mullion/Transom", "Spandrel panel", "BIM Clash Detection", "GIA (내부 연면적)", "NIA (전용 면적)".
-3. Japanese Architectural Terminology:
+   - "Building Regulations" = 영국 건축법규 (Part B 화재안전, Part L 에너지/단열, Part M 배리어프리, Part K 계단안전).
+   - "Section 106 (S106)" = 공공기여 협약.
+   - "Curtain walling", "Brise-soleil (차양 루버)", "Mullion/Transom", "Spandrel panel", "BIM Clash Detection".
+2. Japanese Standards:
    - "耐震構造" = 내진구조 (Earthquake-resistant structure).
-   - "意匠設計" = 의장/건축계획 설계 (Architectural Design).
-   - "構造計算書" = 구조계산서 (Structural Calculations).
-   - "確認申請" = 건축 확인신청/인허가 (Building Confirmation Application).
-   - "納まり" = 접합부/마감 상세 시공 상세 (Finishing Detail / Joint Details).
+   - "意匠設計" = 의장/건축계획 설계.
+   - "構造計算書" = 구조계산서.
+   - "確認申請" = 건축 확인신청/인허가.
+   - "納まり" = 접합부/마감 상세 시공 상세.
    - "施工図" = 시공 상세도 (Shop Drawings).
-   - "梁 / 柱 / スラブ" = 보 / 기둥 / 바닥 슬래브.
-   - "庇 / ルーバー" = 차양 캐노피 / 루버.
+3. Chinese Standards:
+   - "幕墙 (mùqiáng)" = 커튼월 (Curtain Wall).
+   - "容积率 (róngjīlǜ)" = 용적률 (Floor Area Ratio).
+   - "建筑密度 (jiànzhù mìdù)" = 건폐율 (Building Coverage Ratio).
+   - "施工图 (shīgōngtú)" = 시공 상세도 (Shop Drawings).
+   - "报建审批 (bàojiàn shěnpī)" = 건축 인허가 승인.
+   - "抗震设防 (kàngzhèn shèfáng)" = 내진설계.
+   - "剪力墙 (jiǎnlìqiáng)" = 전단벽 (Shear Wall).
+   - "深化设计 (shēnhuà shèjì)" = 실시설계/상세설계.
 
 Instruction:
-Translate naturally into clear, professional, concise target architectural terminology (Korean, English, or Japanese). 
-Output ONLY the direct translation, no quotes, no explanations.
+Translate directly into concise, professional Korean architectural terminology. 
+Output ONLY the direct Korean translation, no quotes, no explanations.
 `;
 
 // In-memory cache for ultra-low latency repeat translations
@@ -48,7 +54,8 @@ export function detectMeetingIntent(originalText = '', translatedText = '') {
     text.includes('risk') || text.includes('clash') || text.includes('part b') || text.includes('part l') ||
     text.includes('delay') || text.includes('warning') || text.includes('reject') || text.includes('problem') ||
     text.includes('위험') || text.includes('간섭') || text.includes('법규') || text.includes('위반') || text.includes('지연') ||
-    text.includes('危険') || text.includes('干渉') || text.includes('遅延') || text.includes('問題')
+    text.includes('危険') || text.includes('干渉') || text.includes('遅延') || text.includes('問題') ||
+    text.includes('危险') || text.includes('冲突') || text.includes('违规') || text.includes('整改')
   ) {
     return {
       type: 'RISK',
@@ -63,7 +70,8 @@ export function detectMeetingIntent(originalText = '', translatedText = '') {
   if (
     text.includes('agree') || text.includes('approv') || text.includes('confirm') || text.includes('finaliz') ||
     text.includes('sign off') || text.includes('resolved') || text.includes('승인') || text.includes('확정') || text.includes('합의') ||
-    text.includes('承認') || text.includes('確定') || text.includes('合意') || text.includes('完了')
+    text.includes('承認') || text.includes('確定') || text.includes('合意') || text.includes('完了') ||
+    text.includes('通过') || text.includes('批准') || text.includes('确认') || text.includes('签字')
   ) {
     return {
       type: 'DECISION',
@@ -79,7 +87,8 @@ export function detectMeetingIntent(originalText = '', translatedText = '') {
     text.includes('please') || text.includes('need to') || text.includes('must') || text.includes('submit') ||
     text.includes('revise') || text.includes('issue') || text.includes('deadline') || text.includes('by next') ||
     text.includes('제출') || text.includes('수정') || text.includes('필요') || text.includes('요청') || text.includes('기한') ||
-    text.includes('提出') || text.includes('修正') || text.includes('必要') || text.includes('依頼') || text.includes('締切')
+    text.includes('提出') || text.includes('修正') || text.includes('必要') || text.includes('依頼') || text.includes('締切') ||
+    text.includes('提交') || text.includes('修改') || text.includes('方案') || text.includes('要求') || text.includes('请')
   ) {
     return {
       type: 'ACTION',
@@ -94,7 +103,8 @@ export function detectMeetingIntent(originalText = '', translatedText = '') {
   if (
     text.includes('?') || text.startsWith('what') || text.startsWith('when') || text.startsWith('how') ||
     text.startsWith('could') || text.startsWith('can') || text.includes('is it') || text.includes('확인') ||
-    text.includes('でしょうか') || text.includes('確認') || text.includes('ですか')
+    text.includes('でしょうか') || text.includes('確認') || text.includes('ですか') ||
+    text.includes('吗') || text.includes('是否') || text.includes('怎么') || text.includes('何时')
   ) {
     return {
       type: 'QUESTION',
@@ -120,8 +130,8 @@ export async function translateArchitectureText({ text, sourceLang = 'en-GB', ta
 
   const rawCleanText = text.trim();
   const cleanText = normalizeArchitecturalSpeech(rawCleanText, sourceLang);
-  const sl = sourceLang.startsWith('en') ? 'en' : sourceLang.startsWith('ja') ? 'ja' : 'ko';
-  const tl = targetLang.startsWith('ko') ? 'ko' : targetLang.startsWith('ja') ? 'ja' : 'en';
+  const sl = sourceLang.startsWith('zh') ? 'zh-CN' : sourceLang.startsWith('ja') ? 'ja' : sourceLang.startsWith('en') ? 'en' : 'ko';
+  const tl = 'ko'; // Enforce Korean translation for right HUD screen!
   const cacheKey = `${sl}->${tl}:${cleanText.toLowerCase()}`;
 
   if (translationCache.has(cacheKey)) {
@@ -360,6 +370,25 @@ function getInstantArchitecturalTranslation(text, sourceLang, targetLang) {
     }
     if (lower.includes('施工図') || lower.includes('現場')) {
       return '현장 시공 상세도(施工図) 승인 및 자재 발주 일정 확인입니다.';
+    }
+  }
+
+  // 🇨🇳 Chinese Architectural Common Phrases Matcher
+  if (sourceLang.startsWith('zh')) {
+    if (lower.includes('幕墙') || lower.includes('深化')) {
+      return '외벽 커튼월(幕墙) 열공학 성능 계산서 및 실시설계 상세도면 검토 건입니다.';
+    }
+    if (lower.includes('抗震') || lower.includes('设防') || lower.includes('审查')) {
+      return '초고층 내진설계(抗震设防) 특별 심의 및 구조 안정성 검토 보고입니다.';
+    }
+    if (lower.includes('报建') || lower.includes('审批') || lower.includes('规划')) {
+      return '지자체 도시계획 인허가 승인(报建审批) 및 시공 인허가 제출 일정 협의입니다.';
+    }
+    if (lower.includes('容积率') || lower.includes('建筑密度')) {
+      return '프로젝트 용적률(容积率) 및 건폐율 기준 준수 여부 확인입니다.';
+    }
+    if (lower.includes('剪力墙') || lower.includes('配筋') || lower.includes('地下室')) {
+      return '지하층 방수 시공 방안 및 전단벽(剪力墙) 배근 상세 재확인 요청입니다.';
     }
   }
 
