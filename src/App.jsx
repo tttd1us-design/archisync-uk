@@ -114,30 +114,38 @@ export default function App() {
         )}
       </main>
 
-      {/* Modals */}
-      <GlossaryModal
-        isOpen={isGlossaryOpen}
-        onClose={() => setIsGlossaryOpen(false)}
-        initialSearchTerm={glossaryInitialSearch}
-      />
+      {/* Modals: Rendered ONLY when opened to eliminate background DOM load */}
+      {isGlossaryOpen && (
+        <GlossaryModal
+          isOpen={isGlossaryOpen}
+          onClose={() => setIsGlossaryOpen(false)}
+          initialSearchTerm={glossaryInitialSearch}
+        />
+      )}
 
-      <DrawingViewerModal
-        isOpen={isDrawingsOpen}
-        onClose={() => setIsDrawingsOpen(false)}
-        latestMessage={messages[messages.length - 1]}
-      />
+      {isDrawingsOpen && (
+        <DrawingViewerModal
+          isOpen={isDrawingsOpen}
+          onClose={() => setIsDrawingsOpen(false)}
+          latestMessage={messages[messages.length - 1]}
+        />
+      )}
 
-      <SettingsModal
-        isOpen={isSettingsOpen}
-        onClose={() => setIsSettingsOpen(false)}
-        apiKey={apiKey}
-        onSaveApiKey={handleSaveApiKey}
-      />
+      {isSettingsOpen && (
+        <SettingsModal
+          isOpen={isSettingsOpen}
+          onClose={() => setIsSettingsOpen(false)}
+          apiKey={apiKey}
+          onSaveApiKey={handleSaveApiKey}
+        />
+      )}
 
-      <IosInstallModal
-        isOpen={isIosInstallOpen}
-        onClose={() => setIsIosInstallOpen(false)}
-      />
+      {isIosInstallOpen && (
+        <IosInstallModal
+          isOpen={isIosInstallOpen}
+          onClose={() => setIsIosInstallOpen(false)}
+        />
+      )}
 
     </div>
   );

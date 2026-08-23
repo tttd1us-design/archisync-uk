@@ -412,7 +412,7 @@ export default function LiveInterpreter({
         onInterimResult: (streamText) => {
           setInterimText(streamText);
           
-          // Ultra-fast 35ms predictive streaming translation for instantaneous Korean feedback
+          // 🚀 Smooth 120ms predictive streaming translation (Prevents network congestion & CPU spike)
           if (interimTranslateTimerRef.current) clearTimeout(interimTranslateTimerRef.current);
           if (streamText.length > 1) {
             interimTranslateTimerRef.current = setTimeout(async () => {
@@ -424,7 +424,7 @@ export default function LiveInterpreter({
                 apiKey: apiKey
               });
               setLiveStreamingTranslation(streamTrans);
-            }, 35);
+            }, 120);
           }
         },
         onResult: async (finalText) => {
@@ -941,21 +941,21 @@ export default function LiveInterpreter({
         </div>
       )}
 
-      {/* Quick Voice Test, Simulation Controls & 💾 Voice Save Ribbon */}
+      {/* Quick Voice Test & 💾 Voice Save Ribbon */}
       <div className={`${
-        isDark ? 'bg-slate-800/80 border-slate-700/80' : 'bg-white border-slate-200 shadow-sm'
-      } border rounded-2xl px-4 py-2 shadow-md flex flex-wrap items-center justify-between gap-3`}>
+        isDark ? 'bg-slate-800/80 border-slate-700/80' : 'bg-white border-slate-200 shadow-xs'
+      } border rounded-xl px-3 py-1.5 shadow-sm flex flex-wrap items-center justify-between gap-2 text-[8.5pt]`}>
         
-        <div className="flex items-center gap-2 overflow-x-auto max-w-full pb-1">
+        <div className="flex items-center gap-1.5 overflow-x-auto max-w-full pb-0.5">
           {/* Language Test Switcher Tab (🇬🇧 UK / 🇯🇵 JP / 🇨🇳 CN) */}
           <div className={`flex items-center p-0.5 rounded-lg border shrink-0 ${
             isDark ? 'bg-slate-900 border-slate-700' : 'bg-slate-100 border-slate-300'
           }`}>
             <button
               onClick={() => setTestLanguageTab('en-GB')}
-              className={`px-2 py-0.5 text-[9pt] font-bold rounded transition ${
+              className={`px-2 py-0.5 text-[8pt] font-bold rounded transition ${
                 testLanguageTab === 'en-GB'
-                  ? 'bg-amber-500 text-slate-950 shadow-sm'
+                  ? 'bg-amber-500 text-slate-950 shadow-xs'
                   : isDark ? 'text-slate-400 hover:text-white' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
@@ -963,81 +963,67 @@ export default function LiveInterpreter({
             </button>
             <button
               onClick={() => setTestLanguageTab('ja-JP')}
-              className={`px-2 py-0.5 text-[9pt] font-bold rounded transition ${
+              className={`px-2 py-0.5 text-[8pt] font-bold rounded transition ${
                 testLanguageTab === 'ja-JP'
-                  ? 'bg-rose-500 text-white shadow-sm'
+                  ? 'bg-rose-500 text-white shadow-xs'
                   : isDark ? 'text-slate-400 hover:text-white' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              🇯🇵 일본어
+              🇯🇵 일어
             </button>
             <button
               onClick={() => setTestLanguageTab('zh-CN')}
-              className={`px-2 py-0.5 text-[9pt] font-bold rounded transition ${
+              className={`px-2 py-0.5 text-[8pt] font-bold rounded transition ${
                 testLanguageTab === 'zh-CN'
-                  ? 'bg-red-600 text-white shadow-sm'
+                  ? 'bg-red-600 text-white shadow-xs'
                   : isDark ? 'text-slate-400 hover:text-white' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              🇨🇳 중국어
+              🇨🇳 중어
             </button>
           </div>
 
-          <span className="text-[9pt] font-bold text-amber-500 shrink-0 flex items-center gap-1">
-            ⚡ {testLanguageTab === 'en-GB' ? '영국 건축 발화:' : testLanguageTab === 'ja-JP' ? '일본 건축 발화:' : '중국 건축 발화:'}
+          <span className="text-[8pt] font-bold text-amber-500 shrink-0">
+            ⚡ 퀵 테스트:
           </span>
 
-          {(testLanguageTab === 'en-GB' ? ukQuickPhrases : testLanguageTab === 'ja-JP' ? jpQuickPhrases : zhQuickPhrases).slice(0, 3).map((phrase, i) => (
+          {(testLanguageTab === 'en-GB' ? ukQuickPhrases : testLanguageTab === 'ja-JP' ? jpQuickPhrases : zhQuickPhrases).slice(0, 2).map((phrase, i) => (
             <button
               key={i}
               onClick={() => runVoiceTest(phrase, testLanguageTab)}
-              className={`text-[8.5pt] font-semibold px-2.5 py-1 rounded-lg border whitespace-nowrap transition flex items-center gap-1 ${
+              className={`text-[8pt] font-semibold px-2 py-0.5 rounded-lg border whitespace-nowrap transition flex items-center gap-1 ${
                 isDark 
                   ? 'bg-slate-900/80 hover:bg-amber-500/20 text-slate-300 hover:text-amber-300 border-slate-700 hover:border-amber-500/40' 
                   : 'bg-slate-50 hover:bg-amber-50 text-slate-700 hover:text-amber-800 border-slate-200 hover:border-amber-400'
               }`}
-              title={`클릭 시 ${testLanguageTab === 'en-GB' ? '영국식' : testLanguageTab === 'ja-JP' ? '일본어' : '중국어'} 원어민 발음으로 재생되고 한국어 뜻을 즉시 통역합니다`}
+              title="클릭 시 원어민 음성 재생 및 실시간 한글 통역"
             >
-              <Play className={`w-2.5 h-2.5 fill-current ${testLanguageTab === 'en-GB' ? 'text-amber-500' : testLanguageTab === 'ja-JP' ? 'text-rose-500' : 'text-red-500'}`} />
-              <span>{phrase.slice(0, 26)}...</span>
+              <Play className="w-2 h-2 fill-current text-amber-500" />
+              <span>{phrase.slice(0, 22)}...</span>
             </button>
           ))}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 shrink-0">
           {/* 💾 Direct Save Button into Documents\음성 */}
           <button
             onClick={handleSaveToDocuments}
             disabled={isSaving}
-            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-[8.5pt] font-bold bg-indigo-600 hover:bg-indigo-500 text-white shadow-md transition hover:scale-105 border border-indigo-400/40"
-            title="현재까지의 녹음 음성과 번역 대화록을 내 컴퓨터 [내문서\음성] 폴더에 즉시 저장합니다 (GitHub 용량 보호)"
+            className="flex items-center space-x-1 px-2.5 py-1 rounded-lg text-[8pt] font-bold bg-indigo-600 hover:bg-indigo-500 text-white shadow-xs transition border border-indigo-400/40"
+            title="현재까지의 녹음 음성과 번역 대화록을 내 컴퓨터 [내문서\음성] 폴더에 즉시 저장합니다"
           >
-            <FolderDown className="w-3.5 h-3.5 text-sky-300" />
+            <FolderDown className="w-3 h-3 text-sky-300" />
             <span>{isSaving ? '저장 중...' : '💾 내문서\\음성 저장'}</span>
           </button>
 
           <button
-            onClick={startSimulation}
-            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-[8.5pt] font-bold transition shadow-md ${
-              isSimulating 
-                ? 'bg-rose-600 hover:bg-rose-700 text-white animate-pulse' 
-                : 'bg-gradient-to-r from-amber-500 to-indigo-600 hover:from-amber-600 text-white'
-            }`}
-          >
-            {isSimulating ? <Square className="w-3 h-3 fill-current" /> : <Play className="w-3 h-3 fill-current" />}
-            <span>{isSimulating ? '중지' : '전체 시뮬레이션'}</span>
-          </button>
-
-          <button
             onClick={() => { setMessages([]); setInterimText(''); setLiveStreamingTranslation(''); }}
-            className={`p-1.5 rounded-lg transition border ${
-              isDark 
-                ? 'text-slate-400 hover:text-rose-400 bg-slate-900 border-slate-700/60' 
-                : 'text-slate-500 hover:text-rose-600 bg-slate-100 border-slate-300'
+            className={`p-1 rounded-lg transition border text-slate-400 hover:text-rose-400 ${
+              isDark ? 'bg-slate-900 border-slate-700/60' : 'bg-slate-100 border-slate-300'
             }`}
             title="기록 초기화"
           >
-            <Trash2 className="w-3.5 h-3.5" />
+            <Trash2 className="w-3 h-3" />
           </button>
         </div>
 
