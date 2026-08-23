@@ -399,10 +399,10 @@ export default function LiveInterpreter({
           </div>
         </div>
 
-        {/* 🌟 Dual-Screen Display (Left English 🇬🇧 | Right Korean 🇰🇷 - Fixed 10pt Typography) */}
+        {/* 🌟 Dual-Screen Display (Left English 🇬🇧 12pt | Right Korean 🇰🇷 10pt) */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 items-stretch">
           
-          {/* ⬅️ LEFT SCREEN: Real-time Spoken English (Fixed 10pt) */}
+          {/* ⬅️ LEFT SCREEN: Real-time Spoken English (Fixed 12pt) */}
           <div className="bg-slate-950/90 p-3.5 rounded-2xl border-2 border-slate-700/80 flex flex-col justify-between shadow-inner space-y-2.5">
             <div className="flex items-center justify-between pb-1.5 border-b border-slate-800/80">
               <span className="text-[10pt] font-extrabold text-amber-400 flex items-center gap-1.5">
@@ -414,7 +414,7 @@ export default function LiveInterpreter({
             </div>
             
             <div className="flex-1 flex items-center min-h-[48px]">
-              <p className="text-[10pt] font-semibold text-slate-100 leading-relaxed font-sans select-text">
+              <p className="text-[12pt] font-semibold text-slate-100 leading-relaxed font-sans select-text">
                 {interimText ? (
                   <span className="text-white">"{interimText}"</span>
                 ) : (
@@ -429,7 +429,7 @@ export default function LiveInterpreter({
 
             <div className="pt-1.5 text-[9pt] font-medium text-slate-400 flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-              <span>문장/의미 단위 끊어 읽기 적용</span>
+              <span>영문 12pt 고정 및 문장/의미 단위 끊어 읽기 적용</span>
             </div>
           </div>
 
@@ -460,7 +460,7 @@ export default function LiveInterpreter({
 
             <div className="pt-1.5 text-[9pt] font-medium text-sky-300 flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-sky-400" />
-              <span>영국 건축 전문 용어(3,000+) 자동 보정</span>
+              <span>한글 10pt 고정 및 영국 건축 전문 용어(3,000+) 자동 보정</span>
             </div>
           </div>
 
@@ -529,19 +529,19 @@ export default function LiveInterpreter({
                 </span>
               </div>
 
-              {/* Dual Column: Left English | Right Korean */}
+              {/* Dual Column: Left English (12pt) | Right Korean (10pt) */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {/* Left: English */}
+                {/* Left: English 12pt */}
                 <div className="bg-slate-900/90 p-3 rounded-xl border border-slate-800 space-y-1">
                   <span className="text-[9pt] font-bold text-amber-400 flex items-center gap-1">
                     🇬🇧 영문 발화 (English):
                   </span>
-                  <p className="text-[10pt] font-semibold text-slate-100 leading-relaxed">
+                  <p className="text-[12pt] font-semibold text-slate-100 leading-relaxed">
                     "{interimText}"
                   </p>
                 </div>
 
-                {/* Right: Korean */}
+                {/* Right: Korean 10pt */}
                 <div className="bg-indigo-950/60 p-3 rounded-xl border border-indigo-500/40 space-y-1">
                   <span className="text-[9pt] font-bold text-sky-400 flex items-center gap-1">
                     <Sparkles className="w-3 h-3 text-amber-400" /> 🇰🇷 한글 번역 (Korean):
@@ -565,13 +565,13 @@ export default function LiveInterpreter({
                 영국 현지 건축가와의 실시간 통역 준비
               </h3>
               <p className="text-[10pt] text-slate-400 mt-1 leading-relaxed">
-                하단의 <strong className="text-amber-400">🇬🇧 영국 마이크 켜기</strong>를 누르면 문장별로 <strong>[왼쪽: 영문] | [오른쪽: 한글 번역]</strong>이 10pt 고정 크기로 실시간 나란히 표시됩니다.
+                하단의 <strong className="text-amber-400">🇬🇧 영국 마이크 켜기</strong>를 누르면 <strong>[왼쪽: 영문 12pt] | [오른쪽: 한글 번역 10pt]</strong>로 실시간 나란히 표시됩니다.
               </p>
             </div>
           </div>
         )}
 
-        {/* Message Cards (Newest on Top & Dual Column: Left English | Right Korean - Fixed 10pt) */}
+        {/* Message Cards (Newest on Top & Dual Column: Left English 12pt | Right Korean 10pt) */}
         {messages.map((msg) => {
           const isUK = msg.lang === 'en-GB' || msg.lang?.startsWith('en');
           const intent = msg.intent || {
@@ -608,10 +608,10 @@ export default function LiveInterpreter({
                   </div>
                 </div>
 
-                {/* 2. Dual Column Layout: Left English 🇬🇧 | Right Korean 🇰🇷 - Fixed 10pt */}
+                {/* 2. Dual Column Layout: Left English 12pt 🇬🇧 | Right Korean 10pt 🇰🇷 */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-stretch">
                   
-                  {/* ⬅️ LEFT COLUMN: English Spoken Sentence (10pt) */}
+                  {/* ⬅️ LEFT COLUMN: English Spoken Sentence (Fixed 12pt) */}
                   <div className="bg-slate-950/80 rounded-xl p-3 border border-slate-800/90 flex flex-col justify-between space-y-2">
                     <div className="space-y-1">
                       <div className="flex items-center justify-between">
@@ -627,7 +627,7 @@ export default function LiveInterpreter({
                           <span>원문 듣기</span>
                         </button>
                       </div>
-                      <p className="text-[10pt] font-semibold text-slate-100 leading-relaxed select-text">
+                      <p className="text-[12pt] font-semibold text-slate-100 leading-relaxed select-text">
                         {msg.original}
                       </p>
                     </div>
@@ -652,7 +652,7 @@ export default function LiveInterpreter({
                     )}
                   </div>
 
-                  {/* ➡️ RIGHT COLUMN: Korean Real-time Translation (10pt) */}
+                  {/* ➡️ RIGHT COLUMN: Korean Real-time Translation (Fixed 10pt) */}
                   <div className="bg-indigo-950/40 rounded-xl p-3 border border-indigo-500/30 flex flex-col justify-between space-y-2">
                     <div className="space-y-1">
                       <div className="flex items-center justify-between">
