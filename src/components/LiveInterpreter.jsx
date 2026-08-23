@@ -363,51 +363,104 @@ export default function LiveInterpreter({
   return (
     <div className="flex flex-col h-[calc(100vh-8.5rem)] max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 gap-3">
       
-      {/* 🚀 LIVE STREAMING TRANSLATION HUD BANNER (Top Prominent Display) */}
-      <div className="bg-gradient-to-r from-slate-900 via-indigo-950/80 to-slate-900 border-2 border-amber-500/50 rounded-2xl p-4 shadow-2xl backdrop-blur-xl">
-        <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-700/60">
-          <div className="flex items-center space-x-2">
-            <span className="relative flex h-3 w-3">
-              <span className={`relative inline-flex rounded-full h-3 w-3 ${activeMic ? 'bg-amber-400' : 'bg-emerald-500'}`} />
+      {/* 🚀 EXPANDED LIVE STREAMING TRANSLATION HUD STAGE (Centerpiece Command Display) */}
+      <div className="bg-gradient-to-br from-slate-900 via-indigo-950/90 to-slate-950 border-2 border-amber-400/80 rounded-3xl p-5 md:p-6 shadow-2xl backdrop-blur-2xl transition-all">
+        
+        {/* HUD Top Bar */}
+        <div className="flex flex-wrap items-center justify-between pb-3 mb-4 border-b border-slate-700/80 gap-3">
+          <div className="flex items-center space-x-3">
+            <span className="relative flex h-3.5 w-3.5">
+              <span className={`relative inline-flex rounded-full h-3.5 w-3.5 ${activeMic ? 'bg-amber-400 shadow-lg shadow-amber-400/50' : 'bg-emerald-500'}`} />
             </span>
-            <span className="text-xs font-black tracking-wide text-white uppercase flex items-center gap-1.5">
-              <Zap className="w-4 h-4 text-amber-400" />
-              <span>실시간 초고속 통역 HUD (Live English ➔ Korean Stream)</span>
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-sm md:text-base font-black tracking-wide text-white uppercase flex items-center gap-2">
+                <Zap className="w-5 h-5 text-amber-400 fill-current" />
+                <span>실시간 초고속 통역 메인 HUD (Live Interpretation Stage)</span>
+              </span>
+              <span className="hidden sm:inline-block text-[11px] font-extrabold px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                🇬🇧 ➔ 🇰🇷 실시간 듀얼 트랙
+              </span>
+            </div>
           </div>
 
-          <div className="flex items-center space-x-3">
-            <label className="flex items-center space-x-2 text-xs font-bold text-slate-300 cursor-pointer">
+          <div className="flex items-center space-x-4">
+            <label className="flex items-center space-x-2 text-xs md:text-sm font-bold text-slate-200 cursor-pointer bg-slate-800/90 px-3 py-1.5 rounded-xl border border-slate-700 hover:border-amber-500/50 transition">
               <input
                 type="checkbox"
                 checked={autoSpeakKorean}
                 onChange={(e) => setAutoSpeakKorean(e.target.checked)}
-                className="rounded text-amber-500 focus:ring-amber-400 bg-slate-800 border-slate-700"
+                className="rounded text-amber-500 focus:ring-amber-400 bg-slate-900 border-slate-700 w-4 h-4"
               />
-              <span className="flex items-center gap-1 text-[11px]">
-                <Volume2 className="w-3.5 h-3.5 text-amber-400" /> 한국어 음성 동시 출력
+              <span className="flex items-center gap-1.5 text-xs font-bold text-slate-200">
+                <Volume2 className="w-4 h-4 text-amber-400" /> 한국어 음성 동시 출력 (TTS)
               </span>
             </label>
           </div>
         </div>
 
-        {/* Live Audio / Subtitle Display */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-center min-h-[52px]">
+        {/* 🌟 Expansive Dual-Screen Display (Left English 🇬🇧 | Right Korean 🇰🇷) */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch min-h-[140px] md:min-h-[170px]">
           
-          {/* English Spoken Stream */}
-          <div className="bg-slate-950/70 p-2.5 rounded-xl border border-slate-800 flex items-center gap-2">
-            <span className="text-xs font-bold text-amber-400 shrink-0">🇬🇧 영국 영어:</span>
-            <p className="text-xs text-slate-200 font-medium truncate">
-              {interimText || (messages[messages.length - 1]?.lang?.startsWith('en') ? messages[messages.length - 1]?.original : "영국인 음성 대기 중... (하단 마이크를 켜거나 예시 버튼을 누르세요)")}
-            </p>
+          {/* ⬅️ LEFT SCREEN: Real-time Spoken English (Large & Clear) */}
+          <div className="bg-slate-950/90 p-4 md:p-5 rounded-2xl border-2 border-slate-700/80 flex flex-col justify-between shadow-inner space-y-3">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-800/80">
+              <span className="text-xs md:text-sm font-extrabold text-amber-400 flex items-center gap-1.5">
+                🇬🇧 실시간 영국 영어 (English Live Speech)
+              </span>
+              <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-slate-800 text-slate-400">
+                {activeMic === 'en-GB' ? '🎙️ 수신 중 (Listening)' : '대기 중'}
+              </span>
+            </div>
+            
+            <div className="flex-1 flex items-center">
+              <p className="text-lg md:text-xl lg:text-2xl font-bold text-slate-100 leading-relaxed font-sans select-text">
+                {interimText ? (
+                  <span className="text-white drop-shadow-sm">"{interimText}"</span>
+                ) : (
+                  <span className="text-slate-500 font-medium text-base md:text-lg italic">
+                    {messages[0]?.lang?.startsWith('en') 
+                      ? `"${messages[0]?.original}"` 
+                      : "영국인 음성을 기다리는 중입니다... (하단 마이크를 켜거나 테스트 버튼을 누르세요)"}
+                  </span>
+                )}
+              </p>
+            </div>
+
+            <div className="pt-2 text-[11px] font-bold text-slate-400 flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-amber-400/80" />
+              <span>문장 단위 자동 분할 및 실시간 영국식 억양 인식 적용</span>
+            </div>
           </div>
 
-          {/* Korean Instant Translation */}
-          <div className="bg-indigo-950/60 p-2.5 rounded-xl border border-indigo-500/40 flex items-center gap-2">
-            <span className="text-xs font-bold text-sky-400 shrink-0">🇰🇷 한국어 뜻:</span>
-            <p className="text-xs font-bold text-amber-300 truncate">
-              {liveStreamingTranslation || (messages[messages.length - 1]?.lang?.startsWith('en') ? messages[messages.length - 1]?.translation : "영어로 말하면 즉시 한국어 뜻이 실시간 표시됩니다.")}
-            </p>
+          {/* ➡️ RIGHT SCREEN: Real-time Instant Korean Translation (Extra Large Neon Gold) */}
+          <div className="bg-indigo-950/70 p-4 md:p-5 rounded-2xl border-2 border-indigo-500/60 flex flex-col justify-between shadow-2xl space-y-3">
+            <div className="flex items-center justify-between pb-2 border-b border-indigo-500/30">
+              <span className="text-xs md:text-sm font-extrabold text-sky-300 flex items-center gap-1.5">
+                <Sparkles className="w-4 h-4 text-amber-400" /> 🇰🇷 실시간 초고속 한글 뜻 (Instant Korean)
+              </span>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                ⚡ 0.1초 즉시 번역
+              </span>
+            </div>
+
+            <div className="flex-1 flex items-center">
+              <p className="text-xl md:text-2xl lg:text-3xl font-black text-amber-300 leading-snug tracking-tight select-text drop-shadow-md">
+                {liveStreamingTranslation ? (
+                  <span>{liveStreamingTranslation}</span>
+                ) : (
+                  <span className="text-slate-400 font-bold text-base md:text-xl">
+                    {messages[0]?.lang?.startsWith('en') 
+                      ? messages[0]?.translation 
+                      : "영어로 말하면 즉시 큰 글씨의 한국어 뜻이 실시간 표시됩니다."}
+                  </span>
+                )}
+              </p>
+            </div>
+
+            <div className="pt-2 text-[11px] font-bold text-sky-300 flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-sky-400" />
+              <span>영국 건축 전문 용어(3,000+) 자동 보정 및 의도 분석 연동</span>
+            </div>
           </div>
 
         </div>
