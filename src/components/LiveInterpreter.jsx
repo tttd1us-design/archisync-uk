@@ -678,94 +678,88 @@ export default function LiveInterpreter({
   const [testLanguageTab, setTestLanguageTab] = useState('en-GB'); // 'en-GB' | 'ja-JP' | 'zh-CN'
 
   return (
-    <div className="flex flex-col h-[calc(100vh-8.5rem)] max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 gap-3">
+    <div className="flex flex-col h-[calc(100vh-4.5rem)] max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2.5 gap-2.5">
       
-      {/* 🚀 CENTRAL LIVE REAL-TIME STAGE (Centerpiece Command Display) */}
+      {/* 🚀 CENTRAL LIVE REAL-TIME STAGE (Sleek Minimalist HUD) */}
       <div className={`${
         isDark 
-          ? 'bg-gradient-to-br from-slate-900 via-indigo-950/90 to-slate-950 border-2 border-amber-400/80 text-white shadow-2xl' 
-          : 'bg-gradient-to-br from-white via-slate-50 to-indigo-50/80 border-2 border-indigo-400/80 text-slate-900 shadow-xl'
-      } rounded-3xl p-5 md:p-6 backdrop-blur-2xl transition-all duration-200`}>
+          ? 'bg-slate-900/90 border border-slate-800/80 text-white shadow-sm' 
+          : 'bg-white border border-slate-200 text-slate-900 shadow-xs'
+      } rounded-2xl p-4 transition-colors`}>
         
         {/* HUD Top Bar */}
-        <div className={`flex flex-wrap items-center justify-between pb-3 mb-4 border-b ${
-          isDark ? 'border-slate-700/80' : 'border-slate-200'
-        } gap-3`}>
-          <div className="flex items-center space-x-3">
-            <span className="relative flex h-3.5 w-3.5">
-              <span className={`relative inline-flex rounded-full h-3.5 w-3.5 ${
-                activeMic ? 'bg-amber-500 shadow-lg shadow-amber-400/50' : 'bg-emerald-500'
+        <div className={`flex flex-wrap items-center justify-between pb-2.5 mb-3 border-b ${
+          isDark ? 'border-slate-800/80' : 'border-slate-100'
+        } gap-2`}>
+          <div className="flex items-center space-x-2.5">
+            <span className="relative flex h-3 w-3">
+              <span className={`relative inline-flex rounded-full h-3 w-3 ${
+                activeMic ? 'bg-amber-500 shadow-sm shadow-amber-400/50' : 'bg-emerald-500'
               }`} />
             </span>
             <div className="flex items-center gap-2">
-              <span className={`text-sm md:text-base font-black tracking-wide uppercase flex items-center gap-2 ${
+              <span className={`text-sm font-black tracking-tight flex items-center gap-1.5 ${
                 isDark ? 'text-white' : 'text-slate-900'
               }`}>
-                <Zap className="w-5 h-5 text-amber-500 fill-current" />
-                <span>실시간 초고속 통역 메인 HUD (Live Interpretation Stage)</span>
+                <Zap className="w-4 h-4 text-amber-500 fill-current" />
+                <span>실시간 통역 메인 HUD</span>
               </span>
-              <span className={`hidden sm:inline-block text-[11px] font-extrabold px-2.5 py-0.5 rounded-full ${
-                isDark ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' : 'bg-amber-100 text-amber-800 border border-amber-300'
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                isDark ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'bg-amber-50 text-amber-800 border border-amber-300'
               }`}>
-                🇬🇧·🇯🇵·🇨🇳 ➔ 🇰🇷 지능형 적응 통역
-              </span>
-              <span className={`hidden md:inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-0.5 rounded-full ${
-                isDark ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40' : 'bg-indigo-50 text-indigo-800 border border-indigo-200'
-              }`}>
-                <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
-                <span>AI 자가 진화: <strong>{learnedCount}개 용어 기억 중</strong> · 정확도 99.9%</span>
+                🇬🇧·🇯🇵·🇨🇳 ➔ 🇰🇷 0.03s 즉시 통역
               </span>
             </div>
           </div>
 
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-2">
             {/* 🔴 Manual Audio Recording Toggle Button */}
             <button
               onClick={toggleAudioRecording}
-              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition shadow-md border ${
+              className={`flex items-center space-x-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition border ${
                 isRecordingAudio
-                  ? 'bg-rose-600 hover:bg-rose-700 text-white border-rose-400 ring-2 ring-rose-500/40 animate-pulse'
+                  ? 'bg-rose-600 hover:bg-rose-700 text-white border-rose-400 ring-2 ring-rose-500/30 animate-pulse'
                   : isDark 
-                    ? 'bg-slate-800 hover:bg-slate-700 text-rose-300 border-slate-700 hover:border-rose-500/50' 
-                    : 'bg-white hover:bg-rose-50 text-rose-700 border-slate-300 hover:border-rose-400 shadow-sm'
+                    ? 'bg-slate-800 hover:bg-slate-700 text-rose-300 border-slate-700' 
+                    : 'bg-white hover:bg-rose-50 text-rose-700 border-slate-200 shadow-xs'
               }`}
-              title={isRecordingAudio ? "음성 녹음을 중지합니다" : "실제 마이크 음성을 고음질 오디오 파일로 녹음합니다"}
+              title={isRecordingAudio ? "음성 녹음 중지" : "음성 녹음 시작 (내문서\\음성에 저장)"}
             >
-              <span className={`w-2.5 h-2.5 rounded-full ${isRecordingAudio ? 'bg-white animate-ping' : 'bg-rose-500'}`} />
+              <span className={`w-2 h-2 rounded-full ${isRecordingAudio ? 'bg-white animate-ping' : 'bg-rose-500'}`} />
               <span>
                 {isRecordingAudio 
-                  ? `⏹️ ● REC (${formatTime(recordingSeconds)})` 
-                  : '🔴 음성 녹음 (OFF)'}
+                  ? `● REC (${formatTime(recordingSeconds)})` 
+                  : '🔴 음성 녹음'}
               </span>
             </button>
 
-            <label className={`flex items-center space-x-2 text-xs md:text-sm font-bold cursor-pointer px-3 py-1.5 rounded-xl border transition ${
+            <label className={`flex items-center space-x-1.5 text-xs font-bold cursor-pointer px-2.5 py-1 rounded-lg border transition ${
               isDark 
-                ? 'bg-slate-800/90 text-slate-200 border-slate-700 hover:border-amber-500/50' 
-                : 'bg-white text-slate-800 border-slate-300 hover:border-indigo-400 shadow-sm'
+                ? 'bg-slate-800 text-slate-200 border-slate-700 hover:border-amber-500/40' 
+                : 'bg-white text-slate-800 border-slate-200 hover:border-indigo-300 shadow-xs'
             }`}>
               <input
                 type="checkbox"
                 checked={autoSpeakKorean}
                 onChange={(e) => setAutoSpeakKorean(e.target.checked)}
-                className="rounded text-amber-500 focus:ring-amber-400 bg-slate-900 border-slate-700 w-4 h-4"
+                className="rounded text-amber-500 focus:ring-amber-400 bg-slate-900 border-slate-700 w-3.5 h-3.5"
               />
-              <span className="flex items-center gap-1.5 text-xs font-bold">
-                <Volume2 className="w-4 h-4 text-amber-500" /> 한국어 TTS
+              <span className="flex items-center gap-1 text-xs">
+                <Volume2 className="w-3.5 h-3.5 text-amber-500" /> 한글 음성(TTS)
               </span>
             </label>
           </div>
         </div>
 
-        {/* 🌟 CENTRAL LIVE REAL-TIME STAGE (Fixed 1.5X Grand 510px Viewport: Strict 12pt Typography, No Overflow) */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 items-stretch">
+        {/* 🌟 CENTRAL LIVE REAL-TIME STAGE (Fixed 1.5X Grand 510px Viewport: Strict 12pt Typography) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 items-stretch">
           
           {/* ⬅️ LEFT SCREEN: Live Spoken Foreign Speech (Fixed Height 510px - Strict 12pt) */}
           <div className={`${
             isDark 
-              ? 'bg-slate-950/95 border-2 border-slate-700/90 text-slate-100 ring-2 ring-amber-500/20 shadow-2xl' 
-              : 'bg-white border-2 border-slate-300 text-slate-900 shadow-xl ring-2 ring-slate-200'
-          } p-5 rounded-2xl flex flex-col justify-between h-[510px] max-h-[510px] transition-all relative overflow-hidden`}>
+              ? 'bg-slate-950/90 border border-slate-800 text-slate-100' 
+              : 'bg-slate-50 border border-slate-200 text-slate-900 shadow-xs'
+          } p-4 rounded-xl flex flex-col justify-between h-[510px] max-h-[510px] transition-all relative overflow-hidden`}>
             
             {/* Header: Fixed Height (h-8) */}
             <div className={`flex items-center justify-between pb-2.5 border-b shrink-0 h-8 ${
@@ -853,23 +847,23 @@ export default function LiveInterpreter({
           {/* ➡️ RIGHT SCREEN: Live Instant Korean Translation (Fixed Height 510px - Strict 12pt) */}
           <div className={`${
             isDark 
-              ? 'bg-indigo-950/85 border-2 border-indigo-500/70 text-amber-300 ring-2 ring-indigo-400/30 shadow-2xl' 
-              : 'bg-indigo-50/95 border-2 border-indigo-400/90 text-indigo-950 shadow-xl ring-2 ring-indigo-200'
-          } p-5 rounded-2xl flex flex-col justify-between h-[510px] max-h-[510px] transition-all relative overflow-hidden`}>
+              ? 'bg-indigo-950/40 border border-indigo-500/30 text-amber-300' 
+              : 'bg-indigo-50/70 border border-indigo-200 text-indigo-950 shadow-xs'
+          } p-4 rounded-xl flex flex-col justify-between h-[510px] max-h-[510px] transition-all relative overflow-hidden`}>
             
             {/* Header: Fixed Height (h-8) */}
             <div className={`flex items-center justify-between pb-2.5 border-b shrink-0 h-8 ${
               isDark ? 'border-indigo-500/30' : 'border-indigo-200'
             }`}>
-              <span className={`text-[11pt] font-black flex items-center gap-2 truncate ${
+              <span className={`text-[11pt] font-black flex items-center gap-1.5 truncate ${
                 isDark ? 'text-sky-300' : 'text-indigo-700'
               }`}>
-                <Sparkles className="w-4 h-4 text-amber-500 shrink-0" /> 🇰🇷 실시간 초고속 한글 뜻 (100% 무조건 한글)
+                <Sparkles className="w-4 h-4 text-amber-500 shrink-0" /> 🇰🇷 실시간 한글 통역 (100% 한글)
               </span>
-              <span className={`text-[9pt] font-bold px-2.5 py-0.5 rounded-full shrink-0 ${
-                isDark ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' : 'bg-amber-100 text-amber-800 border border-amber-300'
+              <span className={`text-[9pt] font-bold px-2 py-0.5 rounded-full shrink-0 ${
+                isDark ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'bg-amber-100 text-amber-800 border border-amber-200'
               }`}>
-                ⚡ 0.03s 즉시 동기화
+                ⚡ 0.03s 동기화
               </span>
             </div>
 
