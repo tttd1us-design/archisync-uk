@@ -80,6 +80,207 @@ function splitIntoIntelligibleChunks(text) {
   return cleanChunks.length > 0 ? cleanChunks : [raw];
 }
 
+// ⚡ Highly-Optimized Memoized Message Card Component (Prevents list re-render on audio level / stream updates)
+const MessageCardItem = React.memo(function MessageCardItem({
+  msg,
+  isDark,
+  copiedId,
+  onCopy,
+  onPlaySpeech,
+  onOpenGlossary,
+  editingId,
+  editTranslationText,
+  onStartEdit,
+  onCancelEdit,
+  onChangeEditText,
+  onSaveEdit
+}) {
+  const isUK = msg.lang === 'en-GB' || msg.lang?.startsWith('en');
+  const isZH = msg.lang?.startsWith('zh');
+  const isJP = msg.lang?.startsWith('ja');
+  const flag = isZH ? '🇨🇳' : isJP ? '🇯🇵' : isUK ? '🇬🇧' : '🇰🇷';
+
+  const intent = msg.intent || {
+    type: 'INFO',
+    label: '💬 현황 공유',
+    color: isDark ? 'bg-slate-700/50 text-slate-300 border-slate-600/40' : 'bg-slate-100 text-slate-700 border-slate-300',
+    borderLeft: 'border-l-4 border-l-indigo-500',
+    takeaway: '대화 내용 확인'
+  };
+
+  return (
+    <div className="w-full transition-all">
+      <div className={`w-full rounded-2xl p-3.5 shadow-md border ${intent.borderLeft} ${
+        isDark ? 'bg-slate-950/80 border-slate-800/80 text-slate-100' : 'bg-white border-slate-200 text-slate-900 shadow-sm'
+      } space-y-2.5`}>
+        
+        {/* 1. Backup Card Top Bar */}
+        <div className={`flex flex-wrap items-center justify-between pb-1.5 border-b ${
+          isDark ? 'border-slate-800/60' : 'border-slate-100'
+        } gap-2`}>
+          <div className="flex items-center space-x-2">
+            <span className="text-sm">{flag}</span>
+            <span className={`text-[9.5pt] font-bold ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>{msg.speaker}</span>
+            <span className={`text-[8pt] font-bold px-2 py-0.5 rounded-full border ${intent.color}`}>
+              {intent.label}
+            </span>
+          </div>
+          
+          <div className={`flex items-center space-x-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+            <span className="text-[8pt] font-mono">{msg.timestamp}</span>
+            <button
+              onClick={() => onCopy(msg.id, `[원문] ${msg.original}\n[한글] ${msg.translation}`)}
+              className="p-1 hover:text-amber-500 rounded transition"
+              title="전체 복사"
+            >
+              {copiedId === msg.id ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+            </button>
+          </div>
+        </div>
+
+        {/* 2. Dual Column Layout: Left Original 12pt | Right Korean 10pt */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-stretch">
+          
+          {/* ⬅️ LEFT COLUMN: Original Spoken Sentence (Fixed 12pt) */}
+          <div className={`${
+            isDark ? 'bg-slate-900/90 border-slate-800/90' : 'bg-slate-50 border-slate-200'
+          } rounded-xl p-3 border flex flex-col justify-between space-y-2`}>
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <span className={`text-[8.5pt] font-bold flex items-center gap-1 ${
+                  isDark ? 'text-slate-400' : 'text-slate-600'
+                }`}>
+                  {flag} 발화 원문 ({msg.accent || msg.lang}):
+                </span>
+                <button
+                  onClick={() => onPlaySpeech(msg.original, msg.lang)}
+                  className="p-1 hover:text-amber-500 text-slate-400 transition flex items-center gap-1 text-[8.5pt]"
+                  title="원문 다시 듣기"
+                >
+                  <Volume2 className="w-3 h-3 text-amber-500" />
+                  <span>원문 듣기</span>
+                </button>
+              </div>
+              <p className={`text-[12pt] font-semibold leading-relaxed select-text ${
+                isDark ? 'text-slate-100' : 'text-slate-900'
+              }`}>
+                {msg.original}
+              </p>
+            </div>
+
+            {/* Detected Terms Chips */}
+            {msg.terms && msg.terms.length > 0 && (
+              <div className={`pt-1.5 border-t ${isDark ? 'border-slate-800/70' : 'border-slate-200'} flex flex-wrap items-center gap-1.5`}>
+                <span className={`text-[8pt] font-bold flex items-center gap-1 ${
+                  isDark ? 'text-slate-500' : 'text-slate-600'
+                }`}>
+                  <BookOpen className="w-3 h-3 text-amber-500" /> 전문용어:
+                </span>
+                {msg.terms.map((term, i) => (
+                  <button
+                    key={i}
+                    onClick={() => onOpenGlossary(term)}
+                    className={`text-[8pt] font-bold px-2 py-0.5 rounded-full border transition flex items-center gap-1 ${
+                      isDark 
+                        ? 'bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 border-amber-500/40' 
+                        : 'bg-amber-50 text-amber-800 hover:bg-amber-100 border-amber-300'
+                    }`}
+                  >
+                    {term}
+                    <Info className="w-2 h-2 opacity-60" />
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* ➡️ RIGHT COLUMN: Korean Real-time Translation (Fixed 10pt) */}
+          <div className={`${
+            isDark ? 'bg-indigo-950/30 border-indigo-500/30' : 'bg-indigo-50/50 border-indigo-200'
+          } rounded-xl p-3 border flex flex-col justify-between space-y-2`}>
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <span className={`text-[8.5pt] font-bold flex items-center gap-1 ${
+                    isDark ? 'text-sky-300' : 'text-indigo-700'
+                  }`}>
+                    <Sparkles className="w-3 h-3 text-amber-500" /> 🇰🇷 한글 번역:
+                  </span>
+                  {msg.isLearned && (
+                    <span className="text-[7.5pt] font-bold px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                      ✨ AI 학습됨
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center space-x-1">
+                  <button
+                    onClick={() => onStartEdit(msg.id, msg.translation)}
+                    className="p-1 hover:text-amber-400 text-slate-400 transition flex items-center gap-1 text-[8pt]"
+                    title="이 번역을 수정하여 AI에 영구 학습시키기"
+                  >
+                    <span>✏️ 수정·학습</span>
+                  </button>
+                  <button
+                    onClick={() => onPlaySpeech(msg.translation, isUK ? 'ko-KR' : 'en-GB')}
+                    className="p-1 hover:text-amber-500 text-sky-500 transition flex items-center gap-1 text-[8.5pt]"
+                    title="한국어 번역 음성 듣기"
+                  >
+                    <Volume2 className="w-3 h-3 text-sky-500" />
+                    <span>듣기</span>
+                  </button>
+                </div>
+              </div>
+              
+              {editingId === msg.id ? (
+                <div className="space-y-2 pt-1">
+                  <textarea
+                    value={editTranslationText}
+                    onChange={(e) => onChangeEditText(e.target.value)}
+                    className={`w-full p-2 text-xs rounded-lg border focus:ring-2 focus:ring-amber-500 ${
+                      isDark ? 'bg-slate-900 border-slate-700 text-slate-100' : 'bg-white border-slate-300 text-slate-900'
+                    }`}
+                    rows={2}
+                  />
+                  <div className="flex items-center justify-end space-x-2">
+                    <button
+                      onClick={onCancelEdit}
+                      className="px-2 py-1 text-[10px] font-bold text-slate-400 hover:text-slate-200"
+                    >
+                      취소
+                    </button>
+                    <button
+                      onClick={() => onSaveEdit(msg.id, msg.original, editTranslationText)}
+                      className="px-2.5 py-1 text-[10px] font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-md shadow-sm"
+                    >
+                      🧠 영구 학습 저장
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <p className={`text-[10pt] font-bold leading-relaxed select-text ${
+                  isDark ? 'text-amber-300' : 'text-indigo-950 font-extrabold'
+                }`}>
+                  {msg.translation}
+                </p>
+              )}
+            </div>
+
+            {/* Quick Takeaway Footer */}
+            <div className={`pt-1.5 border-t ${
+              isDark ? 'border-indigo-500/20 text-slate-300' : 'border-indigo-100 text-slate-600'
+            } text-[8.5pt] font-medium flex items-center gap-1.5`}>
+              <span className={`font-semibold shrink-0 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>⚡ 1초 요약:</span>
+              <span className={`${isDark ? 'text-amber-200' : 'text-indigo-800 font-bold'} truncate`}>{intent.takeaway}</span>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+  );
+});
+
 export default function LiveInterpreter({ 
   messages, 
   setMessages, 
@@ -929,192 +1130,27 @@ export default function LiveInterpreter({
           </div>
         )}
 
-        {/* Previous Message Backup Cards (Left English 12pt | Right Korean 10pt) */}
-        {messages.map((msg) => {
-          const isUK = msg.lang === 'en-GB' || msg.lang?.startsWith('en');
-          const intent = msg.intent || {
-            type: 'INFO',
-            label: '💬 현황 공유',
-            color: isDark ? 'bg-slate-700/50 text-slate-300 border-slate-600/40' : 'bg-slate-100 text-slate-700 border-slate-300',
-            borderLeft: 'border-l-4 border-l-indigo-500',
-            takeaway: '대화 내용 확인'
-          };
-
-          return (
-            <div key={msg.id} className="w-full transition-all">
-              <div className={`w-full rounded-2xl p-3.5 shadow-md border ${intent.borderLeft} ${
-                isDark ? 'bg-slate-950/80 border-slate-800/80 text-slate-100' : 'bg-white border-slate-200 text-slate-900 shadow-sm'
-              } space-y-2.5`}>
-                
-                {/* 1. Backup Card Top Bar */}
-                <div className={`flex flex-wrap items-center justify-between pb-1.5 border-b ${
-                  isDark ? 'border-slate-800/60' : 'border-slate-100'
-                } gap-2`}>
-                  <div className="flex items-center space-x-2">
-                    <span className="text-sm">{isUK ? '🇬🇧' : '🇰🇷'}</span>
-                    <span className={`text-[9.5pt] font-bold ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>{msg.speaker}</span>
-                    <span className={`text-[8pt] font-bold px-2 py-0.5 rounded-full border ${intent.color}`}>
-                      {intent.label}
-                    </span>
-                  </div>
-                  
-                  <div className={`flex items-center space-x-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                    <span className="text-[8pt] font-mono">{msg.timestamp}</span>
-                    <button
-                      onClick={() => handleCopy(msg.id, `[영문] ${msg.original}\n[한글] ${msg.translation}`)}
-                      className="p-1 hover:text-amber-500 rounded transition"
-                      title="전체 복사"
-                    >
-                      {copiedId === msg.id ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
-                    </button>
-                  </div>
-                </div>
-
-                {/* 2. Dual Column Layout: Left English 12pt 🇬🇧 | Right Korean 10pt 🇰🇷 */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-stretch">
-                  
-                  {/* ⬅️ LEFT COLUMN: English Spoken Sentence (Fixed 12pt) */}
-                  <div className={`${
-                    isDark ? 'bg-slate-900/90 border-slate-800/90' : 'bg-slate-50 border-slate-200'
-                  } rounded-xl p-3 border flex flex-col justify-between space-y-2`}>
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-between">
-                        <span className={`text-[8.5pt] font-bold flex items-center gap-1 ${
-                          isDark ? 'text-slate-400' : 'text-slate-600'
-                        }`}>
-                          🇬🇧 영문 (English):
-                        </span>
-                        <button
-                          onClick={() => playSpeech(msg.original, msg.lang)}
-                          className="p-1 hover:text-amber-500 text-slate-400 transition flex items-center gap-1 text-[8.5pt]"
-                          title="영문 원문 다시 듣기"
-                        >
-                          <Volume2 className="w-3 h-3 text-amber-500" />
-                          <span>원문 듣기</span>
-                        </button>
-                      </div>
-                      <p className={`text-[12pt] font-semibold leading-relaxed select-text ${
-                        isDark ? 'text-slate-100' : 'text-slate-900'
-                      }`}>
-                        {msg.original}
-                      </p>
-                    </div>
-
-                    {/* Detected Terms Chips */}
-                    {msg.terms && msg.terms.length > 0 && (
-                      <div className={`pt-1.5 border-t ${isDark ? 'border-slate-800/70' : 'border-slate-200'} flex flex-wrap items-center gap-1.5`}>
-                        <span className={`text-[8pt] font-bold flex items-center gap-1 ${
-                          isDark ? 'text-slate-500' : 'text-slate-600'
-                        }`}>
-                          <BookOpen className="w-3 h-3 text-amber-500" /> 전문용어:
-                        </span>
-                        {msg.terms.map((term, i) => (
-                          <button
-                            key={i}
-                            onClick={() => onOpenGlossaryWithTerm(term)}
-                            className={`text-[8pt] font-bold px-2 py-0.5 rounded-full border transition flex items-center gap-1 ${
-                              isDark 
-                                ? 'bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 border-amber-500/40' 
-                                : 'bg-amber-50 text-amber-800 hover:bg-amber-100 border-amber-300'
-                            }`}
-                          >
-                            {term}
-                            <Info className="w-2 h-2 opacity-60" />
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* ➡️ RIGHT COLUMN: Korean Real-time Translation (Fixed 10pt) */}
-                  <div className={`${
-                    isDark ? 'bg-indigo-950/30 border-indigo-500/30' : 'bg-indigo-50/50 border-indigo-200'
-                  } rounded-xl p-3 border flex flex-col justify-between space-y-2`}>
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-1.5">
-                          <span className={`text-[8.5pt] font-bold flex items-center gap-1 ${
-                            isDark ? 'text-sky-300' : 'text-indigo-700'
-                          }`}>
-                            <Sparkles className="w-3 h-3 text-amber-500" /> 🇰🇷 한글 번역:
-                          </span>
-                          {msg.isLearned && (
-                            <span className="text-[7.5pt] font-bold px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
-                              ✨ AI 학습됨
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex items-center space-x-1">
-                          <button
-                            onClick={() => {
-                              setEditingId(editingId === msg.id ? null : msg.id);
-                              setEditTranslationText(msg.translation);
-                            }}
-                            className="p-1 hover:text-amber-400 text-slate-400 transition flex items-center gap-1 text-[8pt]"
-                            title="이 번역을 수정하여 AI에 영구 학습시키기"
-                          >
-                            <span>✏️ 수정·학습</span>
-                          </button>
-                          <button
-                            onClick={() => playSpeech(msg.translation, isUK ? 'ko-KR' : 'en-GB')}
-                            className="p-1 hover:text-amber-500 text-sky-500 transition flex items-center gap-1 text-[8.5pt]"
-                            title="한국어 번역 음성 듣기"
-                          >
-                            <Volume2 className="w-3 h-3 text-sky-500" />
-                            <span>듣기</span>
-                          </button>
-                        </div>
-                      </div>
-                      
-                      {editingId === msg.id ? (
-                        <div className="space-y-2 pt-1">
-                          <textarea
-                            value={editTranslationText}
-                            onChange={(e) => setEditTranslationText(e.target.value)}
-                            className={`w-full p-2 text-xs rounded-lg border focus:ring-2 focus:ring-amber-500 ${
-                              isDark ? 'bg-slate-900 border-slate-700 text-slate-100' : 'bg-white border-slate-300 text-slate-900'
-                            }`}
-                            rows={2}
-                          />
-                          <div className="flex items-center justify-end space-x-2">
-                            <button
-                              onClick={() => setEditingId(null)}
-                              className="px-2 py-1 text-[10px] font-bold text-slate-400 hover:text-slate-200"
-                            >
-                              취소
-                            </button>
-                            <button
-                              onClick={() => handleSaveCorrection(msg.id, msg.original, editTranslationText)}
-                              className="px-2.5 py-1 text-[10px] font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-md shadow-sm"
-                            >
-                              🧠 영구 학습 저장
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        <p className={`text-[10pt] font-bold leading-relaxed select-text ${
-                          isDark ? 'text-amber-300' : 'text-indigo-950 font-extrabold'
-                        }`}>
-                          {msg.translation}
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Quick Takeaway Footer */}
-                    <div className={`pt-1.5 border-t ${
-                      isDark ? 'border-indigo-500/20 text-slate-300' : 'border-indigo-100 text-slate-600'
-                    } text-[8.5pt] font-medium flex items-center gap-1.5`}>
-                      <span className={`font-semibold shrink-0 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>⚡ 1초 요약:</span>
-                      <span className={`${isDark ? 'text-amber-200' : 'text-indigo-800 font-bold'} truncate`}>{intent.takeaway}</span>
-                    </div>
-                  </div>
-
-                </div>
-
-              </div>
-            </div>
-          );
-        })}
+        {/* Previous Message Backup Cards (Memoized Pure Component for 0% Re-render CPU Overhead) */}
+        {messages.map((msg) => (
+          <MessageCardItem
+            key={msg.id}
+            msg={msg}
+            isDark={isDark}
+            copiedId={copiedId}
+            onCopy={handleCopy}
+            onPlaySpeech={playSpeech}
+            onOpenGlossary={onOpenGlossaryWithTerm}
+            editingId={editingId}
+            editTranslationText={editTranslationText}
+            onStartEdit={(id, text) => {
+              setEditingId(editingId === id ? null : id);
+              setEditTranslationText(text);
+            }}
+            onCancelEdit={() => setEditingId(null)}
+            onChangeEditText={setEditTranslationText}
+            onSaveEdit={handleSaveCorrection}
+          />
+        ))}
       </div>
 
       {/* Bottom Microphone & Text Input Dock */}
