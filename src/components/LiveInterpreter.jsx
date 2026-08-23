@@ -818,30 +818,32 @@ export default function LiveInterpreter({
           </div>
         </div>
 
-        {/* 🌟 CENTRAL LIVE REAL-TIME STAGE (Single Focus: Left English 12pt 🇬🇧 | Right Korean 10pt 🇰🇷) */}
+        {/* 🌟 CENTRAL LIVE REAL-TIME STAGE (Fixed 1/4 Screen Viewport: Zero Layout Shift, High-Focus UI) */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch">
           
-          {/* ⬅️ LEFT SCREEN: Live Spoken Foreign Speech (Fixed 12pt - Focus Stage) */}
+          {/* ⬅️ LEFT SCREEN: Live Spoken Foreign Speech (Fixed Height 1/4 Stage - Zero Layout Shift) */}
           <div className={`${
             isDark 
-              ? 'bg-slate-950/90 border-2 border-slate-700/90 text-slate-100' 
-              : 'bg-white border-2 border-slate-300 text-slate-900 shadow-md'
-          } p-4 rounded-2xl flex flex-col justify-between shadow-xl space-y-2.5 transition-colors`}>
-            <div className={`flex items-center justify-between pb-2 border-b ${
+              ? 'bg-slate-950/95 border-2 border-slate-700/90 text-slate-100 ring-1 ring-amber-500/20 shadow-2xl' 
+              : 'bg-white border-2 border-slate-300 text-slate-900 shadow-xl ring-1 ring-slate-200'
+          } p-4 rounded-2xl flex flex-col justify-between h-[180px] max-h-[180px] transition-all relative overflow-hidden`}>
+            
+            {/* Header: Fixed Height (h-7) */}
+            <div className={`flex items-center justify-between pb-2 border-b shrink-0 h-7 ${
               isDark ? 'border-slate-800' : 'border-slate-100'
             }`}>
-              <span className="text-[10.5pt] font-extrabold text-amber-500 flex items-center gap-1.5">
+              <span className="text-[10pt] font-extrabold text-amber-500 flex items-center gap-1.5 truncate">
                 {activeMic === 'auto' ? (
-                  <>⚡ 🌐 자동 언어 감지 중 (Auto: {
+                  <>⚡ 🌐 자동 언어 감지 ({
                     interimText ? (
-                      detectSourceLanguage(interimText) === 'zh-CN' ? '🇨🇳 중국어 감지' :
-                      detectSourceLanguage(interimText) === 'ja-JP' ? '🇯🇵 일본어 감지' :
-                      detectSourceLanguage(interimText) === 'ko-KR' ? '🇰🇷 한국어 감지' : '🇬🇧/🇺🇸 영어 감지'
+                      detectSourceLanguage(interimText) === 'zh-CN' ? '🇨🇳 중국어' :
+                      detectSourceLanguage(interimText) === 'ja-JP' ? '🇯🇵 일본어' :
+                      detectSourceLanguage(interimText) === 'ko-KR' ? '🇰🇷 한국어' : '🇬🇧/🇺🇸 영어'
                     ) : messages[0]?.lang ? (
                       messages[0].lang.startsWith('zh') ? '🇨🇳 중국어' :
                       messages[0].lang.startsWith('ja') ? '🇯🇵 일본어' :
                       messages[0].lang.startsWith('ko') ? '🇰🇷 한국어' : '🇬🇧/🇺🇸 영어'
-                    ) : '음성 대기 중'
+                    ) : '음성 대기'
                   })</>
                 ) : activeMic === 'zh-CN' || messages[0]?.lang?.startsWith('zh') ? (
                   <>🇨🇳 실시간 중국어 발화 (Live Chinese)</>
@@ -853,19 +855,20 @@ export default function LiveInterpreter({
                   <>🇬🇧/🇺🇸 실시간 영어 발화 (Live English)</>
                 )}
               </span>
-              <span className={`text-[8.5pt] font-mono font-bold px-2 py-0.5 rounded-full ${
+              <span className={`text-[8pt] font-mono font-bold px-2 py-0.5 rounded-full shrink-0 ${
                 activeMic 
-                  ? 'bg-amber-500/20 text-amber-600 border border-amber-500/40 animate-pulse' 
+                  ? 'bg-amber-500/20 text-amber-500 border border-amber-500/40 animate-pulse' 
                   : isDark ? 'bg-slate-800 text-slate-400' : 'bg-slate-100 text-slate-600'
               }`}>
                 {activeMic === 'auto' 
-                  ? '🎙️ 🌐 전세계 언어 자동 감지 중' 
-                  : activeMic ? `🎙️ ${activeMic === 'zh-CN' ? '중국어' : activeMic === 'ja-JP' ? '일본어' : activeMic.startsWith('en') ? '영어' : '한국어'} 수신 중` : '마이크 대기 중'}
+                  ? '🎙️ 🌐 전세계 언어 감지' 
+                  : activeMic ? `🎙️ ${activeMic === 'zh-CN' ? '중국어' : activeMic === 'ja-JP' ? '일본어' : activeMic.startsWith('en') ? '영어' : '한국어'} 수신` : '대기 중'}
               </span>
             </div>
             
-            <div className="flex-1 flex items-center min-h-[56px] py-1">
-              <p className={`text-[12pt] font-semibold leading-relaxed font-sans select-text ${
+            {/* Scrollable Fixed Text Viewport (h-[92px] overflow-y-auto - Never moves outer layout) */}
+            <div className="flex-1 my-1.5 overflow-y-auto pr-1 select-text scrollbar-thin scrollbar-thumb-slate-700">
+              <p className={`text-[12pt] font-semibold leading-relaxed font-sans ${
                 isDark ? 'text-slate-100' : 'text-slate-900'
               }`}>
                 {interimText ? (
@@ -880,40 +883,44 @@ export default function LiveInterpreter({
               </p>
             </div>
 
-            <div className={`pt-1.5 border-t ${isDark ? 'border-slate-800/80 text-slate-400' : 'border-slate-100 text-slate-500'} text-[8.5pt] font-medium flex items-center justify-between`}>
+            {/* Footer: Fixed Height (h-6) */}
+            <div className={`pt-1 border-t shrink-0 h-6 ${isDark ? 'border-slate-800/80 text-slate-400' : 'border-slate-100 text-slate-500'} text-[8pt] font-medium flex items-center justify-between`}>
               <span className="flex items-center gap-1.5">
-                <span className={`w-2 h-2 rounded-full ${activeMic ? 'bg-amber-500' : isDark ? 'bg-slate-600' : 'bg-slate-300'}`} />
-                <span>원문 12pt 고정 · 호흡/의미절 단위 스마트 분할</span>
+                <span className={`w-2 h-2 rounded-full ${activeMic ? 'bg-amber-500 animate-ping' : isDark ? 'bg-slate-600' : 'bg-slate-300'}`} />
+                <span className="truncate">원문 12pt · 🔒 1/4 시선 집중 고정 박스</span>
               </span>
               {interimText && (
-                <span className="text-amber-500 font-mono text-[8pt]">Live Transcribing...</span>
+                <span className="text-amber-500 font-mono text-[7.5pt] shrink-0 animate-pulse">Live Transcribing...</span>
               )}
             </div>
           </div>
 
-          {/* ➡️ RIGHT SCREEN: Live Instant Korean Translation (Fixed 10pt - 100% Enforced Korean Output) */}
+          {/* ➡️ RIGHT SCREEN: Live Instant Korean Translation (Fixed Height 1/4 Stage - Zero Layout Shift) */}
           <div className={`${
             isDark 
-              ? 'bg-indigo-950/70 border-2 border-indigo-500/60 text-amber-300' 
-              : 'bg-indigo-50/90 border-2 border-indigo-400/80 text-indigo-950 shadow-md'
-          } p-4 rounded-2xl flex flex-col justify-between shadow-xl space-y-2.5 transition-colors`}>
-            <div className={`flex items-center justify-between pb-2 border-b ${
+              ? 'bg-indigo-950/85 border-2 border-indigo-500/70 text-amber-300 ring-1 ring-indigo-400/30 shadow-2xl' 
+              : 'bg-indigo-50/95 border-2 border-indigo-400/90 text-indigo-950 shadow-xl ring-1 ring-indigo-200'
+          } p-4 rounded-2xl flex flex-col justify-between h-[180px] max-h-[180px] transition-all relative overflow-hidden`}>
+            
+            {/* Header: Fixed Height (h-7) */}
+            <div className={`flex items-center justify-between pb-2 border-b shrink-0 h-7 ${
               isDark ? 'border-indigo-500/30' : 'border-indigo-200'
             }`}>
-              <span className={`text-[10.5pt] font-extrabold flex items-center gap-1.5 ${
+              <span className={`text-[10pt] font-extrabold flex items-center gap-1.5 truncate ${
                 isDark ? 'text-sky-300' : 'text-indigo-700'
               }`}>
-                <Sparkles className="w-3.5 h-3.5 text-amber-500" /> 🇰🇷 실시간 초고속 한글 뜻 (100% 무조건 한글 번역)
+                <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" /> 🇰🇷 실시간 초고속 한글 뜻 (100% 한글)
               </span>
-              <span className={`text-[8.5pt] font-bold px-2 py-0.5 rounded-full ${
+              <span className={`text-[8pt] font-bold px-2 py-0.5 rounded-full shrink-0 ${
                 isDark ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' : 'bg-amber-100 text-amber-800 border border-amber-300'
               }`}>
-                ⚡ 0.05초 즉시 동기화
+                ⚡ 0.03s 즉시 동기화
               </span>
             </div>
 
-            <div className="flex-1 flex items-center min-h-[56px] py-1">
-              <p className={`text-[10pt] font-bold leading-relaxed select-text ${
+            {/* Scrollable Fixed Text Viewport (h-[92px] overflow-y-auto - Never moves outer layout) */}
+            <div className="flex-1 my-1.5 overflow-y-auto pr-1 select-text scrollbar-thin scrollbar-thumb-indigo-700">
+              <p className={`text-[10pt] font-bold leading-relaxed ${
                 isDark ? 'text-amber-300' : 'text-indigo-950 font-extrabold'
               }`}>
                 {liveStreamingTranslation ? (
@@ -928,14 +935,10 @@ export default function LiveInterpreter({
               </p>
             </div>
 
-            <div className={`pt-1.5 border-t ${isDark ? 'border-indigo-500/20 text-sky-300' : 'border-indigo-200 text-indigo-700'} text-[8.5pt] font-medium flex items-center justify-between`}>
-              <span className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                <span>한글 10pt 고정 · 영/일/중 글로벌 건축 용어 5,000+ 자동 정밀 보정</span>
-              </span>
-              {liveStreamingTranslation && (
-                <span className={`${isDark ? 'text-sky-300' : 'text-indigo-600'} font-mono text-[8pt]`}>Auto Syncing...</span>
-              )}
+            {/* Footer: Fixed Height (h-6) */}
+            <div className={`pt-1 border-t shrink-0 h-6 ${isDark ? 'border-indigo-500/30 text-indigo-300/80' : 'border-indigo-100 text-indigo-700'} text-[8pt] font-medium flex items-center justify-between`}>
+              <span className="truncate">한글 10pt · 🔒 1/4 시선 집중 고정 박스</span>
+              <span className="font-semibold text-amber-400 shrink-0">100% 무조건 한글 출력</span>
             </div>
           </div>
 
