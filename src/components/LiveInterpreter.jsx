@@ -20,7 +20,7 @@ import {
   HelpCircle
 } from 'lucide-react';
 import { speechService } from '../services/speechService';
-import { translateArchitectureText } from '../services/geminiService';
+import { translateArchitectureText, detectMeetingIntent } from '../services/geminiService';
 import { findGlossaryMatches } from '../data/architectureGlossary';
 import { DEMO_SCENARIOS } from '../data/demoScenarios';
 
@@ -156,6 +156,7 @@ export default function LiveInterpreter({
             });
 
             const matchedTerms = findGlossaryMatches(sentence);
+            const intent = detectMeetingIntent(sentence, translated);
 
             const newMessage = {
               id: Date.now() + Math.random(),
@@ -165,6 +166,7 @@ export default function LiveInterpreter({
               accent: lang === 'en-GB' ? 'UK (London RP)' : 'Korean',
               original: sentence,
               translation: translated,
+              intent: intent,
               terms: matchedTerms.map(t => t.term),
               timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
             };
@@ -214,6 +216,7 @@ export default function LiveInterpreter({
       });
 
       const matchedTerms = findGlossaryMatches(sentence);
+      const intent = detectMeetingIntent(sentence, translated);
 
       const newMessage = {
         id: Date.now() + Math.random(),
@@ -223,6 +226,7 @@ export default function LiveInterpreter({
         accent: sourceLang === 'en-GB' ? 'UK (London RP)' : 'Korean',
         original: sentence,
         translation: translated,
+        intent: intent,
         terms: matchedTerms.map(t => t.term),
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
       };
@@ -275,9 +279,11 @@ export default function LiveInterpreter({
 
     speechService.speak(item.original, item.lang, {
       onEnd: () => {
+        const itemIntent = detectMeetingIntent(item.original, item.translation);
         setMessages(prev => [{
           ...item,
           id: Date.now() + idx,
+          intent: itemIntent,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
         }, ...prev]);
 
@@ -315,6 +321,7 @@ export default function LiveInterpreter({
     });
 
     const matchedTerms = findGlossaryMatches(testEnglishSentence);
+    const intent = detectMeetingIntent(testEnglishSentence, translated);
 
     setMessages(prev => [{
       id: Date.now(),
@@ -324,6 +331,7 @@ export default function LiveInterpreter({
       accent: 'UK (London RP)',
       original: testEnglishSentence,
       translation: translated,
+      intent: intent,
       terms: matchedTerms.map(t => t.term),
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
     }, ...prev]);
@@ -493,40 +501,49 @@ export default function LiveInterpreter({
           </div>
         )}
 
-        {/* Message Bubble List (Newest on Top) */}
+        {/* Message Bubble List (Newest on Top & High-Speed Comprehension Layout) */}
         {messages.map((msg) => {
           const isUK = msg.lang === 'en-GB' || msg.lang?.startsWith('en');
+          const intent = msg.intent || {
+            type: 'INFO',
+            label: '💬 현황 공유',
+            color: 'bg-slate-700/50 text-slate-300 border-slate-600/40',
+            borderLeft: 'border-l-4 border-l-indigo-500',
+            takeaway: '대화 내용 확인'
+          };
+
           return (
             <div 
               key={msg.id}
-              className={`flex flex-col ${isUK ? 'items-start' : 'items-end'} transition-all`}
+              className={`flex flex-col ${isUK ? 'items-start' : 'items-end'} w-full transition-all`}
             >
-              <div className={`max-w-3xl rounded-2xl p-4 shadow-lg border ${
+              <div className={`w-full max-w-3xl rounded-2xl p-4 shadow-xl border ${intent.borderLeft} ${
                 isUK 
-                  ? 'bg-slate-800/95 border-amber-500/40 text-slate-100' 
-                  : 'bg-indigo-950/40 border-indigo-500/40 text-slate-100'
+                  ? 'bg-slate-900/95 border-slate-700/80 text-slate-100' 
+                  : 'bg-indigo-950/50 border-indigo-500/40 text-slate-100'
               }`}>
                 
-                {/* Header */}
-                <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-700/50 gap-4">
+                {/* 1. Header & 0.1-Second Intent Quick Catch Badge */}
+                <div className="flex flex-wrap items-center justify-between pb-2 mb-3 border-b border-slate-800 gap-2">
                   <div className="flex items-center space-x-2">
                     <span className="text-base">{isUK ? '🇬🇧' : '🇰🇷'}</span>
-                    <span className="text-xs font-bold text-slate-200">{msg.speaker}</span>
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-700 text-slate-300 font-semibold">
-                      {msg.accent}
+                    <span className="text-xs font-black text-slate-200">{msg.speaker}</span>
+                    <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${intent.color}`}>
+                      {intent.label}
                     </span>
                   </div>
-                  <div className="flex items-center space-x-1.5 text-slate-400">
-                    <span className="text-[10px]">{msg.timestamp}</span>
+                  
+                  <div className="flex items-center space-x-2 text-slate-400">
+                    <span className="text-[10px] font-mono">{msg.timestamp}</span>
                     <button
-                      onClick={() => playSpeech(msg.original, msg.lang)}
+                      onClick={() => playSpeech(msg.translation, isUK ? 'ko-KR' : 'en-GB')}
                       className="p-1 hover:text-amber-400 rounded transition"
-                      title="원문 다시 듣기"
+                      title="한국어 번역 듣기"
                     >
                       <Volume2 className="w-3.5 h-3.5" />
                     </button>
                     <button
-                      onClick={() => handleCopy(msg.id, `${msg.original}\n${msg.translation}`)}
+                      onClick={() => handleCopy(msg.id, `${msg.translation}\n(${msg.original})`)}
                       className="p-1 hover:text-white rounded transition"
                       title="복사"
                     >
@@ -535,39 +552,47 @@ export default function LiveInterpreter({
                   </div>
                 </div>
 
-                {/* Original */}
-                <div className="text-sm font-medium leading-relaxed mb-2 text-slate-200">
-                  {msg.original}
-                </div>
-
-                {/* Instant Translation */}
-                <div className="bg-slate-900/90 rounded-xl p-3 border border-slate-700/70 text-sm font-semibold flex items-start justify-between gap-3 shadow-sm">
+                {/* 2. ⚡ KOREAN MEANING (Placed at the TOP with Big Bold Font for 0.1s Catch) */}
+                <div className="bg-slate-950/80 rounded-xl p-3.5 border border-slate-800 shadow-inner mb-2.5">
                   <div className="flex items-start gap-2">
                     <Sparkles className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-                    <span className={isUK ? 'text-amber-300' : 'text-sky-300'}>
-                      {msg.translation}
-                    </span>
+                    <div className="space-y-1">
+                      <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                        ⚡ 1초 핵심 파악: <span className="text-amber-300 font-semibold">{intent.takeaway}</span>
+                      </p>
+                      <p className={`text-base font-bold leading-snug ${isUK ? 'text-amber-300' : 'text-sky-300'}`}>
+                        {msg.translation}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. Original Spoken Sentence (Subtext for Reference) */}
+                <div className="bg-slate-900/60 rounded-xl px-3 py-2 border border-slate-800/80 text-xs font-medium text-slate-300 flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5 overflow-hidden">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase shrink-0">원문:</span>
+                    <span className="truncate italic text-slate-300">{msg.original}</span>
                   </div>
                   <button
-                    onClick={() => playSpeech(msg.translation, isUK ? 'ko-KR' : 'en-GB')}
-                    className="p-1 hover:text-amber-400 text-slate-400 shrink-0 rounded transition"
-                    title="번역 음성 듣기"
+                    onClick={() => playSpeech(msg.original, msg.lang)}
+                    className="p-1 hover:text-amber-400 text-slate-400 shrink-0 transition"
+                    title="원문 발음 다시 듣기"
                   >
-                    <Volume2 className="w-3.5 h-3.5" />
+                    <Volume2 className="w-3 h-3" />
                   </button>
                 </div>
 
-                {/* Detected Terms */}
+                {/* 4. Detected UK Architectural Terms */}
                 {msg.terms && msg.terms.length > 0 && (
-                  <div className="mt-2.5 pt-2 border-t border-slate-700/40 flex flex-wrap items-center gap-1.5">
+                  <div className="mt-2.5 pt-2 border-t border-slate-800/80 flex flex-wrap items-center gap-1.5">
                     <span className="text-[10px] font-bold text-slate-400 flex items-center gap-1">
-                      <BookOpen className="w-3 h-3 text-amber-400" /> 영국 건축 전문 용어:
+                      <BookOpen className="w-3 h-3 text-amber-400" /> 건축 용어:
                     </span>
                     {msg.terms.map((term, i) => (
                       <button
                         key={i}
                         onClick={() => onOpenGlossaryWithTerm(term)}
-                        className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 border border-amber-500/40 transition flex items-center gap-1"
+                        className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 border border-amber-500/40 transition flex items-center gap-1 shadow-sm"
                       >
                         {term}
                         <Info className="w-2.5 h-2.5 opacity-60" />

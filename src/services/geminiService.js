@@ -23,6 +23,79 @@ Output ONLY the direct Korean translation, no quotes, no explanations.
 // In-memory cache for ultra-low latency repeat translations
 const translationCache = new Map();
 
+// 💡 0.1-Second Instant Meeting Intent & Quick Catch Analyzer
+export function detectMeetingIntent(englishText = '', koreanText = '') {
+  const eng = englishText.toLowerCase();
+  const kr = koreanText.toLowerCase();
+
+  // 1. Risk / Warning / Regulation
+  if (
+    eng.includes('risk') || eng.includes('clash') || eng.includes('part b') || eng.includes('part l') ||
+    eng.includes('delay') || eng.includes('warning') || eng.includes('reject') || eng.includes('problem') ||
+    kr.includes('위험') || kr.includes('간섭') || kr.includes('법규') || kr.includes('위반') || kr.includes('지연')
+  ) {
+    return {
+      type: 'RISK',
+      label: '⚠️ 규제/리스크 경고',
+      color: 'bg-rose-500/20 text-rose-300 border-rose-500/40',
+      borderLeft: 'border-l-4 border-l-rose-500',
+      takeaway: '법규 규제 준수 또는 설계 간섭 리스크 주의 필요'
+    };
+  }
+
+  // 2. Decision / Approval / Agreement
+  if (
+    eng.includes('agree') || eng.includes('approv') || eng.includes('confirm') || eng.includes('finaliz') ||
+    eng.includes('sign off') || eng.includes('resolved') || kr.includes('승인') || kr.includes('확정') || kr.includes('합의')
+  ) {
+    return {
+      type: 'DECISION',
+      label: '✅ 최종 승인/합의',
+      color: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40',
+      borderLeft: 'border-l-4 border-l-emerald-500',
+      takeaway: '주요 사안 결정 및 승인 완료'
+    };
+  }
+
+  // 3. Action Item / Request / Submission
+  if (
+    eng.includes('please') || eng.includes('need to') || eng.includes('must') || eng.includes('submit') ||
+    eng.includes('revise') || eng.includes('issue') || eng.includes('deadline') || eng.includes('by next') ||
+    kr.includes('제출') || kr.includes('수정') || kr.includes('필요') || kr.includes('요청') || kr.includes('기한')
+  ) {
+    return {
+      type: 'ACTION',
+      label: '📌 조치/요청 사항',
+      color: 'bg-amber-500/20 text-amber-300 border-amber-500/40',
+      borderLeft: 'border-l-4 border-l-amber-500',
+      takeaway: '설계 도서 수정 또는 데이터 송부 필요'
+    };
+  }
+
+  // 4. Question / Clarification
+  if (
+    eng.includes('?') || eng.startsWith('what') || eng.startsWith('when') || eng.startsWith('how') ||
+    eng.startsWith('could') || eng.startsWith('can') || eng.includes('is it') || kr.includes('?') || kr.includes('확인')
+  ) {
+    return {
+      type: 'QUESTION',
+      label: '❓ 질문 및 확인 요청',
+      color: 'bg-sky-500/20 text-sky-300 border-sky-500/40',
+      borderLeft: 'border-l-4 border-l-sky-500',
+      takeaway: '상대방의 답변 및 명확한 확인 요구'
+    };
+  }
+
+  // 5. General Info
+  return {
+    type: 'INFO',
+    label: '💬 현황 및 정보 공유',
+    color: 'bg-slate-700/50 text-slate-300 border-slate-600/40',
+    borderLeft: 'border-l-4 border-l-indigo-500',
+    takeaway: '진행 현황 및 배경 설명'
+  };
+}
+
 export async function translateArchitectureText({ text, sourceLang = 'en-GB', targetLang = 'ko-KR', apiKey }) {
   if (!text || !text.trim()) return '';
 
