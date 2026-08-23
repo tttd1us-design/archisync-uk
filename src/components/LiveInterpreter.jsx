@@ -39,6 +39,25 @@ import {
 import { findGlossaryMatches } from '../data/architectureGlossary';
 import { DEMO_SCENARIOS } from '../data/demoScenarios';
 
+// 🌐 Quick Test Phrases for Native Voice Simulation
+const ukQuickPhrases = [
+  "We need to review the structural steel column deflection at grid line B4.",
+  "Let's confirm the double-glazed unit U-value for the curtain wall facade.",
+  "The MEP plenum clearance on level 12 must comply with RIBA Stage 4."
+];
+
+const jpQuickPhrases = [
+  "構造設計の柱の配筋ピッチについて確認をお願いします。",
+  "カーテンウォールの熱貫流率計算書を提出してください。",
+  "免震ピットの点検口寸法を修正する必要があります。"
+];
+
+const zhQuickPhrases = [
+  "我们需要确认B4轴线处钢结构的挠度计算数据。",
+  "请提供幕墙双层玻璃的传热系数U值检测报告。",
+  "机电管线在12层的净高必须满足施工图设计规范。"
+];
+
 // 🏛️ Full Natural Sentence Splitter (Splits continuous speech streams into clean, complete full sentences)
 function splitIntoSentences(text) {
   if (!text || typeof text !== 'string' || !text.trim()) return [];
@@ -241,6 +260,7 @@ export default function LiveInterpreter({
   const [learnedCount, setLearnedCount] = useState(() => getLearnedStats().totalLearnedTerms);
   const [isRecordingAudio, setIsRecordingAudio] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const [testLanguageTab, setTestLanguageTab] = useState('en-GB'); // 'en-GB' | 'ja-JP' | 'zh-CN'
 
   // 💎 Commercial SaaS Premium States
   const [fontSizeScale, setFontSizeScale] = useState(12); // 8pt ~ 16pt real-time zoom
@@ -851,30 +871,6 @@ export default function LiveInterpreter({
       speechService.stopRecognition();
     };
   }, []);
-
-  const ukQuickPhrases = [
-    "Good afternoon. We must verify the curtain walling U-value for Building Regulations Part L.",
-    "What is the brise-soleil projection on the 12th floor terrace regarding visual massing?",
-    "Has the Planning Permission Section 106 application been finalized with the local council?",
-    "Please run a multi-discipline BIM clash detection between structure and MEP services.",
-    "Make sure the cavity barriers comply with Part B fire safety standards."
-  ];
-
-  const jpQuickPhrases = [
-    "耐震構造の構造計算書と外壁ルーバーの納まり詳細図を確認してください。",
-    "確認申請の提出図面に向けた意匠設計チームとの調整が必要です。",
-    "柱と梁のスラブ接合部における配筋納まりとBIM干渉チェックを実施します。",
-    "外壁カーテンウォールの耐火基準と熱貫流率の性能証明書を提出してください。"
-  ];
-
-  const zhQuickPhrases = [
-    "请确认幕墙的热工性能计算书和深化设计图纸。",
-    "超高层建筑抗震设防专项审查和报建审批进展顺利。",
-    "地下室防水施工方案和剪力墙配筋需要重新核对。",
-    "容积率和建筑密度指标符合规划局方案批复要求。"
-  ];
-
-  const [testLanguageTab, setTestLanguageTab] = useState('en-GB'); // 'en-GB' | 'ja-JP' | 'zh-CN'
 
   return (
     <div className="flex flex-col h-[calc(100vh-4.5rem)] max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2.5 gap-2.5">
