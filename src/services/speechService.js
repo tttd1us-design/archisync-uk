@@ -175,7 +175,122 @@ class SpeechService {
     }
   }
 
-  // Real-time audio waveform visualizer
+  // 🎙️ Real-time Audio Recorder & Saver (Saves to Documents/음성)
+  startMediaRecording() {
+    try {
+      if (!this.mediaStream) return;
+      this.audioChunks = [];
+      
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') 
+        ? 'audio/webm;codecs=opus' 
+        : MediaRecorder.isTypeSupported('audio/webm') 
+          ? 'audio/webm' 
+          : 'audio/mp4';
+
+      this.mediaRecorder = new MediaRecorder(this.mediaStream, { mimeType });
+      
+      this.mediaRecorder.ondataavailable = (event) => {
+        if (event.data && event.data.size > 0) {
+          this.audioChunks.push(event.data);
+        }
+      };
+
+      this.mediaRecorder.start(1000); // 1-second chunks
+      console.log('[MediaRecorder started]');
+    } catch (e) {
+      console.warn('Could not initialize MediaRecorder:', e);
+    }
+  }
+
+  stopMediaRecording() {
+    return new Promise((resolve) => {
+      if (!this.mediaRecorder || this.mediaRecorder.state === 'inactive') {
+        resolve(null);
+        return;
+      }
+
+      this.mediaRecorder.onstop = () => {
+        const mimeType = this.mediaRecorder?.mimeType || 'audio/webm';
+        const audioBlob = new Blob(this.audioChunks, { type: mimeType });
+        this.audioChunks = [];
+        resolve(audioBlob);
+      };
+
+      try {
+        this.mediaRecorder.stop();
+      } catch (e) {
+        resolve(null);
+      }
+    });
+  }
+
+  // 💾 Save Audio Blob & Text Transcripts directly to C:\Users\tttd1\Documents\음성
+  async saveVoiceRecordingToDocuments(audioBlob, messages = []) {
+    try {
+      const results = {};
+
+      // 1. Save Audio File if blob exists
+      if (audioBlob && audioBlob.size > 0) {
+        const response = await fetch('/api/save-audio', {
+          method: 'POST',
+          headers: { 'Content-Type': audioBlob.type || 'audio/webm' },
+          body: audioBlob
+        });
+        if (response.ok) {
+          results.audio = await response.json();
+        }
+      }
+
+      // 2. Save Conversation Transcript Text File
+      if (messages && messages.length > 0) {
+        const header = `=====================================================\n` +
+                       `🏛️ ARCHISYNC UK - 회의 통역 기록 (음성 백업)\n` +
+                       `일시: ${new Date().toLocaleString('ko-KR')}\n` +
+                       `저장 위치: 내 문서\\음성\n` +
+                       `=====================================================\n\n`;
+
+        const body = messages.map((m, idx) => {
+          return `[#${messages.length - idx}] ${m.timestamp} - ${m.speaker} (${m.lang})\n` +
+                 `  🇬🇧 영문: ${m.original}\n` +
+                 `  🇰🇷 한글: ${m.translation}\n` +
+                 `  📌 의도: ${m.intent?.label || '일반'} | 1초 요약: ${m.intent?.takeaway || '-'}\n` +
+                 (m.terms && m.terms.length > 0 ? `  🏷️ 건축용어: ${m.terms.join(', ')}\n` : '') +
+                 `-----------------------------------------------------\n`;
+        }).join('\n');
+
+        const transcriptRes = await fetch('/api/save-transcript', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ content: header + body })
+        });
+        if (transcriptRes.ok) {
+          results.transcript = await transcriptRes.json();
+        }
+      }
+
+      return {
+        success: true,
+        path: results.audio?.path || results.transcript?.path || 'C:\\Users\\tttd1\\Documents\\음성',
+        directory: results.audio?.directory || 'C:\\Users\\tttd1\\Documents\\음성',
+        audioFile: results.audio?.filename,
+        transcriptFile: results.transcript?.filename
+      };
+    } catch (err) {
+      console.error('Failed to save to local Documents/음성:', err);
+      // Fallback: Trigger browser client-side download
+      if (audioBlob) {
+        const url = URL.createObjectURL(audioBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `voice_recording_${Date.now()}.webm`;
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+      return { success: false, error: err.message };
+    }
+  }
+
+  // Real-time audio waveform visualizer & recording stream
   async startAudioVisualizer(onAudioLevel) {
     try {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return null;
@@ -183,6 +298,10 @@ class SpeechService {
       this.mediaStream = await navigator.mediaDevices.getUserMedia({ 
         audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } 
       });
+
+      // Start MediaRecorder alongside visualizer
+      this.startMediaRecording();
+
       this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
       const source = this.audioContext.createMediaStreamSource(this.mediaStream);
       this.analyser = this.audioContext.createAnalyser();

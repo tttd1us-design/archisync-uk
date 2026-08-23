@@ -17,7 +17,11 @@ import {
   Info,
   Radio,
   Zap,
-  HelpCircle
+  HelpCircle,
+  HardDrive,
+  FolderDown,
+  Save,
+  CheckCircle2
 } from 'lucide-react';
 import { speechService } from '../services/speechService';
 import { translateArchitectureText, detectMeetingIntent } from '../services/geminiService';
@@ -88,11 +92,50 @@ export default function LiveInterpreter({
   const [copiedId, setCopiedId] = useState(null);
   const [audioLevel, setAudioLevel] = useState(0);
   const [autoSpeakKorean, setAutoSpeakKorean] = useState(false);
+  const [saveStatus, setSaveStatus] = useState(null); // { success, path, filename, visible }
+  const [isSaving, setIsSaving] = useState(false);
 
   const messagesTopRef = useRef(null);
   const simulationTimerRef = useRef(null);
   const visualizerCleanupRef = useRef(null);
   const interimTranslateTimerRef = useRef(null);
+
+  // 💾 Handle Direct Saving to C:\Users\tttd1\Documents\음성
+  const handleSaveToDocuments = async () => {
+    setIsSaving(true);
+    try {
+      const audioBlob = await speechService.stopMediaRecording();
+      const res = await speechService.saveVoiceRecordingToDocuments(audioBlob, messages);
+      
+      // Resume recording if mic is still active
+      if (activeMic) {
+        speechService.startMediaRecording();
+      }
+
+      setSaveStatus({
+        success: res.success,
+        path: res.path || 'C:\\Users\\tttd1\\Documents\\음성',
+        audioFile: res.audioFile,
+        transcriptFile: res.transcriptFile,
+        visible: true
+      });
+
+      // Auto dismiss after 5 seconds
+      setTimeout(() => {
+        setSaveStatus(prev => prev ? { ...prev, visible: false } : null);
+      }, 5000);
+    } catch (e) {
+      console.error('Save error:', e);
+      setSaveStatus({
+        success: false,
+        error: e.message,
+        path: 'C:\\Users\\tttd1\\Documents\\음성',
+        visible: true
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   // Auto scroll to TOP when a new message arrives (keeps newest content in view)
   useEffect(() => {
@@ -496,7 +539,30 @@ export default function LiveInterpreter({
         </div>
       </div>
 
-      {/* Quick Voice Test & Simulation Controls Ribbon */}
+      {/* 💾 Save Notification Toast Banner */}
+      {saveStatus && saveStatus.visible && (
+        <div className="bg-emerald-950/90 border-2 border-emerald-500 rounded-2xl p-3.5 shadow-2xl flex items-center justify-between gap-3 text-emerald-100 transition-all animate-bounce">
+          <div className="flex items-center space-x-3">
+            <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+            <div>
+              <p className="text-xs md:text-sm font-bold text-emerald-200">
+                📁 내 컴퓨터 [내문서\음성] 폴더에 음성 및 대화록 저장이 완료되었습니다!
+              </p>
+              <p className="text-[11px] text-emerald-300/80 font-mono mt-0.5">
+                저장 경로: {saveStatus.path} {saveStatus.audioFile ? `(${saveStatus.audioFile})` : ''}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => setSaveStatus(null)}
+            className="text-xs font-bold text-emerald-400 hover:text-white px-2 py-1 bg-emerald-900/80 rounded-lg transition"
+          >
+            닫기
+          </button>
+        </div>
+      )}
+
+      {/* Quick Voice Test, Simulation Controls & 💾 Voice Save Ribbon */}
       <div className="bg-slate-800/80 border border-slate-700/80 rounded-2xl px-4 py-2 shadow-md flex flex-wrap items-center justify-between gap-3">
         
         <div className="flex items-center gap-2 overflow-x-auto max-w-full pb-1">
@@ -517,6 +583,17 @@ export default function LiveInterpreter({
         </div>
 
         <div className="flex items-center gap-2">
+          {/* 💾 Direct Save Button into Documents\음성 */}
+          <button
+            onClick={handleSaveToDocuments}
+            disabled={isSaving}
+            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-[8.5pt] font-bold bg-indigo-600 hover:bg-indigo-500 text-white shadow-md transition hover:scale-105 border border-indigo-400/40"
+            title="현재까지의 녹음 음성과 번역 대화록을 내 컴퓨터 [내문서\음성] 폴더에 즉시 저장합니다"
+          >
+            <FolderDown className="w-3.5 h-3.5 text-sky-300" />
+            <span>{isSaving ? '저장 중...' : '💾 내문서\\음성 저장'}</span>
+          </button>
+
           <button
             onClick={startSimulation}
             className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-[8.5pt] font-bold transition shadow-md ${
@@ -540,7 +617,7 @@ export default function LiveInterpreter({
 
       </div>
 
-      {/* 📜 SESSION BACKUP HISTORY ARCHIVE (Clean Previous Conversation Log - No Duplicate Streaming) */}
+      {/* 📜 SESSION BACKUP HISTORY ARCHIVE (Clean Previous Conversation Log) */}
       <div className="flex-1 bg-slate-900/90 border border-slate-800 rounded-2xl p-4 overflow-y-auto space-y-3.5 shadow-inner">
         <div ref={messagesTopRef} />
 
@@ -553,9 +630,20 @@ export default function LiveInterpreter({
               {messages.length}개 기록됨
             </span>
           </div>
-          {messages.length > 0 && (
-            <span className="text-[10px] text-slate-500">최신순 정렬</span>
-          )}
+
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={handleSaveToDocuments}
+              className="text-[10px] font-bold text-sky-400 hover:text-sky-300 flex items-center gap-1 bg-slate-800/80 px-2 py-0.5 rounded-lg border border-slate-700 hover:border-sky-500/40 transition"
+              title="이전 대화와 음성을 내문서\음성 폴더에 저장"
+            >
+              <Save className="w-3 h-3 text-sky-400" />
+              <span>음성 & 대화 백업</span>
+            </button>
+            {messages.length > 0 && (
+              <span className="text-[10px] text-slate-500">최신순</span>
+            )}
+          </div>
         </div>
 
         {messages.length === 0 && (
