@@ -78,7 +78,7 @@ export default function Header({
                 <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
                   isDark ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30' : 'bg-indigo-50 text-indigo-700 border border-indigo-200'
                 }`}>
-                  🇬🇧 UK Architect Edition
+                  🇬🇧 UK · 🇺🇸 US · 🇯🇵 JP Edition
                 </span>
                 {hasApiKey ? (
                   <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
@@ -95,7 +95,7 @@ export default function Header({
                 )}
               </div>
               <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'} font-medium`}>
-                영국 건축설계 특화 실시간 AI 통역 & RIBA 회의록 시스템
+                영국·미국·일본 건축설계 특화 실시간 AI 통역 & RIBA 회의록 시스템
               </p>
             </div>
           </div>

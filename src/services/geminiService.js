@@ -1,11 +1,16 @@
 import { ARCHITECTURE_GLOSSARY, findGlossaryMatches } from '../data/architectureGlossary';
 
-// Gemini AI & Contextual Architectural STT Restorer & Translation Engine
+// Gemini AI & Contextual Architectural STT Restorer & Multilingual Translation Engine
 const SYSTEM_PROMPT_TRANSLATION = `
-You are ArchiSync UK, an elite architectural AI interpreter with built-in STT Phonetic Error Recovery specializing in UK & US architectural design, MEP engineering, and construction meetings.
+You are ArchiSync UK, an elite architectural AI interpreter with built-in STT Phonetic Error Recovery specializing in UK & US architectural design, Japanese architecture & engineering (耐震構造, 意匠設計, 納まり), MEP engineering, and construction meetings.
+
+Supported Languages:
+- 🇬🇧/🇺🇸 English (UK/US Architect)
+- 🇯🇵 Japanese (Japanese Engineer/Architect)
+- 🇰🇷 Korean (Korean Lead Director)
 
 Key Responsibilities:
-1. STT Acoustic Error Recovery: The input text is transcribed via live microphone and may contain phonetic misrecognitions or non-rhotic/glottal stop distortions from UK/US regional accents. Intelligently deduce and restore the intended architectural meaning before translating.
+1. STT Acoustic Error Recovery: The input text is transcribed via live microphone and may contain phonetic misrecognitions from UK/US/Japanese regional accents. Intelligently deduce and restore the intended architectural meaning before translating.
 2. UK Architectural Standards:
    - "Ground Floor" in UK = Ground level (한국 1층). "First Floor" in UK = Level above ground (한국 2층).
    - "Planning Permission" = 영국 도시계획 개발 인허가.
@@ -16,25 +21,34 @@ Key Responsibilities:
    - "Snagging list" = 준공 전 결함/미비점 점검 리스트.
    - "Bill of Quantities (BOQ)" = 공사 물량 내역서.
    - "Curtain walling", "Brise-soleil (차양 루버)", "Mullion/Transom", "Spandrel panel", "BIM Clash Detection", "GIA (내부 연면적)", "NIA (전용 면적)".
+3. Japanese Architectural Terminology:
+   - "耐震構造" = 내진구조 (Earthquake-resistant structure).
+   - "意匠設計" = 의장/건축계획 설계 (Architectural Design).
+   - "構造計算書" = 구조계산서 (Structural Calculations).
+   - "確認申請" = 건축 확인신청/인허가 (Building Confirmation Application).
+   - "納まり" = 접합부/마감 상세 시공 상세 (Finishing Detail / Joint Details).
+   - "施工図" = 시공 상세도 (Shop Drawings).
+   - "梁 / 柱 / スラブ" = 보 / 기둥 / 바닥 슬래브.
+   - "庇 / ルーバー" = 차양 캐노피 / 루버.
 
 Instruction:
-Translate naturally into clear, professional, concise Korean architectural terminology. 
-Output ONLY the direct Korean translation, no quotes, no explanations.
+Translate naturally into clear, professional, concise target architectural terminology (Korean, English, or Japanese). 
+Output ONLY the direct translation, no quotes, no explanations.
 `;
 
 // In-memory cache for ultra-low latency repeat translations
 const translationCache = new Map();
 
 // 💡 0.1-Second Instant Meeting Intent & Quick Catch Analyzer
-export function detectMeetingIntent(englishText = '', koreanText = '') {
-  const eng = englishText.toLowerCase();
-  const kr = koreanText.toLowerCase();
+export function detectMeetingIntent(originalText = '', translatedText = '') {
+  const text = (originalText + ' ' + translatedText).toLowerCase();
 
   // 1. Risk / Warning / Regulation
   if (
-    eng.includes('risk') || eng.includes('clash') || eng.includes('part b') || eng.includes('part l') ||
-    eng.includes('delay') || eng.includes('warning') || eng.includes('reject') || eng.includes('problem') ||
-    kr.includes('위험') || kr.includes('간섭') || kr.includes('법규') || kr.includes('위반') || kr.includes('지연')
+    text.includes('risk') || text.includes('clash') || text.includes('part b') || text.includes('part l') ||
+    text.includes('delay') || text.includes('warning') || text.includes('reject') || text.includes('problem') ||
+    text.includes('위험') || text.includes('간섭') || text.includes('법규') || text.includes('위반') || text.includes('지연') ||
+    text.includes('危険') || text.includes('干渉') || text.includes('遅延') || text.includes('問題')
   ) {
     return {
       type: 'RISK',
@@ -47,8 +61,9 @@ export function detectMeetingIntent(englishText = '', koreanText = '') {
 
   // 2. Decision / Approval / Agreement
   if (
-    eng.includes('agree') || eng.includes('approv') || eng.includes('confirm') || eng.includes('finaliz') ||
-    eng.includes('sign off') || eng.includes('resolved') || kr.includes('승인') || kr.includes('확정') || kr.includes('합의')
+    text.includes('agree') || text.includes('approv') || text.includes('confirm') || text.includes('finaliz') ||
+    text.includes('sign off') || text.includes('resolved') || text.includes('승인') || text.includes('확정') || text.includes('합의') ||
+    text.includes('承認') || text.includes('確定') || text.includes('合意') || text.includes('完了')
   ) {
     return {
       type: 'DECISION',
@@ -61,9 +76,10 @@ export function detectMeetingIntent(englishText = '', koreanText = '') {
 
   // 3. Action Item / Request / Submission
   if (
-    eng.includes('please') || eng.includes('need to') || eng.includes('must') || eng.includes('submit') ||
-    eng.includes('revise') || eng.includes('issue') || eng.includes('deadline') || eng.includes('by next') ||
-    kr.includes('제출') || kr.includes('수정') || kr.includes('필요') || kr.includes('요청') || kr.includes('기한')
+    text.includes('please') || text.includes('need to') || text.includes('must') || text.includes('submit') ||
+    text.includes('revise') || text.includes('issue') || text.includes('deadline') || text.includes('by next') ||
+    text.includes('제출') || text.includes('수정') || text.includes('필요') || text.includes('요청') || text.includes('기한') ||
+    text.includes('提出') || text.includes('修正') || text.includes('必要') || text.includes('依頼') || text.includes('締切')
   ) {
     return {
       type: 'ACTION',
@@ -76,8 +92,9 @@ export function detectMeetingIntent(englishText = '', koreanText = '') {
 
   // 4. Question / Clarification
   if (
-    eng.includes('?') || eng.startsWith('what') || eng.startsWith('when') || eng.startsWith('how') ||
-    eng.startsWith('could') || eng.startsWith('can') || eng.includes('is it') || kr.includes('?') || kr.includes('확인')
+    text.includes('?') || text.startsWith('what') || text.startsWith('when') || text.startsWith('how') ||
+    text.startsWith('could') || text.startsWith('can') || text.includes('is it') || text.includes('확인') ||
+    text.includes('でしょうか') || text.includes('確認') || text.includes('ですか')
   ) {
     return {
       type: 'QUESTION',
@@ -103,8 +120,8 @@ export async function translateArchitectureText({ text, sourceLang = 'en-GB', ta
 
   const rawCleanText = text.trim();
   const cleanText = normalizeArchitecturalSpeech(rawCleanText, sourceLang);
-  const sl = sourceLang.startsWith('en') ? 'en' : 'ko';
-  const tl = targetLang.startsWith('ko') ? 'ko' : 'en';
+  const sl = sourceLang.startsWith('en') ? 'en' : sourceLang.startsWith('ja') ? 'ja' : 'ko';
+  const tl = targetLang.startsWith('ko') ? 'ko' : targetLang.startsWith('ja') ? 'ja' : 'en';
   const cacheKey = `${sl}->${tl}:${cleanText.toLowerCase()}`;
 
   if (translationCache.has(cacheKey)) {
@@ -325,6 +342,25 @@ function getInstantArchitecturalTranslation(text, sourceLang, targetLang) {
   }
   if (lower.includes('bill of quantities') || lower.includes('qs')) {
     return '적산사(QS)가 검토 중인 구조 공사 물량 산출서(BOQ) 내역입니다.';
+  }
+
+  // 🇯🇵 Japanese Architectural Common Phrases Matcher
+  if (sourceLang.startsWith('ja')) {
+    if (lower.includes('耐震') || lower.includes('計算書')) {
+      return '내진 구조 계산서와 지진 하중 해석 시뮬레이션 결과를 검토해주십시오.';
+    }
+    if (lower.includes('確認申請') || lower.includes('提出')) {
+      return '건축 확인 신청 도서 제출 일정 및 의장 설계 변경 사항 협의입니다.';
+    }
+    if (lower.includes('納まり') || lower.includes('詳細図') || lower.includes('ルーバー')) {
+      return '외벽 루버 및 창호 접합부 마감 상세도(納まり) 검토가 필요합니다.';
+    }
+    if (lower.includes('意匠') || lower.includes('設計')) {
+      return '의장 설계 및 평면 공간 구성(ゾーニング) 변경 계획입니다.';
+    }
+    if (lower.includes('施工図') || lower.includes('現場')) {
+      return '현장 시공 상세도(施工図) 승인 및 자재 발주 일정 확인입니다.';
+    }
   }
 
   return null;

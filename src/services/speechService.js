@@ -85,9 +85,9 @@ class SpeechService {
     this.currentLang = 'en-GB';
     this.audioContext = null;
     this.analyser = null;
-    this.mediaStream = null;
     this.ukVoice = null;
     this.krVoice = null;
+    this.jpVoice = null;
     this.autoRestart = true;
 
     this.initVoices();
@@ -109,6 +109,11 @@ class SpeechService {
     // Find best Korean voice
     this.krVoice = voices.find(v => (v.lang === 'ko-KR' || v.lang === 'ko_KR') && (v.name.includes('Natural') || v.name.includes('Online') || v.name.includes('SunHi') || v.name.includes('Heami') || v.name.includes('Yuna'))) 
       || voices.find(v => v.lang.startsWith('ko'))
+      || null;
+
+    // Find best Japanese voice (Kyoko, Otoya, Nanami, Ayumi, Haruka, Ichiro, etc.)
+    this.jpVoice = voices.find(v => (v.lang === 'ja-JP' || v.lang === 'ja_JP') && (v.name.includes('Natural') || v.name.includes('Online') || v.name.includes('Kyoko') || v.name.includes('Nanami') || v.name.includes('Ayumi') || v.name.includes('Haruka') || v.name.includes('Ichiro'))) 
+      || voices.find(v => v.lang.startsWith('ja'))
       || null;
   }
 
@@ -299,6 +304,8 @@ class SpeechService {
       if (this.ukVoice) utterance.voice = this.ukVoice;
     } else if (lang.startsWith('ko')) {
       if (this.krVoice) utterance.voice = this.krVoice;
+    } else if (lang.startsWith('ja')) {
+      if (this.jpVoice) utterance.voice = this.jpVoice;
     }
 
     if (onStart) utterance.onstart = onStart;

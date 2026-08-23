@@ -397,29 +397,32 @@ export default function LiveInterpreter({
     });
   };
 
-  // One-touch Native English Voice Test
-  const runVoiceTest = async (testEnglishSentence) => {
-    // 1. Speak in UK native voice
-    speechService.speak(testEnglishSentence, 'en-GB');
+  // One-touch Native Voice Test (UK English or Japanese)
+  const runVoiceTest = async (testSentence, lang = 'en-GB') => {
+    // 1. Speak in native voice (UK English or Japanese)
+    speechService.speak(testSentence, lang);
 
     // 2. Immediately translate and post
+    const targetLang = 'ko-KR';
     const translated = await translateArchitectureText({
-      text: testEnglishSentence,
-      sourceLang: 'en-GB',
-      targetLang: 'ko-KR',
+      text: testSentence,
+      sourceLang: lang,
+      targetLang: targetLang,
       apiKey: apiKey
     });
 
-    const matchedTerms = findGlossaryMatches(testEnglishSentence);
-    const intent = detectMeetingIntent(testEnglishSentence, translated);
+    const matchedTerms = findGlossaryMatches(testSentence);
+    const intent = detectMeetingIntent(testSentence, translated);
+
+    const isJP = lang.startsWith('ja');
 
     setMessages(prev => [{
       id: Date.now(),
-      speaker: 'UK Lead Architect (Oliver)',
-      speakerRole: 'UK Architect',
-      lang: 'en-GB',
-      accent: 'UK (London RP)',
-      original: testEnglishSentence,
+      speaker: isJP ? 'Tokyo Lead Architect (Haruka)' : 'UK Lead Architect (Oliver)',
+      speakerRole: isJP ? 'JP Architect' : 'UK Architect',
+      lang: lang,
+      accent: isJP ? 'Japanese (Tokyo)' : 'UK (London RP)',
+      original: testSentence,
       translation: translated,
       intent: intent,
       terms: matchedTerms.map(t => t.term),
@@ -446,9 +449,17 @@ export default function LiveInterpreter({
     "What is the brise-soleil projection on the 12th floor terrace regarding visual massing?",
     "Has the Planning Permission Section 106 application been finalized with the local council?",
     "Please run a multi-discipline BIM clash detection between structure and MEP services.",
-    "Make sure the cavity barriers comply with Part B fire safety standards.",
-    "We need to serve the Party Wall notices to adjoining neighbours this week."
+    "Make sure the cavity barriers comply with Part B fire safety standards."
   ];
+
+  const jpQuickPhrases = [
+    "耐震構造の構造計算書と外壁ルーバーの納まり詳細図を確認してください。",
+    "確認申請の提出図面に向けた意匠設計チームとの調整が必要です。",
+    "柱と梁のスラブ接合部における配筋納まりとBIM干渉チェックを実施します。",
+    "外壁カーテンウォールの耐火基準と熱貫流率の性能証明書を提出してください。"
+  ];
+
+  const [testLanguageTab, setTestLanguageTab] = useState('en-GB'); // 'en-GB' | 'ja-JP'
 
   return (
     <div className="flex flex-col h-[calc(100vh-8.5rem)] max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 gap-3">
@@ -507,7 +518,7 @@ export default function LiveInterpreter({
         {/* 🌟 CENTRAL LIVE REAL-TIME STAGE (Single Focus: Left English 12pt 🇬🇧 | Right Korean 10pt 🇰🇷) */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch">
           
-          {/* ⬅️ LEFT SCREEN: Live Spoken English (Fixed 12pt - Focus Stage) */}
+          {/* ⬅️ LEFT SCREEN: Live Spoken Foreign Speech (Fixed 12pt - Focus Stage) */}
           <div className={`${
             isDark 
               ? 'bg-slate-950/90 border-2 border-slate-700/90 text-slate-100' 
@@ -517,14 +528,20 @@ export default function LiveInterpreter({
               isDark ? 'border-slate-800' : 'border-slate-100'
             }`}>
               <span className="text-[10.5pt] font-extrabold text-amber-500 flex items-center gap-1.5">
-                🇬🇧 실시간 영국 영어 (Live English Speech)
+                {activeMic === 'ja-JP' || messages[0]?.lang?.startsWith('ja') ? (
+                  <>🇯🇵 실시간 일본어 발화 (Live Japanese)</>
+                ) : activeMic === 'ko-KR' || messages[0]?.lang?.startsWith('ko') ? (
+                  <>🇰🇷 실시간 한국어 발화 (Live Korean)</>
+                ) : (
+                  <>🇬🇧/🇺🇸 실시간 영어 발화 (Live English)</>
+                )}
               </span>
               <span className={`text-[8.5pt] font-mono font-bold px-2 py-0.5 rounded-full ${
-                activeMic === 'en-GB' 
+                activeMic 
                   ? 'bg-amber-500/20 text-amber-600 border border-amber-500/40 animate-pulse' 
                   : isDark ? 'bg-slate-800 text-slate-400' : 'bg-slate-100 text-slate-600'
               }`}>
-                {activeMic === 'en-GB' ? '🎙️ 실시간 수신 중' : '마이크 대기 중'}
+                {activeMic ? `🎙️ ${activeMic === 'ja-JP' ? '일본어' : activeMic.startsWith('en') ? '영어' : '한국어'} 수신 중` : '마이크 대기 중'}
               </span>
             </div>
             
@@ -538,9 +555,7 @@ export default function LiveInterpreter({
                   </span>
                 ) : (
                   <span className={`${isDark ? 'text-slate-500' : 'text-slate-400'} font-normal italic`}>
-                    {messages[0]?.lang?.startsWith('en') 
-                      ? `"${messages[0]?.original}"` 
-                      : "영국인 음성을 실시간 수신합니다. (하단 마이크를 켜거나 테스트 버튼을 누르세요)"}
+                    {messages[0]?.original ? `"${messages[0]?.original}"` : "외국어(영어/일본어) 음성을 실시간 수신합니다. (하단 마이크 또는 테스트 버튼 클릭)"}
                   </span>
                 )}
               </p>
@@ -549,7 +564,7 @@ export default function LiveInterpreter({
             <div className={`pt-1.5 border-t ${isDark ? 'border-slate-800/80 text-slate-400' : 'border-slate-100 text-slate-500'} text-[8.5pt] font-medium flex items-center justify-between`}>
               <span className="flex items-center gap-1.5">
                 <span className={`w-2 h-2 rounded-full ${activeMic ? 'bg-amber-500' : isDark ? 'bg-slate-600' : 'bg-slate-300'}`} />
-                <span>영문 12pt 고정 · 호흡/의미절 단위 스마트 분할</span>
+                <span>원문 12pt 고정 · 호흡/의미절 단위 스마트 분할</span>
               </span>
               {interimText && (
                 <span className="text-amber-500 font-mono text-[8pt]">Live Transcribing...</span>
@@ -641,22 +656,49 @@ export default function LiveInterpreter({
       } border rounded-2xl px-4 py-2 shadow-md flex flex-wrap items-center justify-between gap-3`}>
         
         <div className="flex items-center gap-2 overflow-x-auto max-w-full pb-1">
-          <span className="text-[9.5pt] font-bold text-amber-500 shrink-0 flex items-center gap-1">
-            ⚡ 원터치 영국 음성 테스트:
+          {/* Language Test Switcher Tab (🇬🇧 UK / 🇯🇵 JP) */}
+          <div className={`flex items-center p-0.5 rounded-lg border shrink-0 ${
+            isDark ? 'bg-slate-900 border-slate-700' : 'bg-slate-100 border-slate-300'
+          }`}>
+            <button
+              onClick={() => setTestLanguageTab('en-GB')}
+              className={`px-2 py-0.5 text-[9pt] font-bold rounded transition ${
+                testLanguageTab === 'en-GB'
+                  ? 'bg-amber-500 text-slate-950 shadow-sm'
+                  : isDark ? 'text-slate-400 hover:text-white' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              🇬🇧 영문
+            </button>
+            <button
+              onClick={() => setTestLanguageTab('ja-JP')}
+              className={`px-2 py-0.5 text-[9pt] font-bold rounded transition ${
+                testLanguageTab === 'ja-JP'
+                  ? 'bg-rose-500 text-white shadow-sm'
+                  : isDark ? 'text-slate-400 hover:text-white' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              🇯🇵 일본어
+            </button>
+          </div>
+
+          <span className="text-[9pt] font-bold text-amber-500 shrink-0 flex items-center gap-1">
+            ⚡ {testLanguageTab === 'en-GB' ? '영국 건축 발화:' : '일본 건축 발화:'}
           </span>
-          {ukQuickPhrases.slice(0, 3).map((phrase, i) => (
+
+          {(testLanguageTab === 'en-GB' ? ukQuickPhrases : jpQuickPhrases).slice(0, 3).map((phrase, i) => (
             <button
               key={i}
-              onClick={() => runVoiceTest(phrase)}
+              onClick={() => runVoiceTest(phrase, testLanguageTab)}
               className={`text-[8.5pt] font-semibold px-2.5 py-1 rounded-lg border whitespace-nowrap transition flex items-center gap-1 ${
                 isDark 
                   ? 'bg-slate-900/80 hover:bg-amber-500/20 text-slate-300 hover:text-amber-300 border-slate-700 hover:border-amber-500/40' 
                   : 'bg-slate-50 hover:bg-amber-50 text-slate-700 hover:text-amber-800 border-slate-200 hover:border-amber-400'
               }`}
-              title="클릭 시 영국식 발음으로 재생되고 한국어 뜻을 즉시 통역합니다"
+              title={`클릭 시 ${testLanguageTab === 'en-GB' ? '영국식' : '일본어'} 원어민 발음으로 재생되고 한국어 뜻을 즉시 통역합니다`}
             >
-              <Play className="w-2.5 h-2.5 fill-current text-amber-500" />
-              <span>{phrase.slice(0, 32)}...</span>
+              <Play className={`w-2.5 h-2.5 fill-current ${testLanguageTab === 'en-GB' ? 'text-amber-500' : 'text-rose-500'}`} />
+              <span>{phrase.slice(0, 28)}...</span>
             </button>
           ))}
         </div>
@@ -961,7 +1003,7 @@ export default function LiveInterpreter({
             {/* Main English Mic Button */}
             <button
               onClick={() => toggleMic(selectedEnglishAccent)}
-              className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl font-bold text-xs transition shadow-lg ${
+              className={`flex items-center space-x-2 px-3.5 py-2.5 rounded-xl font-bold text-xs transition shadow-lg ${
                 activeMic?.startsWith('en')
                   ? 'bg-rose-600 hover:bg-rose-700 text-white ring-4 ring-rose-500/30'
                   : isDark 
@@ -972,16 +1014,31 @@ export default function LiveInterpreter({
               {activeMic?.startsWith('en') ? <Square className="w-4 h-4 fill-current" /> : <Mic className="w-4 h-4" />}
               <span>
                 {activeMic?.startsWith('en') 
-                  ? `⏹️ ${selectedEnglishAccent === 'en-GB' ? '🇬🇧 영국' : '🇺🇸 미국'} 마이크 끄기 (ON)` 
-                  : `🎙️ ${selectedEnglishAccent === 'en-GB' ? '🇬🇧 영국' : '🇺🇸 미국'} 마이크 켜기 (OFF)`}
+                  ? `⏹️ ${selectedEnglishAccent === 'en-GB' ? '🇬🇧 영국' : '🇺🇸 미국'} (ON)` 
+                  : `🎙️ ${selectedEnglishAccent === 'en-GB' ? '🇬🇧 영국' : '🇺🇸 미국'} (OFF)`}
               </span>
             </button>
           </div>
 
+          {/* JP Mic Button */}
+          <button
+            onClick={() => toggleMic('ja-JP')}
+            className={`flex items-center space-x-2 px-3.5 py-2.5 rounded-xl font-bold text-xs transition shadow-lg ${
+              activeMic === 'ja-JP'
+                ? 'bg-rose-600 hover:bg-rose-700 text-white ring-4 ring-rose-500/30'
+                : isDark 
+                  ? 'bg-slate-900 hover:bg-slate-700 text-rose-300 border border-rose-500/40' 
+                  : 'bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-300'
+            }`}
+          >
+            {activeMic === 'ja-JP' ? <Square className="w-4 h-4 fill-current" /> : <Mic className="w-4 h-4" />}
+            <span>{activeMic === 'ja-JP' ? '⏹️ 🇯🇵 일본어 (ON)' : '🎙️ 🇯🇵 일본어 (OFF)'}</span>
+          </button>
+
           {/* KR Mic Button */}
           <button
             onClick={() => toggleMic('ko-KR')}
-            className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl font-bold text-xs transition shadow-lg ${
+            className={`flex items-center space-x-2 px-3.5 py-2.5 rounded-xl font-bold text-xs transition shadow-lg ${
               activeMic === 'ko-KR'
                 ? 'bg-rose-600 hover:bg-rose-700 text-white ring-4 ring-rose-500/30'
                 : isDark 
@@ -990,11 +1047,11 @@ export default function LiveInterpreter({
             }`}
           >
             {activeMic === 'ko-KR' ? <Square className="w-4 h-4 fill-current" /> : <Mic className="w-4 h-4" />}
-            <span>{activeMic === 'ko-KR' ? '⏹️ 🇰🇷 한국어 마이크 끄기 (ON)' : '🎙️ 🇰🇷 한국어 마이크 켜기 (OFF)'}</span>
+            <span>{activeMic === 'ko-KR' ? '⏹️ 🇰🇷 한국어 (ON)' : '🎙️ 🇰🇷 한국어 (OFF)'}</span>
           </button>
 
           {/* Manual Input Field */}
-          <form onSubmit={handleManualSend} className="flex-1 flex items-center gap-2 min-w-[280px]">
+          <form onSubmit={handleManualSend} className="flex-1 flex items-center gap-2 min-w-[260px]">
             <div className="relative flex-1">
               <input
                 type="text"
@@ -1002,8 +1059,10 @@ export default function LiveInterpreter({
                 onChange={(e) => setCustomInput(e.target.value)}
                 placeholder={
                   inputLang === 'en-GB' 
-                    ? "영어로 입력 시 한국어 뜻 즉시 번역 (e.g. Curtain wall U-value Part L...)" 
-                    : "한국어 입력 시 영국 건축 영어로 번역..."
+                    ? "영어로 입력 시 한국어 뜻 즉시 번역 (e.g. Curtain wall U-value...)" 
+                    : inputLang === 'ja-JP'
+                      ? "일본어로 입력 시 한국어 뜻 즉시 번역 (e.g. 耐震構造の計算書...)"
+                      : "한국어 입력 시 영국/일본 건축 언어로 번역..."
                 }
                 className={`w-full border rounded-xl px-4 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-amber-500 ${
                   isDark 
@@ -1013,12 +1072,12 @@ export default function LiveInterpreter({
               />
               <button
                 type="button"
-                onClick={() => setInputLang(prev => prev === 'en-GB' ? 'ko-KR' : 'en-GB')}
+                onClick={() => setInputLang(prev => prev === 'en-GB' ? 'ja-JP' : prev === 'ja-JP' ? 'ko-KR' : 'en-GB')}
                 className={`absolute right-2 top-1/2 -translate-y-1/2 px-2 py-0.5 text-[10px] font-bold rounded border ${
                   isDark ? 'bg-slate-800 text-slate-300 hover:text-white border-slate-700' : 'bg-slate-200 text-slate-700 hover:text-slate-900 border-slate-300'
                 }`}
               >
-                {inputLang === 'en-GB' ? '🇬🇧 EN' : '🇰🇷 KO'}
+                {inputLang === 'en-GB' ? '🇬🇧 EN' : inputLang === 'ja-JP' ? '🇯🇵 JA' : '🇰🇷 KO'}
               </button>
             </div>
 
