@@ -26,20 +26,21 @@ const translationCache = new Map();
 export async function translateArchitectureText({ text, sourceLang = 'en-GB', targetLang = 'ko-KR', apiKey }) {
   if (!text || !text.trim()) return '';
 
-  const cleanText = text.trim();
+  const rawCleanText = text.trim();
+  const cleanText = normalizeArchitecturalSpeech(rawCleanText, sourceLang);
   const cacheKey = `${sourceLang}->${targetLang}:${cleanText.toLowerCase()}`;
   if (translationCache.has(cacheKey)) {
     return translationCache.get(cacheKey);
   }
 
-  // 1. Check direct architectural rule-based matches first for instant 0ms response
+  // 1. Instant 0ms Rule-based Matcher for common architectural dialogue
   const instantMatch = getInstantArchitecturalTranslation(cleanText, sourceLang, targetLang);
   if (instantMatch && !apiKey) {
     translationCache.set(cacheKey, instantMatch);
     return instantMatch;
   }
 
-  // 2. If Gemini API Key exists, call Gemini 1.5 Flash for deep context
+  // 2. Gemini AI Engine (if API Key provided)
   if (apiKey && apiKey.trim()) {
     try {
       const matchedTerms = findGlossaryMatches(cleanText);
@@ -78,11 +79,11 @@ export async function translateArchitectureText({ text, sourceLang = 'en-GB', ta
         }
       }
     } catch (err) {
-      console.warn('Gemini API call failed, falling back to real-time engine:', err);
+      console.warn('Gemini API call failed, falling back to multi-tier web engines:', err);
     }
   }
 
-  // 3. Ultra-fast Web Translation Engine with UK Architecture Glossary Enhancement
+  // 3. Primary Ultra-Fast Engine: Google GTX Web Translation Client
   try {
     const sl = sourceLang.startsWith('en') ? 'en' : 'ko';
     const tl = targetLang.startsWith('ko') ? 'ko' : 'en';
@@ -94,7 +95,6 @@ export async function translateArchitectureText({ text, sourceLang = 'en-GB', ta
       if (Array.isArray(data) && Array.isArray(data[0])) {
         let translatedText = data[0].map(item => item[0]).filter(Boolean).join('');
         if (translatedText) {
-          // Apply UK architectural terminology refinement
           translatedText = refineWithArchitecturalGlossary(translatedText, cleanText);
           translationCache.set(cacheKey, translatedText);
           return translatedText;
@@ -102,13 +102,50 @@ export async function translateArchitectureText({ text, sourceLang = 'en-GB', ta
       }
     }
   } catch (err) {
-    console.warn('Web translation fallback notice:', err);
+    console.warn('Primary web translation engine warning:', err);
   }
 
-  // 4. Fallback to smart local translation
+  // 4. Secondary Backup Engine: MyMemory Translation API
+  try {
+    const sl = sourceLang.startsWith('en') ? 'en' : 'ko';
+    const tl = targetLang.startsWith('ko') ? 'ko' : 'en';
+    const myMemoryUrl = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(cleanText)}&langpair=${sl}|${tl}`;
+    const res = await fetch(myMemoryUrl);
+    if (res.ok) {
+      const json = await res.json();
+      const match = json.responseData?.translatedText;
+      if (match && match !== cleanText) {
+        const refined = refineWithArchitecturalGlossary(match, cleanText);
+        translationCache.set(cacheKey, refined);
+        return refined;
+      }
+    }
+  } catch (e) {
+    // fallback
+  }
+
+  // 5. Intelligent Local Context Engine Fallback
   const result = instantMatch || smartLocalTranslation(cleanText, sourceLang, targetLang);
   translationCache.set(cacheKey, result);
   return result;
+}
+
+// Pre-normalization for UK Architectural speech & acronyms
+function normalizeArchitecturalSpeech(text, sourceLang) {
+  if (!sourceLang.startsWith('en')) return text;
+  let normalized = text;
+
+  // UK speech spoken shortcuts to formal technical terms
+  normalized = normalized.replace(/\bGF\b/gi, 'Ground Floor');
+  normalized = normalized.replace(/\bFF\b/gi, 'First Floor');
+  normalized = normalized.replace(/\bLPA\b/gi, 'Local Planning Authority');
+  normalized = normalized.replace(/\bMEP\b/gi, 'Mechanical Electrical Plumbing (M&E)');
+  normalized = normalized.replace(/\bQS\b/gi, 'Quantity Surveyor');
+  normalized = normalized.replace(/\bBOQ\b/gi, 'Bill of Quantities');
+  normalized = normalized.replace(/\bS106\b/gi, 'Section 106');
+  normalized = normalized.replace(/\bD&B\b/gi, 'Design and Build');
+
+  return normalized;
 }
 
 // Post-processing to ensure UK-specific architectural terms are preserved in Korean
@@ -128,6 +165,15 @@ function refineWithArchitecturalGlossary(koreanText, englishSource) {
   if (lowerEng.includes('building regulations')) {
     refined = refined.replace(/건축 규정|건물 규정/g, '영국 건축법규(Building Regulations)');
   }
+  if (lowerEng.includes('part l')) {
+    refined = refined.replace(/파트 l|파트 엘/gi, '단열·에너지기준(Part L)');
+  }
+  if (lowerEng.includes('part b')) {
+    refined = refined.replace(/파트 b|파트 비/gi, '화재안전기준(Part B)');
+  }
+  if (lowerEng.includes('part m')) {
+    refined = refined.replace(/파트 m|파트 엠/gi, '배리어프리·접근성기준(Part M)');
+  }
   if (lowerEng.includes('section 106')) {
     refined = refined.replace(/106조|섹션 106/g, 'Section 106(공공기여 협약)');
   }
@@ -135,7 +181,7 @@ function refineWithArchitecturalGlossary(koreanText, englishSource) {
     refined = refined.replace(/파티 월|벽/g, '경계벽(Party Wall Act)');
   }
   if (lowerEng.includes('snagging')) {
-    refined = refined.replace(/스내깅|하자/g, '준공 전 결함 점검(Snagging)');
+    refined = refined.replace(/스내깅|하자/g, '준공 전 결함 점검(Snagging list)');
   }
   if (lowerEng.includes('curtain wall')) {
     refined = refined.replace(/커튼 월/g, '외벽 커튼월(Curtain Wall)');
@@ -145,6 +191,15 @@ function refineWithArchitecturalGlossary(koreanText, englishSource) {
   }
   if (lowerEng.includes('clash detection')) {
     refined = refined.replace(/충돌 감지|간섭 감지/g, 'BIM 간섭 체크(Clash Detection)');
+  }
+  if (lowerEng.includes('attenuation')) {
+    refined = refined.replace(/감쇠|감쇄/g, '우수 저감조(Attenuation)');
+  }
+  if (lowerEng.includes('breeam')) {
+    refined = refined.replace(/브리암|브림/gi, '친환경 건축인증(BREEAM)');
+  }
+  if (lowerEng.includes('quantity surveyor')) {
+    refined = refined.replace(/수량 조사관|적산사/g, '공사비 적산사(QS)');
   }
 
   return refined;
