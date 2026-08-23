@@ -903,20 +903,23 @@ export default function LiveInterpreter({
             
             {/* Scrollable Fixed Text Viewport (h-[405px] overflow-y-auto - Strict 12pt View) */}
             <div className="flex-1 my-3 overflow-y-auto pr-2 select-text scrollbar-thin scrollbar-thumb-slate-700 space-y-3">
-              <div className={`text-[12pt] font-semibold leading-relaxed font-sans break-keep-all ${
-                isDark ? 'text-slate-100' : 'text-slate-900'
-              }`}>
+              <div 
+                style={{ fontSize: `${fontSizeScale}pt` }}
+                className={`font-semibold leading-relaxed font-sans break-keep-all ${
+                  isDark ? 'text-slate-100' : 'text-slate-900'
+                }`}
+              >
                 {currentLiveOriginal ? (
                   <div className="space-y-2.5">
                     {splitIntoIntelligibleChunks(currentLiveOriginal).map((chunk, idx) => (
-                      <p key={idx} className={`font-semibold leading-relaxed ${isLiveSpeaking ? 'text-white drop-shadow-sm' : ''}`}>
-                        "{chunk}"
+                      <p key={idx} className={`leading-relaxed ${isLiveSpeaking ? 'text-white drop-shadow-sm' : ''}`}>
+                        {chunk}
                       </p>
                     ))}
                   </div>
                 ) : (
                   <p className={`${isDark ? 'text-slate-500' : 'text-slate-400'} font-normal italic`}>
-                    외국어(영·일·중) 음성을 실시간 수신합니다. (하단 마이크 또는 테스트 버튼 클릭)
+                    외국어(영·일·중) 음성을 실시간 수신합니다. (하단 마이크 또는 Spacebar 키 클릭)
                   </p>
                 )}
               </div>
@@ -926,7 +929,7 @@ export default function LiveInterpreter({
             <div className={`pt-2 border-t shrink-0 h-7 ${isDark ? 'border-slate-800/80 text-slate-400' : 'border-slate-100 text-slate-500'} text-[8.5pt] font-medium flex items-center justify-between`}>
               <span className="flex items-center gap-2">
                 <span className={`w-2.5 h-2.5 rounded-full ${activeMic ? 'bg-amber-500 animate-ping' : isDark ? 'bg-slate-600' : 'bg-slate-300'}`} />
-                <span className="truncate">원문 12pt 고정 · 🔒 510px 1.5배 대형 중심 무대</span>
+                <span className="truncate">원문 {fontSizeScale}pt · 🔒 510px 1.5배 대형 중심 무대</span>
               </span>
               {isLiveSpeaking && (
                 <span className="text-amber-500 font-mono text-[8pt] shrink-0 animate-pulse">Live Transcribing...</span>
@@ -959,9 +962,12 @@ export default function LiveInterpreter({
 
             {/* Scrollable Fixed Text Viewport (h-[405px] overflow-y-auto - Strict 12pt View) */}
             <div className="flex-1 my-3 overflow-y-auto pr-2 select-text scrollbar-thin scrollbar-thumb-indigo-700 space-y-3">
-              <div className={`text-[12pt] font-bold leading-relaxed break-keep-all ${
-                isDark ? 'text-amber-300' : 'text-indigo-950'
-              }`}>
+              <div 
+                style={{ fontSize: `${fontSizeScale}pt` }}
+                className={`font-bold leading-relaxed break-keep-all ${
+                  isDark ? 'text-amber-300' : 'text-indigo-950'
+                }`}
+              >
                 {currentLiveTranslation ? (
                   <div className="space-y-2.5">
                     {splitIntoIntelligibleChunks(currentLiveTranslation).map((chunk, idx) => (
@@ -972,7 +978,7 @@ export default function LiveInterpreter({
                   </div>
                 ) : (
                   <p className={`${isDark ? 'text-slate-400' : 'text-slate-500'} font-normal`}>
-                    외국어(영·일·중)로 말하면 우측에 12pt 크기의 한국어 번역이 100% 실시간으로 표시됩니다.
+                    외국어(영·일·중)로 말하면 우측에 {fontSizeScale}pt 크기의 한국어 번역이 100% 실시간으로 표시됩니다.
                   </p>
                 )}
               </div>

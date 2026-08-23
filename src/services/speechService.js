@@ -166,62 +166,45 @@ class SpeechService {
     this.recognition.lang = lang;
     this.currentLang = lang;
 
-    let finalAccumulated = '';
-    let currentInterim = '';
-
-    // ⚡ 0.5s Silence Flush: If speaker pauses, immediately commit all words without losing single token
-    const triggerSilenceFlush = () => {
-      if (this.silenceTimer) clearTimeout(this.silenceTimer);
-      if (!currentInterim.trim()) return;
-
-      this.silenceTimer = setTimeout(() => {
-        if (currentInterim.trim()) {
-          const fullSentence = (finalAccumulated ? finalAccumulated + ' ' : '') + currentInterim.trim();
-          const cleanSentence = applyPhoneticCorrections(fullSentence.trim());
-          finalAccumulated = cleanSentence;
-          currentInterim = '';
-          onInterimResult?.('');
-          onResult?.(cleanSentence);
-        }
-      }, 500);
-    };
+    let lastEmittedFinal = '';
 
     this.recognition.onresult = (event) => {
-      let interimChunk = '';
-      let newFinals = '';
+      let finalTranscript = '';
+      let interimTranscript = '';
 
-      for (let i = event.resultIndex; i < event.results.length; ++i) {
+      // ⚡ Standard Web Speech API: Iterate from 0 to length-1 to get the exact, non-duplicated cumulative text
+      for (let i = 0; i < event.results.length; ++i) {
         const res = event.results[i];
         const text = res[0]?.transcript || '';
-
         if (res.isFinal) {
-          newFinals += (newFinals ? ' ' : '') + text.trim();
+          finalTranscript += (finalTranscript ? ' ' : '') + text.trim();
         } else {
-          interimChunk += (interimChunk ? ' ' : '') + text.trim();
+          interimTranscript += (interimTranscript ? ' ' : '') + text.trim();
         }
       }
 
-      if (newFinals.trim()) {
-        if (this.silenceTimer) clearTimeout(this.silenceTimer);
-        finalAccumulated = (finalAccumulated ? finalAccumulated + ' ' : '') + newFinals.trim();
-        const cleanFinal = applyPhoneticCorrections(finalAccumulated.trim());
-        currentInterim = '';
-        onInterimResult?.('');
-        onResult?.(cleanFinal);
+      const fullSpoken = (finalTranscript ? finalTranscript + ' ' : '') + interimTranscript;
+      const cleanFull = applyPhoneticCorrections(fullSpoken.trim());
+
+      if (cleanFull) {
+        onInterimResult?.(cleanFull);
       }
 
-      if (interimChunk.trim()) {
-        currentInterim = interimChunk.trim();
-        const previewText = (finalAccumulated ? finalAccumulated + ' ' : '') + currentInterim;
-        const normPreview = applyPhoneticCorrections(previewText.trim());
-        onInterimResult?.(normPreview);
-        triggerSilenceFlush();
+      // ⚡ 0.6s Silence Flush on pause: Emit finalized sentence cleanly
+      if (this.silenceTimer) clearTimeout(this.silenceTimer);
+      if (cleanFull && cleanFull !== lastEmittedFinal) {
+        this.silenceTimer = setTimeout(() => {
+          if (cleanFull && cleanFull !== lastEmittedFinal) {
+            lastEmittedFinal = cleanFull;
+            onResult?.(cleanFull);
+          }
+        }, 600);
       }
     };
 
     this.recognition.onerror = (event) => {
       if (event.error === 'no-speech' || event.error === 'network') {
-        return; // Natural pause or network micro-tick
+        return; // Natural pause
       }
       console.warn('Speech recognition status:', event.error);
       if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
@@ -231,23 +214,13 @@ class SpeechService {
     };
 
     this.recognition.onend = () => {
-      // ⚡ Unconditional Final Flush: Never drop last words if session ends
-      if (currentInterim.trim()) {
-        const fullFinal = (finalAccumulated ? finalAccumulated + ' ' : '') + currentInterim.trim();
-        const cleanFinal = applyPhoneticCorrections(fullFinal.trim());
-        finalAccumulated = cleanFinal;
-        currentInterim = '';
-        onResult?.(cleanFinal);
-      }
-
-      // ⚡ Zero-Gap Instant Reconnect (10ms): Unbreakable audio capture loop
+      // ⚡ Zero-Gap Seamless Reconnect (10ms)
       if (this.isListening && this.autoRestart) {
         if (this.restartTimer) clearTimeout(this.restartTimer);
         this.restartTimer = setTimeout(() => {
           if (this.isListening && this.recognition) {
             try {
-              // Reset buffer for fresh new sentence cycle
-              finalAccumulated = '';
+              lastEmittedFinal = '';
               this.recognition.start();
             } catch (e) {
               // recycled safely
