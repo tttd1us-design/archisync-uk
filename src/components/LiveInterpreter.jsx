@@ -80,7 +80,7 @@ function splitIntoIntelligibleChunks(text) {
   return cleanChunks.length > 0 ? cleanChunks : [raw];
 }
 
-// ⚡ Highly-Optimized Memoized Message Card Component (Prevents list re-render on audio level / stream updates)
+// ⚡ Ultra-Compact High-Density 8pt Memoized Message Card Component (Maximum information density, minimal padding)
 const MessageCardItem = React.memo(function MessageCardItem({
   msg,
   isDark,
@@ -100,183 +100,122 @@ const MessageCardItem = React.memo(function MessageCardItem({
   const isJP = msg.lang?.startsWith('ja');
   const flag = isZH ? '🇨🇳' : isJP ? '🇯🇵' : isUK ? '🇬🇧' : '🇰🇷';
 
-  const intent = msg.intent || {
-    type: 'INFO',
-    label: '💬 현황 공유',
-    color: isDark ? 'bg-slate-700/50 text-slate-300 border-slate-600/40' : 'bg-slate-100 text-slate-700 border-slate-300',
-    borderLeft: 'border-l-4 border-l-indigo-500',
-    takeaway: '대화 내용 확인'
-  };
-
   return (
-    <div className="w-full transition-all">
-      <div className={`w-full rounded-2xl p-3.5 shadow-md border ${intent.borderLeft} ${
-        isDark ? 'bg-slate-950/80 border-slate-800/80 text-slate-100' : 'bg-white border-slate-200 text-slate-900 shadow-sm'
-      } space-y-2.5`}>
-        
-        {/* 1. Backup Card Top Bar */}
-        <div className={`flex flex-wrap items-center justify-between pb-1.5 border-b ${
-          isDark ? 'border-slate-800/60' : 'border-slate-100'
-        } gap-2`}>
-          <div className="flex items-center space-x-2">
-            <span className="text-sm">{flag}</span>
-            <span className={`text-[9.5pt] font-bold ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>{msg.speaker}</span>
-            <span className={`text-[8pt] font-bold px-2 py-0.5 rounded-full border ${intent.color}`}>
-              {intent.label}
+    <div className={`w-full rounded-xl p-2 border transition-all ${
+      isDark ? 'bg-slate-950/90 border-slate-800/90 text-slate-100' : 'bg-white border-slate-200 text-slate-900 shadow-xs'
+    } space-y-1`}>
+      
+      {/* 1. Compact Top Bar: Speaker, Timestamp, Quick Actions */}
+      <div className={`flex items-center justify-between pb-1 border-b text-[8pt] ${
+        isDark ? 'border-slate-800/80 text-slate-400' : 'border-slate-100 text-slate-500'
+      }`}>
+        <div className="flex items-center space-x-1.5 truncate">
+          <span>{flag}</span>
+          <span className={`font-bold ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>{msg.speaker}</span>
+          <span className="text-[7.5pt] font-mono text-slate-500">({msg.timestamp})</span>
+          {msg.isLearned && (
+            <span className="text-[7pt] font-bold px-1 py-0.1 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+              ✨학습됨
             </span>
-          </div>
-          
-          <div className={`flex items-center space-x-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-            <span className="text-[8pt] font-mono">{msg.timestamp}</span>
-            <button
-              onClick={() => onCopy(msg.id, `[원문] ${msg.original}\n[한글] ${msg.translation}`)}
-              className="p-1 hover:text-amber-500 rounded transition"
-              title="전체 복사"
-            >
-              {copiedId === msg.id ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
-            </button>
-          </div>
+          )}
+        </div>
+        
+        <div className="flex items-center space-x-1 shrink-0">
+          <button
+            onClick={() => onPlaySpeech(msg.original, msg.lang)}
+            className="px-1 py-0.5 hover:text-amber-400 text-slate-400 rounded transition text-[7.5pt] flex items-center gap-0.5"
+            title="원문 듣기"
+          >
+            <Volume2 className="w-2.5 h-2.5 text-amber-500" />
+            <span>원문</span>
+          </button>
+          <button
+            onClick={() => onPlaySpeech(msg.translation, isUK ? 'ko-KR' : 'en-GB')}
+            className="px-1 py-0.5 hover:text-sky-400 text-slate-400 rounded transition text-[7.5pt] flex items-center gap-0.5"
+            title="번역 듣기"
+          >
+            <Volume2 className="w-2.5 h-2.5 text-sky-500" />
+            <span>한글</span>
+          </button>
+          <button
+            onClick={() => onStartEdit(msg.id, msg.translation)}
+            className="px-1 py-0.5 hover:text-amber-400 text-slate-400 rounded transition text-[7.5pt]"
+            title="번역 수정·학습"
+          >
+            ✏️
+          </button>
+          <button
+            onClick={() => onCopy(msg.id, `[원문] ${msg.original}\n[한글] ${msg.translation}`)}
+            className="p-0.5 hover:text-amber-500 rounded transition text-slate-400"
+            title="복사"
+          >
+            {copiedId === msg.id ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
+          </button>
+        </div>
+      </div>
+
+      {/* 2. Dual Column 8pt Layout: Left Original 8pt | Right Korean 8pt */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 items-start text-[8pt] leading-snug">
+        
+        {/* ⬅️ LEFT: Original 8pt */}
+        <div className={`p-1.5 rounded-lg border ${
+          isDark ? 'bg-slate-900/80 border-slate-800/80 text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-800'
+        }`}>
+          <p className="select-text break-keep-all font-medium">
+            {msg.original}
+          </p>
+          {msg.terms && msg.terms.length > 0 && (
+            <div className="mt-1 flex flex-wrap items-center gap-1">
+              {msg.terms.map((term, i) => (
+                <button
+                  key={i}
+                  onClick={() => onOpenGlossary(term)}
+                  className={`text-[7pt] font-bold px-1 py-0.2 rounded border transition ${
+                    isDark ? 'bg-amber-500/20 text-amber-300 border-amber-500/40' : 'bg-amber-50 text-amber-800 border-amber-300'
+                  }`}
+                >
+                  {term}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* 2. Dual Column Layout: Left Original 12pt | Right Korean 10pt */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-stretch">
-          
-          {/* ⬅️ LEFT COLUMN: Original Spoken Sentence (Fixed 12pt) */}
-          <div className={`${
-            isDark ? 'bg-slate-900/90 border-slate-800/90' : 'bg-slate-50 border-slate-200'
-          } rounded-xl p-3 border flex flex-col justify-between space-y-2`}>
+        {/* ➡️ RIGHT: Korean 8pt */}
+        <div className={`p-1.5 rounded-lg border ${
+          isDark ? 'bg-indigo-950/40 border-indigo-500/30 text-amber-300' : 'bg-indigo-50/60 border-indigo-200 text-indigo-950'
+        }`}>
+          {editingId === msg.id ? (
             <div className="space-y-1">
-              <div className="flex items-center justify-between">
-                <span className={`text-[8.5pt] font-bold flex items-center gap-1 ${
-                  isDark ? 'text-slate-400' : 'text-slate-600'
-                }`}>
-                  {flag} 발화 원문 ({msg.accent || msg.lang}):
-                </span>
+              <textarea
+                value={editTranslationText}
+                onChange={(e) => onChangeEditText(e.target.value)}
+                className={`w-full p-1 text-[8pt] rounded border ${
+                  isDark ? 'bg-slate-900 border-slate-700 text-slate-100' : 'bg-white border-slate-300 text-slate-900'
+                }`}
+                rows={2}
+              />
+              <div className="flex items-center justify-end space-x-1.5">
+                <button onClick={onCancelEdit} className="text-[7pt] text-slate-400 hover:text-slate-200">
+                  취소
+                </button>
                 <button
-                  onClick={() => onPlaySpeech(msg.original, msg.lang)}
-                  className="p-1 hover:text-amber-500 text-slate-400 transition flex items-center gap-1 text-[8.5pt]"
-                  title="원문 다시 듣기"
+                  onClick={() => onSaveEdit(msg.id, msg.original, editTranslationText)}
+                  className="px-1.5 py-0.5 text-[7.5pt] font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 rounded"
                 >
-                  <Volume2 className="w-3 h-3 text-amber-500" />
-                  <span>원문 듣기</span>
+                  학습 저장
                 </button>
               </div>
-              <p className={`text-[12pt] font-semibold leading-relaxed select-text ${
-                isDark ? 'text-slate-100' : 'text-slate-900'
-              }`}>
-                {msg.original}
-              </p>
             </div>
-
-            {/* Detected Terms Chips */}
-            {msg.terms && msg.terms.length > 0 && (
-              <div className={`pt-1.5 border-t ${isDark ? 'border-slate-800/70' : 'border-slate-200'} flex flex-wrap items-center gap-1.5`}>
-                <span className={`text-[8pt] font-bold flex items-center gap-1 ${
-                  isDark ? 'text-slate-500' : 'text-slate-600'
-                }`}>
-                  <BookOpen className="w-3 h-3 text-amber-500" /> 전문용어:
-                </span>
-                {msg.terms.map((term, i) => (
-                  <button
-                    key={i}
-                    onClick={() => onOpenGlossary(term)}
-                    className={`text-[8pt] font-bold px-2 py-0.5 rounded-full border transition flex items-center gap-1 ${
-                      isDark 
-                        ? 'bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 border-amber-500/40' 
-                        : 'bg-amber-50 text-amber-800 hover:bg-amber-100 border-amber-300'
-                    }`}
-                  >
-                    {term}
-                    <Info className="w-2 h-2 opacity-60" />
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* ➡️ RIGHT COLUMN: Korean Real-time Translation (Fixed 10pt) */}
-          <div className={`${
-            isDark ? 'bg-indigo-950/30 border-indigo-500/30' : 'bg-indigo-50/50 border-indigo-200'
-          } rounded-xl p-3 border flex flex-col justify-between space-y-2`}>
-            <div className="space-y-1">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1.5">
-                  <span className={`text-[8.5pt] font-bold flex items-center gap-1 ${
-                    isDark ? 'text-sky-300' : 'text-indigo-700'
-                  }`}>
-                    <Sparkles className="w-3 h-3 text-amber-500" /> 🇰🇷 한글 번역:
-                  </span>
-                  {msg.isLearned && (
-                    <span className="text-[7.5pt] font-bold px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
-                      ✨ AI 학습됨
-                    </span>
-                  )}
-                </div>
-                <div className="flex items-center space-x-1">
-                  <button
-                    onClick={() => onStartEdit(msg.id, msg.translation)}
-                    className="p-1 hover:text-amber-400 text-slate-400 transition flex items-center gap-1 text-[8pt]"
-                    title="이 번역을 수정하여 AI에 영구 학습시키기"
-                  >
-                    <span>✏️ 수정·학습</span>
-                  </button>
-                  <button
-                    onClick={() => onPlaySpeech(msg.translation, isUK ? 'ko-KR' : 'en-GB')}
-                    className="p-1 hover:text-amber-500 text-sky-500 transition flex items-center gap-1 text-[8.5pt]"
-                    title="한국어 번역 음성 듣기"
-                  >
-                    <Volume2 className="w-3 h-3 text-sky-500" />
-                    <span>듣기</span>
-                  </button>
-                </div>
-              </div>
-              
-              {editingId === msg.id ? (
-                <div className="space-y-2 pt-1">
-                  <textarea
-                    value={editTranslationText}
-                    onChange={(e) => onChangeEditText(e.target.value)}
-                    className={`w-full p-2 text-xs rounded-lg border focus:ring-2 focus:ring-amber-500 ${
-                      isDark ? 'bg-slate-900 border-slate-700 text-slate-100' : 'bg-white border-slate-300 text-slate-900'
-                    }`}
-                    rows={2}
-                  />
-                  <div className="flex items-center justify-end space-x-2">
-                    <button
-                      onClick={onCancelEdit}
-                      className="px-2 py-1 text-[10px] font-bold text-slate-400 hover:text-slate-200"
-                    >
-                      취소
-                    </button>
-                    <button
-                      onClick={() => onSaveEdit(msg.id, msg.original, editTranslationText)}
-                      className="px-2.5 py-1 text-[10px] font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-md shadow-sm"
-                    >
-                      🧠 영구 학습 저장
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <p className={`text-[10pt] font-bold leading-relaxed select-text ${
-                  isDark ? 'text-amber-300' : 'text-indigo-950 font-extrabold'
-                }`}>
-                  {msg.translation}
-                </p>
-              )}
-            </div>
-
-            {/* Quick Takeaway Footer */}
-            <div className={`pt-1.5 border-t ${
-              isDark ? 'border-indigo-500/20 text-slate-300' : 'border-indigo-100 text-slate-600'
-            } text-[8.5pt] font-medium flex items-center gap-1.5`}>
-              <span className={`font-semibold shrink-0 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>⚡ 1초 요약:</span>
-              <span className={`${isDark ? 'text-amber-200' : 'text-indigo-800 font-bold'} truncate`}>{intent.takeaway}</span>
-            </div>
-          </div>
-
+          ) : (
+            <p className="select-text break-keep-all font-bold">
+              {msg.translation}
+            </p>
+          )}
         </div>
 
       </div>
+
     </div>
   );
 });
@@ -1104,62 +1043,50 @@ export default function LiveInterpreter({
 
       </div>
 
-      {/* 📜 SESSION BACKUP HISTORY ARCHIVE (Clean Previous Conversation Log) */}
+      {/* 📜 SESSION BACKUP HISTORY ARCHIVE (Ultra-Compact High-Density 8pt Log) */}
       <div className={`flex-1 ${
         isDark ? 'bg-slate-900/90 border-slate-800 text-slate-100' : 'bg-slate-50 border-slate-200 text-slate-900'
-      } border rounded-2xl p-4 overflow-y-auto space-y-3.5 shadow-inner`}>
+      } border rounded-xl p-2 overflow-y-auto space-y-1.5 shadow-inner`}>
         <div ref={messagesTopRef} />
 
         {/* Section Title for Backup Archive */}
-        <div className={`flex items-center justify-between pb-2 border-b ${
+        <div className={`flex items-center justify-between pb-1 border-b text-[8.5pt] ${
           isDark ? 'border-slate-800/80' : 'border-slate-200'
         }`}>
-          <div className="flex items-center space-x-2 text-xs font-bold">
-            <BookOpen className={`w-3.5 h-3.5 ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`} />
-            <span className={isDark ? 'text-slate-400' : 'text-slate-700'}>
-              이전 대화 백업 아카이브 (Session History Log)
+          <div className="flex items-center space-x-1.5 font-bold">
+            <BookOpen className={`w-3 h-3 ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`} />
+            <span className={isDark ? 'text-slate-300' : 'text-slate-700'}>
+              이전 대화 백업 아카이브
             </span>
-            <span className={`px-2 py-0.2 rounded-full text-[10px] ${
+            <span className={`px-1.5 py-0.1 rounded-full text-[7.5pt] font-mono ${
               isDark ? 'bg-slate-800 text-slate-300' : 'bg-slate-200 text-slate-700'
             }`}>
-              {messages.length}개 기록됨
+              {messages.length}건
             </span>
           </div>
 
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-1.5">
             <button
               onClick={handleSaveToDocuments}
-              className={`text-[10px] font-bold flex items-center gap-1 px-2 py-0.5 rounded-lg border transition ${
+              className={`text-[8pt] font-bold flex items-center gap-1 px-2 py-0.5 rounded border transition ${
                 isDark 
                   ? 'text-sky-400 hover:text-sky-300 bg-slate-800/80 border-slate-700 hover:border-sky-500/40' 
-                  : 'text-sky-700 hover:text-sky-800 bg-white border-slate-300 hover:border-sky-400 shadow-sm'
+                  : 'text-sky-700 hover:text-sky-800 bg-white border-slate-300 hover:border-sky-400 shadow-xs'
               }`}
               title="이전 대화와 음성을 내문서\음성 폴더에 저장"
             >
-              <Save className="w-3 h-3 text-sky-500" />
-              <span>음성 & 대화 백업</span>
+              <Save className="w-2.5 h-2.5 text-sky-500" />
+              <span>백업 저장</span>
             </button>
-            {messages.length > 0 && (
-              <span className={`text-[10px] ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>최신순</span>
-            )}
           </div>
         </div>
 
         {messages.length === 0 && (
-          <div className="h-44 flex flex-col items-center justify-center text-center p-6 space-y-3">
-            <div className={`w-10 h-10 rounded-xl border flex items-center justify-center text-amber-500 shadow-md ${
-              isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
-            }`}>
-              <Languages className="w-5 h-5" />
-            </div>
-            <div className="max-w-md">
-              <h3 className={`text-[10pt] font-bold ${isDark ? 'text-slate-300' : 'text-slate-800'}`}>
-                대화 백업 로그가 비어 있습니다
-              </h3>
-              <p className={`text-[9pt] mt-0.5 leading-relaxed ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>
-                상단 중심의 실시간 통역 무대에서 발화가 완료되면, 이곳에 이전 대화가 자동으로 차곡차곡 백업됩니다.
-              </p>
-            </div>
+          <div className="h-16 flex items-center justify-center text-center p-2 space-x-2 text-slate-500">
+            <Languages className="w-4 h-4 text-amber-500" />
+            <span className="text-[8pt]">
+              발화 완료 시 이곳에 8pt 고밀도로 차곡차곡 백업됩니다.
+            </span>
           </div>
         )}
 
