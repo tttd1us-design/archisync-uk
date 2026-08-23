@@ -39,48 +39,31 @@ import {
 import { findGlossaryMatches } from '../data/architectureGlossary';
 import { DEMO_SCENARIOS } from '../data/demoScenarios';
 
-// 🏛️ Natural Clause & Sentence Splitter (Splits long speech streams into readable 5-9 word intelligible clauses)
-function splitIntoIntelligibleChunks(text) {
+// 🏛️ Full Natural Sentence Splitter (Splits continuous speech streams into clean, complete full sentences)
+function splitIntoSentences(text) {
   if (!text || typeof text !== 'string' || !text.trim()) return [];
   const raw = text.trim();
 
-  // 1. Split by sentence boundaries (. ? ! \n)
-  const sentences = raw
+  // 1. Protect abbreviations like Dr., Mr., vs., e.g., i.e., 1.5m, etc.
+  const protectedText = raw
+    .replace(/(?<=\b(?:Dr|Mr|Ms|Prof|Rev|Fig|Ref|vs|etc|i\.e|e\.g))\./gi, '§DOT§')
+    .replace(/(?<=\d)\.(?=\d)/g, '§DOT§');
+
+  // 2. Split on sentence terminals (. ? ! \n)
+  let rawSentences = protectedText
     .split(/(?<=[.?!;:\n])\s+|\n+/)
-    .map(s => s.trim())
+    .map(s => s.replace(/§DOT§/g, '.').trim())
     .filter(Boolean);
 
-  if (sentences.length === 0) return [raw];
-
-  const cleanChunks = [];
-
-  for (const sentence of sentences) {
-    const words = sentence.split(/\s+/);
-    if (words.length <= 8) {
-      cleanChunks.push(sentence);
-      continue;
-    }
-
-    // 2. Split long sentences on natural clause connectives
-    const subClauses = sentence
-      .split(/(?<=,)\s+|\s+(?=\b(?:and|but|so|however|therefore|because|regarding|in terms of|as per|please|make sure|if you|until i|first up|never making|trying to)\b)/i)
+  // 3. Fallback: If no terminals and text is long (> 18 words), split on major discourse transitions
+  if (rawSentences.length <= 1 && raw.split(/\s+/).length > 20) {
+    rawSentences = raw
+      .split(/(?<=[,])\s+(?=\b(?:and then|and also|so|however|therefore|in addition|furthermore|regarding|now let's|first of all)\b)/i)
       .map(s => s.trim())
       .filter(Boolean);
-
-    const merged = [];
-    for (let i = 0; i < subClauses.length; i++) {
-      const clause = subClauses[i];
-      const clauseWords = clause.split(/\s+/);
-      if (clauseWords.length < 3 && merged.length > 0) {
-        merged[merged.length - 1] += ` ${clause}`;
-      } else {
-        merged.push(clause);
-      }
-    }
-    cleanChunks.push(...(merged.length > 0 ? merged : [sentence]));
   }
 
-  return cleanChunks.length > 0 ? cleanChunks : [raw];
+  return rawSentences.length > 0 ? rawSentences : [raw];
 }
 
 // 💎 Commercial Grade 8pt High-Density Card with Crisp Contrast Alignment
@@ -162,59 +145,67 @@ const MessageCardItem = React.memo(function MessageCardItem({
         </div>
       </div>
 
-      {/* 2. Dual Column Layout: Left Original 8pt | Right Korean 8pt (Clean Clause Paragraphing) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 items-start text-[8pt] leading-relaxed">
-        
-        {/* ⬅️ LEFT: Spoken Speech (8pt - Split into readable paragraphs) */}
-        <div className={`p-2.5 rounded-lg border ${
-          isDark ? 'bg-slate-900/60 border-slate-800/80 text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-800'
-        }`}>
-          <div className="select-text break-keep-all font-medium space-y-2">
-            {splitIntoIntelligibleChunks(msg.original || '').map((chunk, idx) => (
-              <p key={idx} className="leading-relaxed">
-                {chunk}
-              </p>
-            ))}
+      {/* 2. Dual Column 1:1 Sentence-by-Sentence Parallel Comparison (8pt Professional Layout) */}
+      <div className="space-y-1.5 text-[8pt] leading-relaxed">
+        {editingId === msg.id ? (
+          <div className="p-2.5 rounded-lg border bg-slate-900 border-amber-500/50 space-y-2">
+            <textarea
+              value={editTranslationText}
+              onChange={(e) => onChangeEditText(e.target.value)}
+              className="w-full p-2 text-[8pt] rounded border bg-slate-950 border-slate-700 text-slate-100 font-sans"
+              rows={3}
+            />
+            <div className="flex items-center justify-end space-x-2">
+              <button onClick={onCancelEdit} className="px-2 py-1 text-[7.5pt] text-slate-400 hover:text-white">
+                취소
+              </button>
+              <button
+                onClick={() => onSaveEdit(msg.id, msg.original, editTranslationText)}
+                className="px-3 py-1 text-[7.5pt] font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 rounded shadow-xs"
+              >
+                학습 저장
+              </button>
+            </div>
           </div>
-        </div>
+        ) : (
+          (() => {
+            const originalSentences = splitIntoSentences(msg.original || '');
+            const translationSentences = splitIntoSentences(msg.translation || '');
+            const maxRows = Math.max(originalSentences.length, translationSentences.length, 1);
 
-        {/* ➡️ RIGHT: Korean Translation (8pt - Split into readable paragraphs) */}
-        <div className={`p-2.5 rounded-lg border ${
-          isDark ? 'bg-indigo-950/30 border-indigo-500/30 text-amber-300' : 'bg-indigo-50/50 border-indigo-200 text-indigo-950'
-        }`}>
-          {editingId === msg.id ? (
-            <div className="space-y-1">
-              <textarea
-                value={editTranslationText}
-                onChange={(e) => onChangeEditText(e.target.value)}
-                className={`w-full p-1.5 text-[8pt] rounded border ${
-                  isDark ? 'bg-slate-900 border-slate-700 text-slate-100' : 'bg-white border-slate-300 text-slate-900'
-                }`}
-                rows={3}
-              />
-              <div className="flex items-center justify-end space-x-1.5">
-                <button onClick={onCancelEdit} className="text-[7pt] text-slate-400 hover:text-slate-200">
-                  취소
-                </button>
-                <button
-                  onClick={() => onSaveEdit(msg.id, msg.original, editTranslationText)}
-                  className="px-2 py-0.5 text-[7.5pt] font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 rounded"
+            return Array.from({ length: maxRows }).map((_, idx) => {
+              const orig = originalSentences[idx] || (idx === 0 ? msg.original : '');
+              const trans = translationSentences[idx] || (idx === 0 ? msg.translation : '');
+
+              return (
+                <div 
+                  key={idx} 
+                  className={`grid grid-cols-1 md:grid-cols-2 gap-2.5 p-2 rounded-lg border transition ${
+                    isDark 
+                      ? 'bg-slate-900/60 border-slate-800/80 hover:border-slate-700' 
+                      : 'bg-slate-50 border-slate-200 hover:border-slate-300'
+                  }`}
                 >
-                  학습 저장
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className="select-text break-keep-all font-bold space-y-2">
-              {splitIntoIntelligibleChunks(msg.translation || '').map((chunk, idx) => (
-                <p key={idx} className="leading-relaxed">
-                  {chunk}
-                </p>
-              ))}
-            </div>
-          )}
-        </div>
+                  {/* ⬅️ Left: Original Spoken Sentence */}
+                  <div className="flex items-start gap-1.5 font-medium select-text">
+                    <span className="font-mono text-[7pt] text-amber-500/80 font-bold shrink-0 mt-0.5">[{idx + 1}]</span>
+                    <p className={`break-keep-all ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
+                      {orig}
+                    </p>
+                  </div>
 
+                  {/* ➡️ Right: Korean Translated Sentence */}
+                  <div className="flex items-start gap-1.5 font-bold select-text">
+                    <span className="font-mono text-[7pt] text-indigo-400 font-bold shrink-0 mt-0.5">[{idx + 1}]</span>
+                    <p className={`break-keep-all ${isDark ? 'text-amber-300' : 'text-indigo-950'}`}>
+                      {trans}
+                    </p>
+                  </div>
+                </div>
+              );
+            });
+          })()
+        )}
       </div>
 
     </div>
@@ -563,32 +554,48 @@ export default function LiveInterpreter({
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
           };
 
-          // ⚡ Robust Continuous Utterance Merging: Normalize letters & words to prevent any duplicate cards
+          // ⚡ 3~4 Sentence Block Archiving Engine: Groups speech into clean 3~4 sentence blocks
+          const currentSentences = splitIntoSentences(fullSentence);
+          const currentTransSentences = splitIntoSentences(translated);
+
           setMessages(prev => {
+            // If we have existing cards, check whether to update current card or spawn next 3-4 sentence block
             if (prev.length > 0) {
               const last = prev[0];
+              const lastSentences = splitIntoSentences(last.original);
+
+              // If last card already has 3~4 sentences and current speech has grown beyond that,
+              // let the first 3~4 sentences stay in previous card and start a new clean card for subsequent sentences
+              if (lastSentences.length >= 3 && currentSentences.length > lastSentences.length) {
+                const newSliceOrig = currentSentences.slice(lastSentences.length).join(' ');
+                const newSliceTrans = currentTransSentences.slice(lastSentences.length).join(' ') || translated;
+
+                if (newSliceOrig.trim()) {
+                  const continuationCard = {
+                    ...newMessage,
+                    id: Date.now() + Math.random(),
+                    original: newSliceOrig,
+                    translation: newSliceTrans,
+                    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+                  };
+                  return [continuationCard, ...prev];
+                }
+              }
+
+              // Otherwise, update the current card in-place with the latest full sentences
               const normalize = (t) => t.toLowerCase().replace(/[^a-z0-9가-힣\s]/g, '').replace(/\s+/g, ' ').trim();
               const normCurrent = normalize(fullSentence);
               const normLast = normalize(last.original);
 
-              // 1. Exact normalized match => skip duplicate
               if (normCurrent === normLast) return prev;
 
-              // 2. Overlap / Containment / Prefix match (e.g. 03:59:41 and 04:00:05 in screenshot)
-              const currentWords = normCurrent.split(' ');
-              const lastWords = normLast.split(' ');
-              const prefixCheckLength = Math.min(5, currentWords.length, lastWords.length);
-              const currentPrefix = currentWords.slice(0, prefixCheckLength).join(' ');
-              const lastPrefix = lastWords.slice(0, prefixCheckLength).join(' ');
-
-              const isSameUtterance = 
+              const isSameSpeechBlock = 
                 normCurrent.startsWith(normLast) || 
                 normLast.startsWith(normCurrent) ||
                 normCurrent.includes(normLast) ||
-                normLast.includes(normCurrent) ||
-                (prefixCheckLength >= 4 && currentPrefix === lastPrefix);
+                normLast.includes(normCurrent);
 
-              if (isSameUtterance) {
+              if (isSameSpeechBlock) {
                 const updated = {
                   ...last,
                   original: fullSentence.length >= last.original.length ? fullSentence : last.original,
@@ -598,6 +605,7 @@ export default function LiveInterpreter({
                 return [updated, ...prev.slice(1)];
               }
             }
+
             return [newMessage, ...prev];
           });
 
@@ -965,10 +973,10 @@ export default function LiveInterpreter({
                 }`}
               >
                 {currentLiveOriginal ? (
-                  <div className="space-y-2.5">
-                    {splitIntoIntelligibleChunks(currentLiveOriginal).map((chunk, idx) => (
+                  <div className="space-y-3">
+                    {splitIntoSentences(currentLiveOriginal).map((sentence, idx) => (
                       <p key={idx} className={`leading-relaxed ${isLiveSpeaking ? 'text-white drop-shadow-sm' : ''}`}>
-                        {chunk}
+                        {sentence}
                       </p>
                     ))}
                   </div>
@@ -1027,10 +1035,10 @@ export default function LiveInterpreter({
                 }`}
               >
                 {currentLiveTranslation ? (
-                  <div className="space-y-2.5">
-                    {splitIntoIntelligibleChunks(currentLiveTranslation).map((chunk, idx) => (
+                  <div className="space-y-3">
+                    {splitIntoSentences(currentLiveTranslation).map((sentence, idx) => (
                       <p key={idx} className="font-extrabold leading-relaxed text-amber-300">
-                        {chunk}
+                        {sentence}
                       </p>
                     ))}
                   </div>
