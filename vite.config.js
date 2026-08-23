@@ -96,15 +96,42 @@ function localVoiceStoragePlugin() {
                 return res.end(JSON.stringify({ success: true, translation: '' }))
               }
 
-              const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${sl}&tl=${tl}&dt=t&q=${encodeURIComponent(text.trim())}`
-              const fetchRes = await fetch(url)
-              if (fetchRes.ok) {
-                const data = await fetchRes.json()
-                if (Array.isArray(data) && Array.isArray(data[0])) {
-                  const translatedText = data[0].map(item => item[0]).filter(Boolean).join('')
-                  res.setHeader('Content-Type', 'application/json')
-                  return res.end(JSON.stringify({ success: true, translation: translatedText }))
+              const query = text.trim()
+              let translatedText = ''
+
+              // 1. Tier 1: Google Clients5 High-Speed Endpoint
+              try {
+                const url1 = `https://clients5.google.com/translate_a/t?client=dict-chrome-ex&sl=${sl}&tl=${tl}&q=${encodeURIComponent(query)}`
+                const res1 = await fetch(url1, { headers: { 'User-Agent': 'Mozilla/5.0' } })
+                if (res1.ok) {
+                  const data1 = await res1.json()
+                  if (Array.isArray(data1) && data1[0]) {
+                    translatedText = Array.isArray(data1[0]) ? data1[0].join('') : data1[0]
+                  }
                 }
+              } catch (e1) {
+                console.warn('Clients5 translation fallback:', e1.message)
+              }
+
+              // 2. Tier 2: MyMemory Translation API (Backup)
+              if (!translatedText) {
+                try {
+                  const url2 = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(query)}&langpair=${sl}|${tl}`
+                  const res2 = await fetch(url2)
+                  if (res2.ok) {
+                    const data2 = await res2.json()
+                    if (data2.responseData?.translatedText) {
+                      translatedText = data2.responseData.translatedText
+                    }
+                  }
+                } catch (e2) {
+                  console.warn('MyMemory translation fallback:', e2.message)
+                }
+              }
+
+              if (translatedText) {
+                res.setHeader('Content-Type', 'application/json')
+                return res.end(JSON.stringify({ success: true, translation: translatedText }))
               }
 
               res.setHeader('Content-Type', 'application/json')
@@ -112,7 +139,7 @@ function localVoiceStoragePlugin() {
             } catch (err) {
               console.error('Translation proxy error:', err)
               res.setHeader('Content-Type', 'application/json')
-              res.end(JSON.stringify({ success: false, error: err.message }))
+              res.end(JSON.stringify({ success: false, error: err.message, translation: '' }))
             }
           })
         } else {
