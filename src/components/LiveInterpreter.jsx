@@ -84,7 +84,8 @@ export default function LiveInterpreter({
   theme = 'dark'
 }) {
   const isDark = theme === 'dark';
-  const [activeMic, setActiveMic] = useState(null); // 'en-GB' | 'ko-KR' | null
+  const [activeMic, setActiveMic] = useState(null); // 'en-GB' | 'en-US' | 'ko-KR' | null
+  const [selectedEnglishAccent, setSelectedEnglishAccent] = useState('en-GB'); // 'en-GB' | 'en-US'
   const [interimText, setInterimText] = useState('');
   const [liveStreamingTranslation, setLiveStreamingTranslation] = useState('');
   const [customInput, setCustomInput] = useState('');
@@ -925,20 +926,57 @@ export default function LiveInterpreter({
 
         <div className="flex flex-wrap items-center gap-3">
           
-          {/* UK Mic Button */}
-          <button
-            onClick={() => toggleMic('en-GB')}
-            className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl font-bold text-xs transition shadow-lg ${
-              activeMic === 'en-GB'
-                ? 'bg-rose-600 hover:bg-rose-700 text-white ring-4 ring-rose-500/30'
-                : isDark 
-                  ? 'bg-slate-900 hover:bg-slate-700 text-amber-400 border border-amber-500/40' 
-                  : 'bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300'
-            }`}
-          >
-            {activeMic === 'en-GB' ? <Square className="w-4 h-4 fill-current" /> : <Mic className="w-4 h-4" />}
-            <span>{activeMic === 'en-GB' ? '⏹️ 🇬🇧 영국 마이크 끄기 (ON)' : '🎙️ 🇬🇧 영국 마이크 켜기 (OFF)'}</span>
-          </button>
+          {/* English Accent Switcher & Mic Button */}
+          <div className="flex items-center space-x-1.5">
+            {/* Accent Selector (UK 🇬🇧 / US 🇺🇸) */}
+            <div className={`flex items-center p-1 rounded-xl border ${
+              isDark ? 'bg-slate-900 border-slate-700' : 'bg-slate-100 border-slate-300'
+            }`}>
+              <button
+                type="button"
+                onClick={() => setSelectedEnglishAccent('en-GB')}
+                className={`px-2 py-1 text-[11px] font-bold rounded-lg transition ${
+                  selectedEnglishAccent === 'en-GB'
+                    ? 'bg-amber-500 text-slate-950 shadow-sm'
+                    : isDark ? 'text-slate-400 hover:text-white' : 'text-slate-600 hover:text-slate-900'
+                }`}
+                title="영국식 영어 (런던/RP 억양 특화)"
+              >
+                🇬🇧 영국
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedEnglishAccent('en-US')}
+                className={`px-2 py-1 text-[11px] font-bold rounded-lg transition ${
+                  selectedEnglishAccent === 'en-US'
+                    ? 'bg-amber-500 text-slate-950 shadow-sm'
+                    : isDark ? 'text-slate-400 hover:text-white' : 'text-slate-600 hover:text-slate-900'
+                }`}
+                title="미국식 영어 (General American 억양 특화)"
+              >
+                🇺🇸 미국
+              </button>
+            </div>
+
+            {/* Main English Mic Button */}
+            <button
+              onClick={() => toggleMic(selectedEnglishAccent)}
+              className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl font-bold text-xs transition shadow-lg ${
+                activeMic?.startsWith('en')
+                  ? 'bg-rose-600 hover:bg-rose-700 text-white ring-4 ring-rose-500/30'
+                  : isDark 
+                    ? 'bg-slate-900 hover:bg-slate-700 text-amber-400 border border-amber-500/40' 
+                    : 'bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300'
+              }`}
+            >
+              {activeMic?.startsWith('en') ? <Square className="w-4 h-4 fill-current" /> : <Mic className="w-4 h-4" />}
+              <span>
+                {activeMic?.startsWith('en') 
+                  ? `⏹️ ${selectedEnglishAccent === 'en-GB' ? '🇬🇧 영국' : '🇺🇸 미국'} 마이크 끄기 (ON)` 
+                  : `🎙️ ${selectedEnglishAccent === 'en-GB' ? '🇬🇧 영국' : '🇺🇸 미국'} 마이크 켜기 (OFF)`}
+              </span>
+            </button>
+          </div>
 
           {/* KR Mic Button */}
           <button

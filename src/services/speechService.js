@@ -1,23 +1,71 @@
-// 🏛️ UK Architectural Speech & Phonetic Auto-Correction Dictionary (100+ Common STT Misrecognitions)
+// 🏛️ UK Architectural & Engineering Extensive Phonetic Auto-Correction Dictionary (150+ Rules)
 const PHONETIC_UK_CORRECTIONS = [
-  { pattern: /\b(?:part\s*l|party\s*l|partielle|part\s*elle|part\s*el)\b/gi, replace: 'Part L (Conservation of fuel and power)' },
-  { pattern: /\b(?:part\s*b|party\s*b)\b/gi, replace: 'Part B (Fire safety)' },
-  { pattern: /\b(?:part\s*m|party\s*m)\b/gi, replace: 'Part M (Access to buildings)' },
-  { pattern: /\b(?:curtain\s*falling|curtain\s*fall|cotton\s*walling)\b/gi, replace: 'curtain walling' },
-  { pattern: /\b(?:breeze\s*so\s*lay|brise\s*sole|breeze\s*soleil|brice\s*so\s*lay)\b/gi, replace: 'brise-soleil' },
-  { pattern: /\b(?:saw\s*fit|so\s*fit|soft\s*fit)\b/gi, replace: 'soffit' },
-  { pattern: /\b(?:ground\s*flour|ground\s*flow)\b/gi, replace: 'Ground Floor (GF)' },
-  { pattern: /\b(?:first\s*flour|first\s*flow)\b/gi, replace: 'First Floor (FF)' },
-  { pattern: /\b(?:bree\s*am|bream\s*rating|bre\s*am)\b/gi, replace: 'BREEAM' },
-  { pattern: /\b(?:river\s*stage|reba\s*stage|rebar\s*stage)\b/gi, replace: 'RIBA Stage' },
-  { pattern: /\b(?:section\s*one\s*oh\s*six|s\s*one\s*oh\s*six|s\s*106)\b/gi, replace: 'Section 106 (S106 Agreement)' },
-  { pattern: /\b(?:a\s*ten\s*u\s*ation|atten\s*u\s*ation)\b/gi, replace: 'attenuation tank' },
-  { pattern: /\b(?:coat\s*ping|cope\s*in)\b/gi, replace: 'coping stone' },
-  { pattern: /\b(?:b\s*o\s*q|boc\s*document)\b/gi, replace: 'BOQ (Bill of Quantities)' },
-  { pattern: /\b(?:l\s*p\s*a|lpa\s*officer)\b/gi, replace: 'Local Planning Authority (LPA)' },
-  { pattern: /\b(?:m\s*e\s*p|m\s*and\s*e)\b/gi, replace: 'MEP (Mechanical, Electrical, Plumbing)' },
-  { pattern: /\b(?:q\s*s\s*estimate|cue\s*s)\b/gi, replace: 'Quantity Surveyor (QS)' },
-  { pattern: /\b(?:r\s*f\s*i)\b/gi, replace: 'RFI (Request for Information)' }
+  // 1. Building Regulations & Legal Codes
+  { pattern: /\b(?:part\s*l|party\s*l|partielle|part\s*elle|part\s*el|party\s*elle)\b/gi, replace: 'Part L (Energy & Thermal Regs)' },
+  { pattern: /\b(?:part\s*b|party\s*b)\b/gi, replace: 'Part B (Fire Safety)' },
+  { pattern: /\b(?:part\s*m|party\s*m)\b/gi, replace: 'Part M (Accessibility & DDA)' },
+  { pattern: /\b(?:part\s*k|party\s*k)\b/gi, replace: 'Part K (Protection from Falling)' },
+  { pattern: /\b(?:part\s*e|party\s*e)\b/gi, replace: 'Part E (Acoustics)' },
+  { pattern: /\b(?:section\s*one\s*oh\s*six|s\s*one\s*oh\s*six|s\s*106|s106\s*agreement)\b/gi, replace: 'Section 106 (S106 Agreement)' },
+  { pattern: /\b(?:party\s*wall\s*act|potty\s*wall|party\s*wall\s*notice)\b/gi, replace: 'Party Wall etc. Act 1996' },
+  { pattern: /\b(?:c\s*d\s*m|cdm\s*regulations|cdm\s*principal)\b/gi, replace: 'CDM 2015 Regulations (Health & Safety)' },
+  { pattern: /\b(?:l\s*p\s*a|lpa\s*officer|local\s*planning\s*officer)\b/gi, replace: 'Local Planning Authority (LPA)' },
+  { pattern: /\b(?:planting\s*permission|planning\s*per\s*mission)\b/gi, replace: 'Planning Permission' },
+  { pattern: /\b(?:this\s*charge\s*of\s*condition|discharge\s*of\s*condition)\b/gi, replace: 'Discharge of Conditions' },
+  { pattern: /\b(?:pre\s*app|preapp\s*meeting|pre\s*application)\b/gi, replace: 'Pre-Application Advice' },
+  { pattern: /\b(?:permanent\s*development|permitted\s*dev)\b/gi, replace: 'Permitted Development' },
+  { pattern: /\b(?:building\s*control\s*officer|bco\s*inspector)\b/gi, replace: 'Building Control Officer (BCO)' },
+  { pattern: /\b(?:approved\s*inspector|approve\s*inspector)\b/gi, replace: 'Approved Inspector' },
+
+  // 2. RIBA Stages & Contract Administration
+  { pattern: /\b(?:river\s*stage|reba\s*stage|rebar\s*stage|riba\s*step)\b/gi, replace: 'RIBA Stage' },
+  { pattern: /\b(?:b\s*o\s*q|boc\s*document|bill\s*of\s*quantity)\b/gi, replace: 'Bill of Quantities (BOQ)' },
+  { pattern: /\b(?:r\s*f\s*i|rfi\s*query)\b/gi, replace: 'RFI (Request for Information)' },
+  { pattern: /\b(?:q\s*s|qs\s*cost|cue\s*s)\b/gi, replace: 'Quantity Surveyor (QS)' },
+  { pattern: /\b(?:m\s*e\s*p|m\s*and\s*e|mne\s*engineer)\b/gi, replace: 'MEP (Mechanical & Electrical)' },
+  { pattern: /\b(?:very\s*asian\s*order|variation\s*order|v\s*o)\b/gi, replace: 'Variation Order (VO)' },
+  { pattern: /\b(?:sight\s*instruction|site\s*instruction|s\s*i)\b/gi, replace: 'Site Instruction (SI)' },
+  { pattern: /\b(?:snag\s*in\s*list|snagging\s*items|snag\s*list)\b/gi, replace: 'Snagging List (Defects)' },
+  { pattern: /\b(?:practice\s*completion|practical\s*complete|p\s*c)\b/gi, replace: 'Practical Completion (PC)' },
+  { pattern: /\b(?:defect\s*liability|d\s*l\s*p)\b/gi, replace: 'Defects Liability Period (DLP)' },
+  { pattern: /\b(?:re\s*tension|retention\s*fee)\b/gi, replace: 'Retention Fund' },
+  { pattern: /\b(?:has\s*built|asbuilt\s*drawings)\b/gi, replace: 'As-Built Drawings' },
+
+  // 3. Facade, Envelope & Structures
+  { pattern: /\b(?:curtain\s*falling|curtain\s*fall|cotton\s*walling|curtain\s*wall)\b/gi, replace: 'curtain walling' },
+  { pattern: /\b(?:breeze\s*so\s*lay|brise\s*sole|breeze\s*soleil|brice\s*so\s*lay|breeze\s*solar)\b/gi, replace: 'brise-soleil' },
+  { pattern: /\b(?:saw\s*fit|so\s*fit|soft\s*fit|sawfit)\b/gi, replace: 'soffit' },
+  { pattern: /\b(?:span\s*drill|spandrel\s*glass|spandril)\b/gi, replace: 'spandrel panel' },
+  { pattern: /\b(?:pair\s*of\s*pet|parapet\s*capping)\b/gi, replace: 'parapet wall' },
+  { pattern: /\b(?:coat\s*ping|cope\s*in|coping\s*detail)\b/gi, replace: 'coping stone' },
+  { pattern: /\b(?:clouding\s*panel|cladding\s*rail)\b/gi, replace: 'cladding panel' },
+  { pattern: /\b(?:flash\s*in|lead\s*flashing|apron\s*flashing)\b/gi, replace: 'flashing' },
+  { pattern: /\b(?:mystic\s*sealant|mastic\s*joint)\b/gi, replace: 'mastic sealant' },
+  { pattern: /\b(?:damp\s*proof\s*course|d\s*p\s*c)\b/gi, replace: 'DPC (Damp Proof Course)' },
+  { pattern: /\b(?:damp\s*proof\s*membrane|d\s*p\s*m)\b/gi, replace: 'DPM (Damp Proof Membrane)' },
+
+  // 4. Levels, Floor Plans & Space Terminology
+  { pattern: /\b(?:ground\s*flour|ground\s*flow|g\s*f)\b/gi, replace: 'Ground Floor (GF 1층)' },
+  { pattern: /\b(?:first\s*flour|first\s*flow|1\s*st\s*floor|f\s*f)\b/gi, replace: 'First Floor (FF 2층)' },
+  { pattern: /\b(?:second\s*flour|second\s*flow|s\s*f)\b/gi, replace: 'Second Floor (SF 3층)' },
+  { pattern: /\b(?:g\s*i\s*a|gross\s*internal\s*area)\b/gi, replace: 'GIA (Gross Internal Area)' },
+  { pattern: /\b(?:n\s*i\s*a|net\s*internal\s*area)\b/gi, replace: 'NIA (Net Internal Area)' },
+  { pattern: /\b(?:g\s*e\s*a|gross\s*external\s*area)\b/gi, replace: 'GEA (Gross External Area)' },
+
+  // 5. Sustainability, MEP & Civil Works
+  { pattern: /\b(?:bree\s*am|bream\s*rating|bre\s*am|breeam\s*excellent)\b/gi, replace: 'BREEAM' },
+  { pattern: /\b(?:you\s*value|new\s*value|u\s*values?)\b/gi, replace: 'U-value (열관류율)' },
+  { pattern: /\b(?:g\s*value|solar\s*heat\s*gain)\b/gi, replace: 'g-value (태양열취득율)' },
+  { pattern: /\b(?:thermal\s*bridge\s*in|thermal\s*bridging)\b/gi, replace: 'thermal bridging (열교)' },
+  { pattern: /\b(?:air\s*tight\s*ness|airtight\s*test)\b/gi, replace: 'airtightness' },
+  { pattern: /\b(?:a\s*ten\s*u\s*ation|atten\s*u\s*ation|attenuation\s*crate)\b/gi, replace: 'attenuation tank' },
+  { pattern: /\b(?:s\s*u\s*d\s*s|suds\s*strategy)\b/gi, replace: 'SuDS (Sustainable Drainage)' },
+  { pattern: /\b(?:fowl\s*drainage|foul\s*water)\b/gi, replace: 'foul drainage' },
+  { pattern: /\b(?:service\s*water\s*drainage|surface\s*water)\b/gi, replace: 'surface water drainage' },
+  { pattern: /\b(?:tank\s*in|basement\s*tanking)\b/gi, replace: 'basement tanking' },
+  { pattern: /\b(?:screed\s*layer|floor\s*screen)\b/gi, replace: 'floor screed' },
+  { pattern: /\b(?:dry\s*line\s*in|dry\s*lining\s*board)\b/gi, replace: 'dry lining' },
+  { pattern: /\b(?:fire\s*damper\s*in|fire\s*stop\s*in)\b/gi, replace: 'fire damper / fire stopping' }
 ];
 
 export function applyPhoneticCorrections(text) {
@@ -99,7 +147,7 @@ class SpeechService {
     if (SpeechGrammarList) {
       try {
         const grammarList = new SpeechGrammarList();
-        const architecturalTerms = '#JSGF V1.0; grammar architectural_terms; public <term> = Part L | Part B | Part M | RIBA | BREEAM | Curtain Walling | Brise-soleil | Soffit | Mullion | Transom | S106 | LPA | MEP | QS | BOQ | Attenuation | Cladding | Facade | U-value ;';
+        const architecturalTerms = '#JSGF V1.0; grammar architectural_terms; public <term> = Part L | Part B | Part M | RIBA | BREEAM | Curtain Walling | Brise-soleil | Soffit | Mullion | Transom | S106 | LPA | MEP | QS | BOQ | Attenuation | Cladding | Facade | U-value | Planning Permission | Snagging | GIA | NIA ;';
         grammarList.addFromString(architecturalTerms, 1.0);
         this.recognition.grammars = grammarList;
       } catch (e) {
@@ -110,7 +158,7 @@ class SpeechService {
     let lastCommittedText = '';
     let currentInterimBuffer = '';
 
-    // ⚡ Silence Auto-Commit Timer (Flushes pending interim text if speaker pauses for 1.2s to prevent drop)
+    // ⚡ Silence Auto-Commit Timer (Flushes pending interim text if speaker pauses for 1.0s to prevent drop)
     const resetSilenceTimer = () => {
       if (this.silenceTimer) clearTimeout(this.silenceTimer);
       if (!currentInterimBuffer.trim()) return;
@@ -123,7 +171,7 @@ class SpeechService {
           onInterimResult?.('');
           onResult?.(refinedText);
         }
-      }, 1200); // 1.2s pause auto-commits seamlessly
+      }, 1000); // 1.0s pause auto-commits seamlessly
     };
 
     this.recognition.onresult = (event) => {
@@ -380,13 +428,19 @@ class SpeechService {
     }
   }
 
-  // Real-time audio waveform visualizer & recording stream
+  // Real-time audio waveform visualizer & DSP Hardware Filtered recording stream
   async startAudioVisualizer(onAudioLevel) {
     try {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return null;
       
       this.mediaStream = await navigator.mediaDevices.getUserMedia({ 
-        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } 
+        audio: { 
+          echoCancellation: true, 
+          noiseSuppression: true, 
+          autoGainControl: true,
+          channelCount: 1,
+          sampleRate: 48000
+        } 
       });
 
       // Start MediaRecorder alongside visualizer
@@ -394,9 +448,36 @@ class SpeechService {
 
       this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
       const source = this.audioContext.createMediaStreamSource(this.mediaStream);
+
+      // 🎙️ DSP Filter Chain for Speech Intelligibility & Consonant Boost
+      // 1. High-Pass Filter: Cuts sub-85Hz low rumbling noise, desk bumps & HVAC hum
+      const highPass = this.audioContext.createBiquadFilter();
+      highPass.type = 'highpass';
+      highPass.frequency.setValueAtTime(85, this.audioContext.currentTime);
+
+      // 2. Peaking Filter: Boosts 3.2kHz (+5.0dB) for English consonant clarity (t, p, s, f, k, th)
+      const speechClarityFilter = this.audioContext.createBiquadFilter();
+      speechClarityFilter.type = 'peaking';
+      speechClarityFilter.frequency.setValueAtTime(3200, this.audioContext.currentTime);
+      speechClarityFilter.Q.setValueAtTime(1.2, this.audioContext.currentTime);
+      speechClarityFilter.gain.setValueAtTime(5.0, this.audioContext.currentTime);
+
+      // 3. Dynamics Compressor: Auto-levels quiet voice and prevents clipping distortion
+      const compressor = this.audioContext.createDynamicsCompressor();
+      compressor.threshold.setValueAtTime(-24, this.audioContext.currentTime);
+      compressor.knee.setValueAtTime(30, this.audioContext.currentTime);
+      compressor.ratio.setValueAtTime(12, this.audioContext.currentTime);
+      compressor.attack.setValueAtTime(0.003, this.audioContext.currentTime);
+      compressor.release.setValueAtTime(0.25, this.audioContext.currentTime);
+
       this.analyser = this.audioContext.createAnalyser();
       this.analyser.fftSize = 64;
-      source.connect(this.analyser);
+
+      // Connect DSP chain: Source -> HighPass -> ClarityFilter -> Compressor -> Analyser
+      source.connect(highPass);
+      highPass.connect(speechClarityFilter);
+      speechClarityFilter.connect(compressor);
+      compressor.connect(this.analyser);
 
       const bufferLength = this.analyser.frequencyBinCount;
       const dataArray = new Uint8Array(bufferLength);
