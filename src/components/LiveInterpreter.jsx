@@ -24,6 +24,36 @@ import { translateArchitectureText } from '../services/geminiService';
 import { findGlossaryMatches } from '../data/architectureGlossary';
 import { DEMO_SCENARIOS } from '../data/demoScenarios';
 
+// Smart Sentence & Clause Splitter for Real-Time Interpretation
+function splitIntoSentences(text) {
+  if (!text || !text.trim()) return [];
+
+  const raw = text.trim();
+
+  // 1. Split on standard punctuation or newlines
+  let parts = raw
+    .split(/(?<=[.?!])\s+|\n+/)
+    .map(s => s.trim())
+    .filter(Boolean);
+
+  // 2. If a single part is still very long (more than 10 words without punctuation), split by conversational conjunctions
+  const refined = [];
+  for (const p of parts) {
+    const words = p.split(/\s+/);
+    if (words.length > 10) {
+      // Split on strong conversational boundaries like ", and ", ", but ", ", so ", ", also "
+      const subParts = p.split(/(?<=,)\s+(?=and\b|but\b|so\b|also\b|however\b|therefore\b|please\b)/i)
+        .map(s => s.trim())
+        .filter(Boolean);
+      refined.push(...subParts);
+    } else {
+      refined.push(p);
+    }
+  }
+
+  return refined.length > 0 ? refined : [raw];
+}
+
 export default function LiveInterpreter({ 
   messages, 
   setMessages, 
@@ -112,36 +142,44 @@ export default function LiveInterpreter({
           if (!finalText.trim()) return;
           if (interimTranslateTimerRef.current) clearTimeout(interimTranslateTimerRef.current);
 
-          const translated = await translateArchitectureText({
-            text: finalText,
-            sourceLang: lang,
-            targetLang: targetLang,
-            apiKey: apiKey
-          });
+          // Split long spoken text into clean, individual sentences
+          const sentences = splitIntoSentences(finalText);
 
-          const matchedTerms = findGlossaryMatches(finalText);
+          for (const sentence of sentences) {
+            if (!sentence.trim()) continue;
 
-          const newMessage = {
-            id: Date.now(),
-            speaker: lang === 'en-GB' ? 'UK Lead Architect' : 'Seoul Design Lead',
-            speakerRole: lang === 'en-GB' ? 'UK Architect' : 'KR Director',
-            lang: lang,
-            accent: lang === 'en-GB' ? 'UK (London RP)' : 'Korean',
-            original: finalText,
-            translation: translated,
-            terms: matchedTerms.map(t => t.term),
-            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-          };
+            const translated = await translateArchitectureText({
+              text: sentence,
+              sourceLang: lang,
+              targetLang: targetLang,
+              apiKey: apiKey
+            });
 
-          // Put newest message at the TOP so it is always immediately visible
-          setMessages(prev => [newMessage, ...prev]);
+            const matchedTerms = findGlossaryMatches(sentence);
+
+            const newMessage = {
+              id: Date.now() + Math.random(),
+              speaker: lang === 'en-GB' ? 'UK Lead Architect' : 'Seoul Design Lead',
+              speakerRole: lang === 'en-GB' ? 'UK Architect' : 'KR Director',
+              lang: lang,
+              accent: lang === 'en-GB' ? 'UK (London RP)' : 'Korean',
+              original: sentence,
+              translation: translated,
+              terms: matchedTerms.map(t => t.term),
+              timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+            };
+
+            // Put each concise sentence at the TOP
+            setMessages(prev => [newMessage, ...prev]);
+
+            // Auto speak translation if enabled
+            if (autoSpeakKorean && targetLang === 'ko-KR') {
+              speechService.speak(translated, 'ko-KR');
+            }
+          }
+
           setInterimText('');
           setLiveStreamingTranslation('');
-
-          // Auto speak translation if enabled
-          if (autoSpeakKorean && targetLang === 'ko-KR') {
-            speechService.speak(translated, 'ko-KR');
-          }
         },
         onError: (err) => {
           console.warn('Speech recognition status:', err);
@@ -153,7 +191,7 @@ export default function LiveInterpreter({
     }
   };
 
-  // Handle Manual Text Submission
+  // Handle Manual Text Submission with Sentence-by-Sentence Breakdown
   const handleManualSend = async (e) => {
     e?.preventDefault();
     if (!customInput.trim()) return;
@@ -163,31 +201,37 @@ export default function LiveInterpreter({
     const textToSend = customInput;
     setCustomInput('');
 
-    const translated = await translateArchitectureText({
-      text: textToSend,
-      sourceLang: sourceLang,
-      targetLang: targetLang,
-      apiKey: apiKey
-    });
+    const sentences = splitIntoSentences(textToSend);
 
-    const matchedTerms = findGlossaryMatches(textToSend);
+    for (const sentence of sentences) {
+      if (!sentence.trim()) continue;
 
-    const newMessage = {
-      id: Date.now(),
-      speaker: sourceLang === 'en-GB' ? 'UK Lead Architect' : 'Seoul Design Lead',
-      speakerRole: sourceLang === 'en-GB' ? 'UK Architect' : 'KR Director',
-      lang: sourceLang,
-      accent: sourceLang === 'en-GB' ? 'UK (London RP)' : 'Korean',
-      original: textToSend,
-      translation: translated,
-      terms: matchedTerms.map(t => t.term),
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-    };
+      const translated = await translateArchitectureText({
+        text: sentence,
+        sourceLang: sourceLang,
+        targetLang: targetLang,
+        apiKey: apiKey
+      });
 
-    // Put newest message at the TOP
-    setMessages(prev => [newMessage, ...prev]);
-    if (autoSpeakKorean && targetLang === 'ko-KR') {
-      speechService.speak(translated, 'ko-KR');
+      const matchedTerms = findGlossaryMatches(sentence);
+
+      const newMessage = {
+        id: Date.now() + Math.random(),
+        speaker: sourceLang === 'en-GB' ? 'UK Lead Architect' : 'Seoul Design Lead',
+        speakerRole: sourceLang === 'en-GB' ? 'UK Architect' : 'KR Director',
+        lang: sourceLang,
+        accent: sourceLang === 'en-GB' ? 'UK (London RP)' : 'Korean',
+        original: sentence,
+        translation: translated,
+        terms: matchedTerms.map(t => t.term),
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+      };
+
+      // Put newest sentence at the TOP
+      setMessages(prev => [newMessage, ...prev]);
+      if (autoSpeakKorean && targetLang === 'ko-KR') {
+        speechService.speak(translated, 'ko-KR');
+      }
     }
   };
 
