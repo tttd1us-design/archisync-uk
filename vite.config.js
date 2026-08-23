@@ -96,7 +96,27 @@ function localVoiceStoragePlugin() {
                 return res.end(JSON.stringify({ success: true, translation: '' }))
               }
 
-              const query = text.trim()
+              // 🏛️ Pre-correct English Phonetic STT distortions before sending to translation engine
+              function preCorrectPhoneticSpeech(raw) {
+                if (!raw) return '';
+                let c = raw;
+                c = c.replace(/\b(?:cotton\s*wool|curtain\s*falling|curtain\s*fall|cotton\s*walling)\b/gi, 'curtain walling');
+                c = c.replace(/\b(?:breeze\s*so\s*lay|brise\s*sole|breeze\s*soleil|brice\s*so\s*lay|breeze\s*solar)\b/gi, 'brise-soleil');
+                c = c.replace(/\b(?:you\s*value|new\s*value|you\s*values)\b/gi, 'U-value');
+                c = c.replace(/\b(?:pot\s*l|party\s*l|part\s*elle|part\s*el)\b/gi, 'Part L');
+                c = c.replace(/\b(?:pot\s*b|party\s*b)\b/gi, 'Part B');
+                c = c.replace(/\b(?:sex\s*in\s*one\s*oh\s*six|s\s*one\s*oh\s*six|s\s*106)\b/gi, 'Section 106');
+                c = c.replace(/\b(?:million|mull\s*in|mull\s*yon)\b/gi, 'mullion');
+                c = c.replace(/\b(?:train\s*some|tran\s*some)\b/gi, 'transom');
+                c = c.replace(/\b(?:saw\s*fit|soft\s*fit)\b/gi, 'soffit');
+                c = c.replace(/\b(?:span\s*drill|spandrel\s*glass)\b/gi, 'spandrel panel');
+                c = c.replace(/\b(?:rebar\s*stage|river\s*stage)\b/gi, 'RIBA Stage');
+                c = c.replace(/\b(?:bree\s*am|bream)\b/gi, 'BREEAM');
+                c = c.replace(/\b(?:flash\s*detection|clash\s*de\s*tech)\b/gi, 'Clash Detection');
+                return c;
+              }
+
+              const query = (sl.startsWith('en') ? preCorrectPhoneticSpeech(text.trim()) : text.trim())
               let translatedText = ''
 
               // 1. Tier 1: Google Clients5 High-Speed Endpoint
