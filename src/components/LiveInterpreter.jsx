@@ -1252,8 +1252,6 @@ export default function LiveInterpreter({
       <div className={`flex-1 ${
         isDark ? 'bg-slate-900/90 border-slate-800 text-slate-100' : 'bg-slate-50 border-slate-200 text-slate-900'
       } border rounded-xl p-2 overflow-y-auto space-y-1.5 shadow-inner`}>
-        <div ref={messagesTopRef} />
-
         {/* Section Title for Backup Archive */}
         <div className={`flex items-center justify-between pb-1 border-b text-[8.5pt] ${
           isDark ? 'border-slate-800/80' : 'border-slate-200'
