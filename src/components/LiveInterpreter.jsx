@@ -34,52 +34,6 @@ import {
 import { findGlossaryMatches } from '../data/architectureGlossary';
 import { DEMO_SCENARIOS } from '../data/demoScenarios';
 
-// 🏛️ Natural Clause & Sentence Splitter (Prevents awkward fragments, splits long speech into clean 5-9 word clauses)
-function splitIntoIntelligibleChunks(text) {
-  if (!text || !text.trim()) return [];
-
-  const raw = text.trim();
-
-  // 1. Primary split by sentence boundaries (. ? ! \n)
-  const primarySentences = raw
-    .split(/(?<=[.?!;:\n])\s+|\n+/)
-    .map(s => s.trim())
-    .filter(Boolean);
-
-  const cleanChunks = [];
-
-  for (const sentence of primarySentences) {
-    const words = sentence.split(/\s+/);
-    // If sentence is concise (under 9 words), keep it intact for natural flow
-    if (words.length <= 8) {
-      cleanChunks.push(sentence);
-      continue;
-    }
-
-    // If sentence is long (9+ words), split on natural comma or connective boundaries
-    const subClauses = sentence
-      .split(/(?<=,)\s+|\s+(?=\b(?:and|but|so|however|therefore|because|regarding|in terms of|as per|please|make sure)\b)/i)
-      .map(s => s.trim())
-      .filter(Boolean);
-
-    // Merge fragments that are too short (< 3 words) with neighboring clause
-    const merged = [];
-    for (let i = 0; i < subClauses.length; i++) {
-      const clause = subClauses[i];
-      const clauseWords = clause.split(/\s+/);
-      if (clauseWords.length < 3 && merged.length > 0) {
-        merged[merged.length - 1] += ` ${clause}`;
-      } else {
-        merged.push(clause);
-      }
-    }
-
-    cleanChunks.push(...(merged.length > 0 ? merged : [sentence]));
-  }
-
-  return cleanChunks.length > 0 ? cleanChunks : [raw];
-}
-
 // ⚡ Ultra-Compact High-Density 8pt Memoized Message Card Component (Maximum information density, minimal padding)
 const MessageCardItem = React.memo(function MessageCardItem({
   msg,
@@ -431,48 +385,37 @@ export default function LiveInterpreter({
           if (!finalText.trim()) return;
           if (interimTranslateTimerRef.current) clearTimeout(interimTranslateTimerRef.current);
 
-          // Split spoken text into intelligible, clear chunks (4-7 words)
-          const chunks = splitIntoIntelligibleChunks(finalText);
+          const fullSentence = finalText.trim();
+          const detectedLang = (lang === 'auto') ? detectSourceLanguage(fullSentence) : lang;
 
-          for (const chunk of chunks) {
-            if (!chunk.trim()) continue;
+          const translated = await translateArchitectureText({
+            text: fullSentence,
+            sourceLang: detectedLang,
+            targetLang: targetLang,
+            apiKey: apiKey
+          });
 
-            const detectedLang = (lang === 'auto') ? detectSourceLanguage(chunk) : lang;
+          const isZH = detectedLang.startsWith('zh');
+          const isJP = detectedLang.startsWith('ja');
+          const isEN = detectedLang.startsWith('en');
 
-            const translated = await translateArchitectureText({
-              text: chunk,
-              sourceLang: detectedLang,
-              targetLang: targetLang,
-              apiKey: apiKey
-            });
+          const newMessage = {
+            id: Date.now() + Math.random(),
+            speaker: isZH ? 'Shanghai Lead Architect' : isJP ? 'Tokyo Lead Architect' : isEN ? 'UK Lead Architect' : 'Seoul Design Lead',
+            speakerRole: isZH ? 'CN Architect' : isJP ? 'JP Architect' : isEN ? 'UK Architect' : 'KR Director',
+            lang: detectedLang,
+            accent: isZH ? 'Chinese (Mandarin)' : isJP ? 'Japanese (Tokyo)' : detectedLang === 'en-GB' ? 'UK (London RP)' : detectedLang === 'en-US' ? 'US (General)' : 'Korean',
+            original: fullSentence,
+            translation: translated,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+          };
 
-            const matchedTerms = findGlossaryMatches(chunk);
-            const intent = detectMeetingIntent(chunk, translated);
+          // ⚡ Insert complete message at top
+          setMessages(prev => [newMessage, ...prev]);
 
-            const isZH = detectedLang.startsWith('zh');
-            const isJP = detectedLang.startsWith('ja');
-            const isEN = detectedLang.startsWith('en');
-
-            const newMessage = {
-              id: Date.now() + Math.random(),
-              speaker: isZH ? 'Shanghai Lead Architect' : isJP ? 'Tokyo Lead Architect' : isEN ? 'UK Lead Architect' : 'Seoul Design Lead',
-              speakerRole: isZH ? 'CN Architect' : isJP ? 'JP Architect' : isEN ? 'UK Architect' : 'KR Director',
-              lang: detectedLang,
-              accent: isZH ? 'Chinese (Mandarin)' : isJP ? 'Japanese (Tokyo)' : detectedLang === 'en-GB' ? 'UK (London RP)' : detectedLang === 'en-US' ? 'US (General)' : 'Korean',
-              original: chunk,
-              translation: translated,
-              intent: intent,
-              terms: matchedTerms.map(t => t.term),
-              timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-            };
-
-            // Put each intelligible chunk at the TOP
-            setMessages(prev => [newMessage, ...prev]);
-
-            // Auto speak translation if enabled
-            if (autoSpeakKorean && targetLang === 'ko-KR') {
-              speechService.speak(translated, 'ko-KR');
-            }
+          // Auto speak translation if enabled
+          if (autoSpeakKorean && targetLang === 'ko-KR') {
+            speechService.speak(translated, 'ko-KR');
           }
 
           setInterimText('');
