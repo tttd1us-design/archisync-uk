@@ -160,20 +160,24 @@ const MessageCardItem = React.memo(function MessageCardItem({
         </div>
       </div>
 
-      {/* 2. Dual Column Layout: Left Original 8pt | Right Korean 8pt */}
+      {/* 2. Dual Column Layout: Left Original 8pt | Right Korean 8pt (Clean Clause Paragraphing) */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 items-start text-[8pt] leading-relaxed">
         
-        {/* ⬅️ LEFT: Spoken Speech (8pt) */}
-        <div className={`p-2 rounded-lg border ${
+        {/* ⬅️ LEFT: Spoken Speech (8pt - Split into readable paragraphs) */}
+        <div className={`p-2.5 rounded-lg border ${
           isDark ? 'bg-slate-900/60 border-slate-800/80 text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-800'
         }`}>
-          <p className="select-text break-keep-all font-medium whitespace-pre-wrap">
-            {msg.original}
-          </p>
+          <div className="select-text break-keep-all font-medium space-y-2">
+            {splitIntoIntelligibleChunks(msg.original).map((chunk, idx) => (
+              <p key={idx} className="leading-relaxed">
+                {chunk}
+              </p>
+            ))}
+          </div>
         </div>
 
-        {/* ➡️ RIGHT: Korean Translation (8pt) */}
-        <div className={`p-2 rounded-lg border ${
+        {/* ➡️ RIGHT: Korean Translation (8pt - Split into readable paragraphs) */}
+        <div className={`p-2.5 rounded-lg border ${
           isDark ? 'bg-indigo-950/30 border-indigo-500/30 text-amber-300' : 'bg-indigo-50/50 border-indigo-200 text-indigo-950'
         }`}>
           {editingId === msg.id ? (
@@ -184,7 +188,7 @@ const MessageCardItem = React.memo(function MessageCardItem({
                 className={`w-full p-1.5 text-[8pt] rounded border ${
                   isDark ? 'bg-slate-900 border-slate-700 text-slate-100' : 'bg-white border-slate-300 text-slate-900'
                 }`}
-                rows={2}
+                rows={3}
               />
               <div className="flex items-center justify-end space-x-1.5">
                 <button onClick={onCancelEdit} className="text-[7pt] text-slate-400 hover:text-slate-200">
@@ -199,9 +203,13 @@ const MessageCardItem = React.memo(function MessageCardItem({
               </div>
             </div>
           ) : (
-            <p className="select-text break-keep-all font-bold whitespace-pre-wrap">
-              {msg.translation}
-            </p>
+            <div className="select-text break-keep-all font-bold space-y-2">
+              {splitIntoIntelligibleChunks(msg.translation).map((chunk, idx) => (
+                <p key={idx} className="leading-relaxed">
+                  {chunk}
+                </p>
+              ))}
+            </div>
           )}
         </div>
 
@@ -247,14 +255,27 @@ export default function LiveInterpreter({
   const [starredIds, setStarredIds] = useState(new Set()); // Starred Pins
   const [isSummaryModalOpen, setIsSummaryModalOpen] = useState(false);
   const [summaryData, setSummaryData] = useState(null);
-  const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
-
   const messagesTopRef = useRef(null);
+  const liveLeftViewportRef = useRef(null);
+  const liveRightViewportRef = useRef(null);
   const simulationTimerRef = useRef(null);
   const visualizerCleanupRef = useRef(null);
   const interimTranslateTimerRef = useRef(null);
   const recordingTimerRef = useRef(null);
   const isSpacePressedRef = useRef(false);
+
+  // 🔒 Auto-Scroll Viewports on Live Speech Stream (Keeps newest speech in view without overflowing box)
+  useEffect(() => {
+    if (liveLeftViewportRef.current) {
+      liveLeftViewportRef.current.scrollTop = liveLeftViewportRef.current.scrollHeight;
+    }
+  }, [currentLiveOriginal]);
+
+  useEffect(() => {
+    if (liveRightViewportRef.current) {
+      liveRightViewportRef.current.scrollTop = liveRightViewportRef.current.scrollHeight;
+    }
+  }, [currentLiveTranslation]);
 
   // ⌨️ Global Commercial Hotkeys (Spacebar Push-to-Talk, Ctrl+S Save)
   useEffect(() => {
@@ -538,18 +559,32 @@ export default function LiveInterpreter({
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
           };
 
-          // ⚡ Intelligent In-Place Replacement: Never spawn multiple cards for the same continuous speech
+          // ⚡ Robust Continuous Utterance Merging: Normalize letters & words to prevent any duplicate cards
           setMessages(prev => {
             if (prev.length > 0) {
               const last = prev[0];
-              const cleanCurrent = fullSentence.toLowerCase().trim();
-              const cleanLast = last.original.toLowerCase().trim();
+              const normalize = (t) => t.toLowerCase().replace(/[^a-z0-9가-힣\s]/g, '').replace(/\s+/g, ' ').trim();
+              const normCurrent = normalize(fullSentence);
+              const normLast = normalize(last.original);
 
-              // 1. Identical text => skip
-              if (cleanCurrent === cleanLast) return prev;
+              // 1. Exact normalized match => skip duplicate
+              if (normCurrent === normLast) return prev;
 
-              // 2. Continuous expanding utterance => update in-place without creating new card
-              if (cleanCurrent.startsWith(cleanLast) || cleanCurrent.includes(cleanLast) || cleanLast.startsWith(cleanCurrent) || cleanLast.includes(cleanCurrent)) {
+              // 2. Overlap / Containment / Prefix match (e.g. 03:59:41 and 04:00:05 in screenshot)
+              const currentWords = normCurrent.split(' ');
+              const lastWords = normLast.split(' ');
+              const prefixCheckLength = Math.min(5, currentWords.length, lastWords.length);
+              const currentPrefix = currentWords.slice(0, prefixCheckLength).join(' ');
+              const lastPrefix = lastWords.slice(0, prefixCheckLength).join(' ');
+
+              const isSameUtterance = 
+                normCurrent.startsWith(normLast) || 
+                normLast.startsWith(normCurrent) ||
+                normCurrent.includes(normLast) ||
+                normLast.includes(normCurrent) ||
+                (prefixCheckLength >= 4 && currentPrefix === lastPrefix);
+
+              if (isSameUtterance) {
                 const updated = {
                   ...last,
                   original: fullSentence.length >= last.original.length ? fullSentence : last.original,
@@ -915,7 +950,10 @@ export default function LiveInterpreter({
             </div>
             
             {/* Scrollable Fixed Text Viewport (h-[405px] overflow-y-auto - Strict 12pt View) */}
-            <div className="flex-1 my-3 overflow-y-auto pr-2 select-text scrollbar-thin scrollbar-thumb-slate-700 space-y-3">
+            <div 
+              ref={liveLeftViewportRef}
+              className="flex-1 my-3 overflow-y-auto pr-2 select-text scrollbar-thin scrollbar-thumb-slate-700 space-y-3"
+            >
               <div 
                 style={{ fontSize: `${fontSizeScale}pt` }}
                 className={`font-semibold leading-relaxed font-sans break-keep-all ${
@@ -974,7 +1012,10 @@ export default function LiveInterpreter({
             </div>
 
             {/* Scrollable Fixed Text Viewport (h-[405px] overflow-y-auto - Strict 12pt View) */}
-            <div className="flex-1 my-3 overflow-y-auto pr-2 select-text scrollbar-thin scrollbar-thumb-indigo-700 space-y-3">
+            <div 
+              ref={liveRightViewportRef}
+              className="flex-1 my-3 overflow-y-auto pr-2 select-text scrollbar-thin scrollbar-thumb-indigo-700 space-y-3"
+            >
               <div 
                 style={{ fontSize: `${fontSizeScale}pt` }}
                 className={`font-bold leading-relaxed break-keep-all ${
