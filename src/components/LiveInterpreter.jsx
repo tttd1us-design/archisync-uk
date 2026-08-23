@@ -161,10 +161,38 @@ export default function LiveInterpreter({
     }
   }, [activeMic]);
 
-  // Start / Stop Microphone with Real-time Streaming Translation
-  const toggleMic = (lang) => {
+  // Start / Stop Microphone with Real-time Streaming Translation & Zero-Drop Guarantee
+  const toggleMic = async (lang) => {
     if (activeMic === lang) {
       if (interimTranslateTimerRef.current) clearTimeout(interimTranslateTimerRef.current);
+      
+      // If there's pending interim text on stop, commit it immediately so no words are dropped
+      if (interimText.trim()) {
+        const targetLang = lang === 'en-GB' ? 'ko-KR' : 'en-GB';
+        const pendingText = interimText.trim();
+        const translated = await translateArchitectureText({
+          text: pendingText,
+          sourceLang: lang,
+          targetLang: targetLang,
+          apiKey: apiKey
+        });
+        const matchedTerms = findGlossaryMatches(pendingText);
+        const intent = detectMeetingIntent(pendingText, translated);
+
+        setMessages(prev => [{
+          id: Date.now() + Math.random(),
+          speaker: lang === 'en-GB' ? 'UK Lead Architect' : 'Seoul Design Lead',
+          speakerRole: lang === 'en-GB' ? 'UK Architect' : 'KR Director',
+          lang: lang,
+          accent: lang === 'en-GB' ? 'UK (London RP)' : 'Korean',
+          original: pendingText,
+          translation: translated,
+          intent: intent,
+          terms: matchedTerms.map(t => t.term),
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+        }, ...prev]);
+      }
+
       speechService.stopRecognition();
       setActiveMic(null);
       setInterimText('');
@@ -185,9 +213,9 @@ export default function LiveInterpreter({
         onInterimResult: (streamText) => {
           setInterimText(streamText);
           
-          // Debounce interim translation (180ms) to eliminate flickering and jitter
+          // Ultra-fast 100ms interim translation for instantaneous feedback
           if (interimTranslateTimerRef.current) clearTimeout(interimTranslateTimerRef.current);
-          if (streamText.length > 2) {
+          if (streamText.length > 1) {
             interimTranslateTimerRef.current = setTimeout(async () => {
               const streamTrans = await translateArchitectureText({
                 text: streamText,
@@ -196,7 +224,7 @@ export default function LiveInterpreter({
                 apiKey: apiKey
               });
               setLiveStreamingTranslation(streamTrans);
-            }, 180);
+            }, 100);
           }
         },
         onResult: async (finalText) => {

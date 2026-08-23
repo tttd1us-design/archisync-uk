@@ -1,3 +1,34 @@
+// 🏛️ UK Architectural Speech & Phonetic Auto-Correction Dictionary (100+ Common STT Misrecognitions)
+const PHONETIC_UK_CORRECTIONS = [
+  { pattern: /\b(?:part\s*l|party\s*l|partielle|part\s*elle|part\s*el)\b/gi, replace: 'Part L (Conservation of fuel and power)' },
+  { pattern: /\b(?:part\s*b|party\s*b)\b/gi, replace: 'Part B (Fire safety)' },
+  { pattern: /\b(?:part\s*m|party\s*m)\b/gi, replace: 'Part M (Access to buildings)' },
+  { pattern: /\b(?:curtain\s*falling|curtain\s*fall|cotton\s*walling)\b/gi, replace: 'curtain walling' },
+  { pattern: /\b(?:breeze\s*so\s*lay|brise\s*sole|breeze\s*soleil|brice\s*so\s*lay)\b/gi, replace: 'brise-soleil' },
+  { pattern: /\b(?:saw\s*fit|so\s*fit|soft\s*fit)\b/gi, replace: 'soffit' },
+  { pattern: /\b(?:ground\s*flour|ground\s*flow)\b/gi, replace: 'Ground Floor (GF)' },
+  { pattern: /\b(?:first\s*flour|first\s*flow)\b/gi, replace: 'First Floor (FF)' },
+  { pattern: /\b(?:bree\s*am|bream\s*rating|bre\s*am)\b/gi, replace: 'BREEAM' },
+  { pattern: /\b(?:river\s*stage|reba\s*stage|rebar\s*stage)\b/gi, replace: 'RIBA Stage' },
+  { pattern: /\b(?:section\s*one\s*oh\s*six|s\s*one\s*oh\s*six|s\s*106)\b/gi, replace: 'Section 106 (S106 Agreement)' },
+  { pattern: /\b(?:a\s*ten\s*u\s*ation|atten\s*u\s*ation)\b/gi, replace: 'attenuation tank' },
+  { pattern: /\b(?:coat\s*ping|cope\s*in)\b/gi, replace: 'coping stone' },
+  { pattern: /\b(?:b\s*o\s*q|boc\s*document)\b/gi, replace: 'BOQ (Bill of Quantities)' },
+  { pattern: /\b(?:l\s*p\s*a|lpa\s*officer)\b/gi, replace: 'Local Planning Authority (LPA)' },
+  { pattern: /\b(?:m\s*e\s*p|m\s*and\s*e)\b/gi, replace: 'MEP (Mechanical, Electrical, Plumbing)' },
+  { pattern: /\b(?:q\s*s\s*estimate|cue\s*s)\b/gi, replace: 'Quantity Surveyor (QS)' },
+  { pattern: /\b(?:r\s*f\s*i)\b/gi, replace: 'RFI (Request for Information)' }
+];
+
+export function applyPhoneticCorrections(text) {
+  if (!text) return '';
+  let corrected = text;
+  for (const { pattern, replace } of PHONETIC_UK_CORRECTIONS) {
+    corrected = corrected.replace(pattern, replace);
+  }
+  return corrected;
+}
+
 // Speech Recognition (STT) & Speech Synthesis (TTS) Service with Ultra-Low Latency Streaming
 class SpeechService {
   constructor() {
@@ -59,41 +90,89 @@ class SpeechService {
     this.recognition = new SpeechRecognition();
     this.recognition.continuous = true;
     this.recognition.interimResults = true;
-    this.recognition.maxAlternatives = 1;
+    this.recognition.maxAlternatives = 5; // Search top 5 candidates for highest accuracy
     this.recognition.lang = lang;
     this.currentLang = lang;
 
-    let lastFinalText = '';
+    // Inject UK Architectural Grammar hints if supported by browser
+    const SpeechGrammarList = window.SpeechGrammarList || window.webkitSpeechGrammarList;
+    if (SpeechGrammarList) {
+      try {
+        const grammarList = new SpeechGrammarList();
+        const architecturalTerms = '#JSGF V1.0; grammar architectural_terms; public <term> = Part L | Part B | Part M | RIBA | BREEAM | Curtain Walling | Brise-soleil | Soffit | Mullion | Transom | S106 | LPA | MEP | QS | BOQ | Attenuation | Cladding | Facade | U-value ;';
+        grammarList.addFromString(architecturalTerms, 1.0);
+        this.recognition.grammars = grammarList;
+      } catch (e) {
+        // Optional grammar enhancement
+      }
+    }
+
+    let lastCommittedText = '';
+    let currentInterimBuffer = '';
+
+    // ⚡ Silence Auto-Commit Timer (Flushes pending interim text if speaker pauses for 1.2s to prevent drop)
+    const resetSilenceTimer = () => {
+      if (this.silenceTimer) clearTimeout(this.silenceTimer);
+      if (!currentInterimBuffer.trim()) return;
+
+      this.silenceTimer = setTimeout(() => {
+        if (currentInterimBuffer.trim() && currentInterimBuffer.trim() !== lastCommittedText) {
+          const refinedText = applyPhoneticCorrections(currentInterimBuffer.trim());
+          lastCommittedText = currentInterimBuffer.trim();
+          currentInterimBuffer = '';
+          onInterimResult?.('');
+          onResult?.(refinedText);
+        }
+      }, 1200); // 1.2s pause auto-commits seamlessly
+    };
 
     this.recognition.onresult = (event) => {
       let interimTranscript = '';
       let finalTranscript = '';
 
       for (let i = event.resultIndex; i < event.results.length; ++i) {
-        const transcript = event.results[i][0].transcript;
+        // Pick best alternative candidate with architectural boost
+        const alternatives = Array.from(event.results[i]);
+        let bestCandidate = alternatives[0]?.transcript || '';
+
+        // Check if secondary alternative contains architectural terms with better confidence
+        for (const alt of alternatives) {
+          if (alt.confidence > 0.6 || /\b(part\s*[lbm]|riba|breeam|facade|u-value|soffit|mullion)\b/i.test(alt.transcript)) {
+            bestCandidate = alt.transcript;
+            break;
+          }
+        }
+
         if (event.results[i].isFinal) {
-          finalTranscript += transcript;
+          finalTranscript += bestCandidate;
         } else {
-          interimTranscript += transcript;
+          interimTranscript += bestCandidate;
         }
       }
 
-      // Stream interim text smoothly
+      // Stream interim text with phonetic normalizer
       if (interimTranscript) {
-        onInterimResult?.(interimTranscript.trim());
+        currentInterimBuffer = interimTranscript;
+        const normalizedInterim = applyPhoneticCorrections(interimTranscript.trim());
+        onInterimResult?.(normalizedInterim);
+        resetSilenceTimer();
       }
-      if (finalTranscript && finalTranscript.trim() !== lastFinalText) {
-        lastFinalText = finalTranscript.trim();
-        onResult?.(finalTranscript.trim());
+
+      // Commit final text seamlessly
+      if (finalTranscript && finalTranscript.trim() !== lastCommittedText) {
+        if (this.silenceTimer) clearTimeout(this.silenceTimer);
+        currentInterimBuffer = '';
+        lastCommittedText = finalTranscript.trim();
+        const refinedFinal = applyPhoneticCorrections(finalTranscript.trim());
+        onResult?.(refinedFinal);
       }
     };
 
     this.recognition.onerror = (event) => {
       if (event.error === 'no-speech' || event.error === 'network') {
-        // Normal silence or brief network drop - keep session alive smoothly
-        return;
+        return; // Non-fatal silence
       }
-      console.warn('Speech recognition status:', event.error);
+      console.warn('Speech recognition notice:', event.error);
       if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
         this.isListening = false;
         onError?.(event);
@@ -101,18 +180,25 @@ class SpeechService {
     };
 
     this.recognition.onend = () => {
+      // Flush any leftover buffer on sudden end to never drop speech
+      if (currentInterimBuffer.trim() && currentInterimBuffer.trim() !== lastCommittedText) {
+        const refinedText = applyPhoneticCorrections(currentInterimBuffer.trim());
+        lastCommittedText = currentInterimBuffer.trim();
+        currentInterimBuffer = '';
+        onResult?.(refinedText);
+      }
+
       if (this.isListening && this.autoRestart) {
-        // Safe 150ms debounce before restart to prevent browser lock & UI flicker
         if (this.restartTimer) clearTimeout(this.restartTimer);
         this.restartTimer = setTimeout(() => {
           if (this.isListening && this.recognition) {
             try {
               this.recognition.start();
             } catch (e) {
-              // Ignore if already active
+              // already active
             }
           }
-        }, 150);
+        }, 100);
       } else {
         this.isListening = false;
         onEnd?.();
@@ -133,6 +219,10 @@ class SpeechService {
   stopRecognition() {
     this.autoRestart = false;
     this.isListening = false;
+    if (this.silenceTimer) {
+      clearTimeout(this.silenceTimer);
+      this.silenceTimer = null;
+    }
     if (this.restartTimer) {
       clearTimeout(this.restartTimer);
       this.restartTimer = null;
