@@ -41,7 +41,7 @@ import { DEMO_SCENARIOS } from '../data/demoScenarios';
 
 // 🏛️ Natural Clause & Sentence Splitter (Splits long speech streams into readable 5-9 word intelligible clauses)
 function splitIntoIntelligibleChunks(text) {
-  if (!text || !text.trim()) return [];
+  if (!text || typeof text !== 'string' || !text.trim()) return [];
   const raw = text.trim();
 
   // 1. Split by sentence boundaries (. ? ! \n)
@@ -49,6 +49,8 @@ function splitIntoIntelligibleChunks(text) {
     .split(/(?<=[.?!;:\n])\s+|\n+/)
     .map(s => s.trim())
     .filter(Boolean);
+
+  if (sentences.length === 0) return [raw];
 
   const cleanChunks = [];
 
@@ -168,7 +170,7 @@ const MessageCardItem = React.memo(function MessageCardItem({
           isDark ? 'bg-slate-900/60 border-slate-800/80 text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-800'
         }`}>
           <div className="select-text break-keep-all font-medium space-y-2">
-            {splitIntoIntelligibleChunks(msg.original).map((chunk, idx) => (
+            {splitIntoIntelligibleChunks(msg.original || '').map((chunk, idx) => (
               <p key={idx} className="leading-relaxed">
                 {chunk}
               </p>
@@ -204,7 +206,7 @@ const MessageCardItem = React.memo(function MessageCardItem({
             </div>
           ) : (
             <div className="select-text break-keep-all font-bold space-y-2">
-              {splitIntoIntelligibleChunks(msg.translation).map((chunk, idx) => (
+              {splitIntoIntelligibleChunks(msg.translation || '').map((chunk, idx) => (
                 <p key={idx} className="leading-relaxed">
                   {chunk}
                 </p>
