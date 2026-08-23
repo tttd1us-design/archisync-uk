@@ -76,9 +76,9 @@ export default function Header({
                   ArchiSync <span className="text-amber-500">UK</span>
                 </span>
                 <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                  isDark ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30' : 'bg-indigo-50 text-indigo-700 border border-indigo-200'
-                }`}>
-                  🇬🇧 UK · 🇺🇸 US · 🇯🇵 JP · 🇨🇳 CN Global Edition
+                  isDark ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' : 'bg-amber-50 text-amber-800 border border-amber-300'
+                } flex items-center gap-1`}>
+                  <Sparkles className="w-3 h-3 text-amber-500" /> ⚡ 🌐 Auto-Detect Multi-Track
                 </span>
                 {hasApiKey ? (
                   <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
@@ -88,14 +88,14 @@ export default function Header({
                   </span>
                 ) : (
                   <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
-                    isDark ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'bg-amber-50 text-amber-700 border border-amber-200'
+                    isDark ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30' : 'bg-indigo-50 text-indigo-700 border border-indigo-200'
                   }`}>
-                    Smart Fallback Mode
+                    🇬🇧·🇯🇵·🇨🇳 ➔ 🇰🇷 Auto Engine
                   </span>
                 )}
               </div>
               <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'} font-medium`}>
-                영국·미국·일본·중국 건축설계 글로벌 실시간 AI 통역 & RIBA 회의록 시스템
+                ⚡ 실시간 언어 자동 감지 & 글로벌 건축 전문 한국어 즉시 통역 시스템
               </p>
             </div>
           </div>

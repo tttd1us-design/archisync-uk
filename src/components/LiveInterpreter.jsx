@@ -24,7 +24,7 @@ import {
   CheckCircle2
 } from 'lucide-react';
 import { speechService } from '../services/speechService';
-import { translateArchitectureText, detectMeetingIntent } from '../services/geminiService';
+import { translateArchitectureText, detectMeetingIntent, detectSourceLanguage } from '../services/geminiService';
 import { findGlossaryMatches } from '../data/architectureGlossary';
 import { DEMO_SCENARIOS } from '../data/demoScenarios';
 
@@ -169,27 +169,29 @@ export default function LiveInterpreter({
       
       // If there's pending interim text on stop, commit it immediately so no words are dropped
       if (interimText.trim()) {
-        const targetLang = 'ko-KR'; // Always translate to Korean for right HUD
         const pendingText = interimText.trim();
+        const detectedLang = (lang === 'auto' || !lang) ? detectSourceLanguage(pendingText) : lang;
+        const targetLang = 'ko-KR'; // Always translate to Korean for right HUD
+
         const translated = await translateArchitectureText({
           text: pendingText,
-          sourceLang: lang,
+          sourceLang: detectedLang,
           targetLang: targetLang,
           apiKey: apiKey
         });
         const matchedTerms = findGlossaryMatches(pendingText);
         const intent = detectMeetingIntent(pendingText, translated);
 
-        const isZH = lang.startsWith('zh');
-        const isJP = lang.startsWith('ja');
-        const isEN = lang.startsWith('en');
+        const isZH = detectedLang.startsWith('zh');
+        const isJP = detectedLang.startsWith('ja');
+        const isEN = detectedLang.startsWith('en');
 
         setMessages(prev => [{
           id: Date.now() + Math.random(),
           speaker: isZH ? 'Shanghai Lead Architect' : isJP ? 'Tokyo Lead Architect' : isEN ? 'UK Lead Architect' : 'Seoul Design Lead',
           speakerRole: isZH ? 'CN Architect' : isJP ? 'JP Architect' : isEN ? 'UK Architect' : 'KR Director',
-          lang: lang,
-          accent: isZH ? 'Chinese (Mandarin)' : isJP ? 'Japanese (Tokyo)' : lang === 'en-GB' ? 'UK (London RP)' : lang === 'en-US' ? 'US (General)' : 'Korean',
+          lang: detectedLang,
+          accent: isZH ? 'Chinese (Mandarin)' : isJP ? 'Japanese (Tokyo)' : detectedLang === 'en-GB' ? 'UK (London RP)' : detectedLang === 'en-US' ? 'US (General)' : 'Korean',
           original: pendingText,
           translation: translated,
           intent: intent,
@@ -211,9 +213,10 @@ export default function LiveInterpreter({
       setLiveStreamingTranslation('');
       
       const targetLang = 'ko-KR'; // Always translate to Korean for right HUD
+      const sttLang = lang === 'auto' ? 'en-GB' : lang;
 
       speechService.startRecognition({
-        lang: lang,
+        lang: sttLang,
         continuous: true,
         onInterimResult: (streamText) => {
           setInterimText(streamText);
@@ -222,9 +225,10 @@ export default function LiveInterpreter({
           if (interimTranslateTimerRef.current) clearTimeout(interimTranslateTimerRef.current);
           if (streamText.length > 1) {
             interimTranslateTimerRef.current = setTimeout(async () => {
+              const detected = (lang === 'auto') ? detectSourceLanguage(streamText) : lang;
               const streamTrans = await translateArchitectureText({
                 text: streamText,
-                sourceLang: lang,
+                sourceLang: detected,
                 targetLang: targetLang,
                 apiKey: apiKey
               });
@@ -242,9 +246,11 @@ export default function LiveInterpreter({
           for (const chunk of chunks) {
             if (!chunk.trim()) continue;
 
+            const detectedLang = (lang === 'auto') ? detectSourceLanguage(chunk) : lang;
+
             const translated = await translateArchitectureText({
               text: chunk,
-              sourceLang: lang,
+              sourceLang: detectedLang,
               targetLang: targetLang,
               apiKey: apiKey
             });
@@ -252,16 +258,16 @@ export default function LiveInterpreter({
             const matchedTerms = findGlossaryMatches(chunk);
             const intent = detectMeetingIntent(chunk, translated);
 
-            const isZH = lang.startsWith('zh');
-            const isJP = lang.startsWith('ja');
-            const isEN = lang.startsWith('en');
+            const isZH = detectedLang.startsWith('zh');
+            const isJP = detectedLang.startsWith('ja');
+            const isEN = detectedLang.startsWith('en');
 
             const newMessage = {
               id: Date.now() + Math.random(),
               speaker: isZH ? 'Shanghai Lead Architect' : isJP ? 'Tokyo Lead Architect' : isEN ? 'UK Lead Architect' : 'Seoul Design Lead',
               speakerRole: isZH ? 'CN Architect' : isJP ? 'JP Architect' : isEN ? 'UK Architect' : 'KR Director',
-              lang: lang,
-              accent: isZH ? 'Chinese (Mandarin)' : isJP ? 'Japanese (Tokyo)' : lang === 'en-GB' ? 'UK (London RP)' : lang === 'en-US' ? 'US (General)' : 'Korean',
+              lang: detectedLang,
+              accent: isZH ? 'Chinese (Mandarin)' : isJP ? 'Japanese (Tokyo)' : detectedLang === 'en-GB' ? 'UK (London RP)' : detectedLang === 'en-US' ? 'US (General)' : 'Korean',
               original: chunk,
               translation: translated,
               intent: intent,
@@ -294,8 +300,6 @@ export default function LiveInterpreter({
     e?.preventDefault();
     if (!customInput.trim()) return;
 
-    const sourceLang = inputLang;
-    const targetLang = sourceLang === 'en-GB' ? 'ko-KR' : 'en-GB';
     const textToSend = customInput;
     setCustomInput('');
 
@@ -304,9 +308,12 @@ export default function LiveInterpreter({
     for (const chunk of chunks) {
       if (!chunk.trim()) continue;
 
+      const detectedLang = (inputLang === 'auto') ? detectSourceLanguage(chunk) : inputLang;
+      const targetLang = 'ko-KR'; // Always translate to Korean for right HUD
+
       const translated = await translateArchitectureText({
         text: chunk,
-        sourceLang: sourceLang,
+        sourceLang: detectedLang,
         targetLang: targetLang,
         apiKey: apiKey
       });
@@ -314,12 +321,16 @@ export default function LiveInterpreter({
       const matchedTerms = findGlossaryMatches(chunk);
       const intent = detectMeetingIntent(chunk, translated);
 
+      const isZH = detectedLang.startsWith('zh');
+      const isJP = detectedLang.startsWith('ja');
+      const isEN = detectedLang.startsWith('en');
+
       const newMessage = {
         id: Date.now() + Math.random(),
-        speaker: sourceLang === 'en-GB' ? 'UK Lead Architect' : 'Seoul Design Lead',
-        speakerRole: sourceLang === 'en-GB' ? 'UK Architect' : 'KR Director',
-        lang: sourceLang,
-        accent: sourceLang === 'en-GB' ? 'UK (London RP)' : 'Korean',
+        speaker: isZH ? 'Shanghai Lead Architect' : isJP ? 'Tokyo Lead Architect' : isEN ? 'UK Lead Architect' : 'Seoul Design Lead',
+        speakerRole: isZH ? 'CN Architect' : isJP ? 'JP Architect' : isEN ? 'UK Architect' : 'KR Director',
+        lang: detectedLang,
+        accent: isZH ? 'Chinese (Mandarin)' : isJP ? 'Japanese (Tokyo)' : detectedLang === 'en-GB' ? 'UK (London RP)' : detectedLang === 'en-US' ? 'US (General)' : 'Korean',
         original: chunk,
         translation: translated,
         intent: intent,
@@ -542,7 +553,19 @@ export default function LiveInterpreter({
               isDark ? 'border-slate-800' : 'border-slate-100'
             }`}>
               <span className="text-[10.5pt] font-extrabold text-amber-500 flex items-center gap-1.5">
-                {activeMic === 'zh-CN' || messages[0]?.lang?.startsWith('zh') ? (
+                {activeMic === 'auto' ? (
+                  <>⚡ 🌐 자동 언어 감지 중 (Auto: {
+                    interimText ? (
+                      detectSourceLanguage(interimText) === 'zh-CN' ? '🇨🇳 중국어 감지' :
+                      detectSourceLanguage(interimText) === 'ja-JP' ? '🇯🇵 일본어 감지' :
+                      detectSourceLanguage(interimText) === 'ko-KR' ? '🇰🇷 한국어 감지' : '🇬🇧/🇺🇸 영어 감지'
+                    ) : messages[0]?.lang ? (
+                      messages[0].lang.startsWith('zh') ? '🇨🇳 중국어' :
+                      messages[0].lang.startsWith('ja') ? '🇯🇵 일본어' :
+                      messages[0].lang.startsWith('ko') ? '🇰🇷 한국어' : '🇬🇧/🇺🇸 영어'
+                    ) : '음성 대기 중'
+                  })</>
+                ) : activeMic === 'zh-CN' || messages[0]?.lang?.startsWith('zh') ? (
                   <>🇨🇳 실시간 중국어 발화 (Live Chinese)</>
                 ) : activeMic === 'ja-JP' || messages[0]?.lang?.startsWith('ja') ? (
                   <>🇯🇵 실시간 일본어 발화 (Live Japanese)</>
@@ -557,7 +580,9 @@ export default function LiveInterpreter({
                   ? 'bg-amber-500/20 text-amber-600 border border-amber-500/40 animate-pulse' 
                   : isDark ? 'bg-slate-800 text-slate-400' : 'bg-slate-100 text-slate-600'
               }`}>
-                {activeMic ? `🎙️ ${activeMic === 'zh-CN' ? '중국어' : activeMic === 'ja-JP' ? '일본어' : activeMic.startsWith('en') ? '영어' : '한국어'} 수신 중` : '마이크 대기 중'}
+                {activeMic === 'auto' 
+                  ? '🎙️ 🌐 전세계 언어 자동 감지 중' 
+                  : activeMic ? `🎙️ ${activeMic === 'zh-CN' ? '중국어' : activeMic === 'ja-JP' ? '일본어' : activeMic.startsWith('en') ? '영어' : '한국어'} 수신 중` : '마이크 대기 중'}
               </span>
             </div>
             
@@ -994,6 +1019,26 @@ export default function LiveInterpreter({
 
         <div className="flex flex-wrap items-center gap-3">
           
+          {/* ⚡ Auto Language Detection Mic (One-Touch Universal Auto Translation) */}
+          <button
+            onClick={() => toggleMic('auto')}
+            className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl font-black text-xs transition shadow-xl ${
+              activeMic === 'auto'
+                ? 'bg-gradient-to-r from-amber-500 via-rose-500 to-indigo-600 hover:from-amber-600 text-white ring-4 ring-amber-400/40 animate-pulse'
+                : isDark 
+                  ? 'bg-gradient-to-r from-amber-500/20 via-rose-500/20 to-indigo-500/20 hover:from-amber-500/30 text-amber-300 border-2 border-amber-400/60 shadow-amber-500/10' 
+                  : 'bg-gradient-to-r from-amber-100 via-rose-50 to-indigo-100 hover:from-amber-200 text-indigo-950 border-2 border-indigo-400/80 shadow-md'
+            }`}
+            title="영·일·중·한 어떤 언어로 말해도 AI가 언어를 0.01초 만에 자동 감지하여 우측에 100% 한글로 실시간 통역합니다"
+          >
+            <Sparkles className={`w-4 h-4 ${activeMic === 'auto' ? 'text-amber-200' : 'text-amber-500'}`} />
+            <span>
+              {activeMic === 'auto' 
+                ? '⏹️ 🌐 자동 언어 감지 통역 중 (ON)' 
+                : '⚡ 🌐 자동 언어 감지 마이크 (AUTO)'}
+            </span>
+          </button>
+
           {/* English Accent Switcher & Mic Button */}
           <div className="flex items-center space-x-1.5">
             {/* Accent Selector (UK 🇬🇧 / US 🇺🇸) */}
@@ -1029,7 +1074,7 @@ export default function LiveInterpreter({
             {/* Main English Mic Button */}
             <button
               onClick={() => toggleMic(selectedEnglishAccent)}
-              className={`flex items-center space-x-2 px-3.5 py-2.5 rounded-xl font-bold text-xs transition shadow-lg ${
+              className={`flex items-center space-x-2 px-3 py-2.5 rounded-xl font-bold text-xs transition shadow-lg ${
                 activeMic?.startsWith('en')
                   ? 'bg-rose-600 hover:bg-rose-700 text-white ring-4 ring-rose-500/30'
                   : isDark 
@@ -1098,15 +1143,7 @@ export default function LiveInterpreter({
                 type="text"
                 value={customInput}
                 onChange={(e) => setCustomInput(e.target.value)}
-                placeholder={
-                  inputLang === 'en-GB' 
-                    ? "영어로 입력 시 실시간 초고속 한글 번역..." 
-                    : inputLang === 'ja-JP'
-                      ? "일본어로 입력 시 실시간 초고속 한글 번역..."
-                      : inputLang === 'zh-CN'
-                        ? "중국어로 입력 시 실시간 초고속 한글 번역..."
-                        : "한국어 입력 시 외국어 건축 용어로 번역..."
-                }
+                placeholder="영·일·중·한 어떤 언어든 입력하시면 실시간 초고속 한글로 자동 번역됩니다..."
                 className={`w-full border rounded-xl px-4 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-amber-500 ${
                   isDark 
                     ? 'bg-slate-900 border-slate-700 text-slate-100 placeholder-slate-500' 
@@ -1115,12 +1152,12 @@ export default function LiveInterpreter({
               />
               <button
                 type="button"
-                onClick={() => setInputLang(prev => prev === 'en-GB' ? 'ja-JP' : prev === 'ja-JP' ? 'zh-CN' : prev === 'zh-CN' ? 'ko-KR' : 'en-GB')}
+                onClick={() => setInputLang(prev => prev === 'auto' ? 'en-GB' : prev === 'en-GB' ? 'ja-JP' : prev === 'ja-JP' ? 'zh-CN' : prev === 'zh-CN' ? 'ko-KR' : 'auto')}
                 className={`absolute right-2 top-1/2 -translate-y-1/2 px-2 py-0.5 text-[10px] font-bold rounded border ${
-                  isDark ? 'bg-slate-800 text-slate-300 hover:text-white border-slate-700' : 'bg-slate-200 text-slate-700 hover:text-slate-900 border-slate-300'
+                  isDark ? 'bg-slate-800 text-amber-300 hover:text-white border-slate-700' : 'bg-slate-200 text-indigo-800 hover:text-slate-900 border-slate-300'
                 }`}
               >
-                {inputLang === 'en-GB' ? '🇬🇧 EN' : inputLang === 'ja-JP' ? '🇯🇵 JA' : inputLang === 'zh-CN' ? '🇨🇳 ZH' : '🇰🇷 KO'}
+                {inputLang === 'auto' ? '⚡ AUTO' : inputLang === 'en-GB' ? '🇬🇧 EN' : inputLang === 'ja-JP' ? '🇯🇵 JA' : inputLang === 'zh-CN' ? '🇨🇳 ZH' : '🇰🇷 KO'}
               </button>
             </div>
 

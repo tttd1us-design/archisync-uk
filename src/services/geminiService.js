@@ -45,6 +45,40 @@ Output ONLY the direct Korean translation, no quotes, no explanations.
 // In-memory cache for ultra-low latency repeat translations
 const translationCache = new Map();
 
+// 🌐 0ms High-Precision Automatic Source Language Detection Engine
+export function detectSourceLanguage(text) {
+  if (!text || !text.trim()) return 'en-GB';
+
+  const raw = text.trim();
+  const cleanLen = raw.replace(/\s+/g, '').length || 1;
+  
+  // 1. Korean Unicode Range (\uAC00-\uD7A3, \u1100-\u11FF, \u3130-\u318F)
+  const koreanMatches = raw.match(/[\uAC00-\uD7A3\u1100-\u11FF\u3130-\u318F]/g) || [];
+  if (koreanMatches.length / cleanLen > 0.15) {
+    return 'ko-KR';
+  }
+
+  // 2. Japanese Hiragana/Katakana Range (\u3040-\u309F, \u30A0-\u30FF)
+  const japaneseKanaMatches = raw.match(/[\u3040-\u309F\u30A0-\u30FF]/g) || [];
+  if (japaneseKanaMatches.length > 0) {
+    return 'ja-JP';
+  }
+
+  // 3. Chinese Hanzi vs Japanese Kanji
+  const cjkMatches = raw.match(/[\u4E00-\u9FFF]/g) || [];
+  if (cjkMatches.length > 0) {
+    const simplifiedMarkers = /[请确认报建审批抗震设防剪力墙深化设计规划指标规范楼板门窗热工结构]/;
+    const japaneseKanjiMarkers = /[耐震構造意匠設計確認申請納まり施工図仕上断面階坪]/;
+    
+    if (simplifiedMarkers.test(raw)) return 'zh-CN';
+    if (japaneseKanjiMarkers.test(raw)) return 'ja-JP';
+    return 'zh-CN'; // Default CJK ideographs to Chinese
+  }
+
+  // 4. Default Latin alphabet to English (UK/US)
+  return 'en-GB';
+}
+
 // 💡 0.1-Second Instant Meeting Intent & Quick Catch Analyzer
 export function detectMeetingIntent(originalText = '', translatedText = '') {
   const text = (originalText + ' ' + translatedText).toLowerCase();
@@ -129,8 +163,12 @@ export async function translateArchitectureText({ text, sourceLang = 'en-GB', ta
   if (!text || !text.trim()) return '';
 
   const rawCleanText = text.trim();
-  const cleanText = normalizeArchitecturalSpeech(rawCleanText, sourceLang);
-  const sl = sourceLang.startsWith('zh') ? 'zh-CN' : sourceLang.startsWith('ja') ? 'ja' : sourceLang.startsWith('en') ? 'en' : 'ko';
+  const effectiveSourceLang = (sourceLang === 'auto' || !sourceLang) 
+    ? detectSourceLanguage(rawCleanText) 
+    : sourceLang;
+
+  const cleanText = normalizeArchitecturalSpeech(rawCleanText, effectiveSourceLang);
+  const sl = effectiveSourceLang.startsWith('zh') ? 'zh-CN' : effectiveSourceLang.startsWith('ja') ? 'ja' : effectiveSourceLang.startsWith('en') ? 'en' : 'ko';
   const tl = 'ko'; // Enforce Korean translation for right HUD screen!
   const cacheKey = `${sl}->${tl}:${cleanText.toLowerCase()}`;
 
@@ -139,7 +177,7 @@ export async function translateArchitectureText({ text, sourceLang = 'en-GB', ta
   }
 
   // 1. Instant 0ms Rule-based Matcher for common architectural dialogue
-  const instantMatch = getInstantArchitecturalTranslation(cleanText, sourceLang, targetLang);
+  const instantMatch = getInstantArchitecturalTranslation(cleanText, effectiveSourceLang, targetLang);
   if (instantMatch && !apiKey) {
     translationCache.set(cacheKey, instantMatch);
     return instantMatch;
