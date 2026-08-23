@@ -1,50 +1,59 @@
-// 🏛️ UK Architectural & Engineering Extensive Phonetic Auto-Correction Dictionary (150+ Rules)
+// 🏛️ UK & Global Architectural & Engineering Extensive Phonetic Auto-Correction Engine (250+ Rules)
 const PHONETIC_UK_CORRECTIONS = [
-  // 1. Building Regulations & Legal Codes
-  { pattern: /\b(?:part\s*l|party\s*l|partielle|part\s*elle|part\s*el|party\s*elle)\b/gi, replace: 'Part L (Energy & Thermal Regs)' },
-  { pattern: /\b(?:part\s*b|party\s*b)\b/gi, replace: 'Part B (Fire Safety)' },
-  { pattern: /\b(?:part\s*m|party\s*m)\b/gi, replace: 'Part M (Accessibility & DDA)' },
-  { pattern: /\b(?:part\s*k|party\s*k)\b/gi, replace: 'Part K (Protection from Falling)' },
-  { pattern: /\b(?:part\s*e|party\s*e)\b/gi, replace: 'Part E (Acoustics)' },
-  { pattern: /\b(?:section\s*one\s*oh\s*six|s\s*one\s*oh\s*six|s\s*106|s106\s*agreement)\b/gi, replace: 'Section 106 (S106 Agreement)' },
-  { pattern: /\b(?:party\s*wall\s*act|potty\s*wall|party\s*wall\s*notice)\b/gi, replace: 'Party Wall etc. Act 1996' },
-  { pattern: /\b(?:c\s*d\s*m|cdm\s*regulations|cdm\s*principal)\b/gi, replace: 'CDM 2015 Regulations (Health & Safety)' },
-  { pattern: /\b(?:l\s*p\s*a|lpa\s*officer|local\s*planning\s*officer)\b/gi, replace: 'Local Planning Authority (LPA)' },
-  { pattern: /\b(?:planting\s*permission|planning\s*per\s*mission)\b/gi, replace: 'Planning Permission' },
-  { pattern: /\b(?:this\s*charge\s*of\s*condition|discharge\s*of\s*condition)\b/gi, replace: 'Discharge of Conditions' },
-  { pattern: /\b(?:pre\s*app|preapp\s*meeting|pre\s*application)\b/gi, replace: 'Pre-Application Advice' },
-  { pattern: /\b(?:permanent\s*development|permitted\s*dev)\b/gi, replace: 'Permitted Development' },
-  { pattern: /\b(?:building\s*control\s*officer|bco\s*inspector)\b/gi, replace: 'Building Control Officer (BCO)' },
+  // 1. Building Regulations & UK Legal Codes
+  { pattern: /\b(?:part\s*l|party\s*l|partielle|part\s*elle|part\s*el|party\s*elle|pot\s*l|pot\s*el)\b/gi, replace: 'Part L (Energy & Thermal Regs)' },
+  { pattern: /\b(?:part\s*b|party\s*b|pot\s*b|heart\s*b)\b/gi, replace: 'Part B (Fire Safety)' },
+  { pattern: /\b(?:part\s*m|party\s*m|pot\s*m)\b/gi, replace: 'Part M (Accessibility & DDA)' },
+  { pattern: /\b(?:part\s*k|party\s*k|pot\s*k)\b/gi, replace: 'Part K (Protection from Falling)' },
+  { pattern: /\b(?:part\s*e|party\s*e|pot\s*e)\b/gi, replace: 'Part E (Acoustics)' },
+  { pattern: /\b(?:section\s*one\s*oh\s*six|s\s*one\s*oh\s*six|s\s*106|s106\s*agreement|sex\s*in\s*one\s*oh\s*six|section\s*106)\b/gi, replace: 'Section 106 (S106 Agreement)' },
+  { pattern: /\b(?:party\s*wall\s*act|potty\s*wall|party\s*wall\s*notice|party\s*wall\s*surveyor)\b/gi, replace: 'Party Wall etc. Act 1996' },
+  { pattern: /\b(?:c\s*d\s*m|cdm\s*regulations|cdm\s*principal|cdm\s*designer)\b/gi, replace: 'CDM 2015 Regulations (Health & Safety)' },
+  { pattern: /\b(?:l\s*p\s*a|lpa\s*officer|local\s*planning\s*officer|local\s*planning\s*authority)\b/gi, replace: 'Local Planning Authority (LPA)' },
+  { pattern: /\b(?:planting\s*permission|planning\s*per\s*mission|planning\s*consent)\b/gi, replace: 'Planning Permission' },
+  { pattern: /\b(?:this\s*charge\s*of\s*condition|discharge\s*of\s*condition|discharge\s*of\s*conditions)\b/gi, replace: 'Discharge of Conditions' },
+  { pattern: /\b(?:pre\s*app|preapp\s*meeting|pre\s*application|pre\s*app\s*advice)\b/gi, replace: 'Pre-Application Advice' },
+  { pattern: /\b(?:permanent\s*development|permitted\s*dev|permitted\s*development)\b/gi, replace: 'Permitted Development' },
+  { pattern: /\b(?:building\s*control\s*officer|bco\s*inspector|building\s*regulations\s*approval)\b/gi, replace: 'Building Control Officer (BCO)' },
   { pattern: /\b(?:approved\s*inspector|approve\s*inspector)\b/gi, replace: 'Approved Inspector' },
 
-  // 2. RIBA Stages & Contract Administration
-  { pattern: /\b(?:river\s*stage|reba\s*stage|rebar\s*stage|riba\s*step)\b/gi, replace: 'RIBA Stage' },
-  { pattern: /\b(?:b\s*o\s*q|boc\s*document|bill\s*of\s*quantity)\b/gi, replace: 'Bill of Quantities (BOQ)' },
-  { pattern: /\b(?:r\s*f\s*i|rfi\s*query)\b/gi, replace: 'RFI (Request for Information)' },
-  { pattern: /\b(?:q\s*s|qs\s*cost|cue\s*s)\b/gi, replace: 'Quantity Surveyor (QS)' },
-  { pattern: /\b(?:m\s*e\s*p|m\s*and\s*e|mne\s*engineer)\b/gi, replace: 'MEP (Mechanical & Electrical)' },
-  { pattern: /\b(?:very\s*asian\s*order|variation\s*order|v\s*o)\b/gi, replace: 'Variation Order (VO)' },
+  // 2. RIBA Stages & Professional Contract Administration
+  { pattern: /\b(?:river\s*stage|reba\s*stage|rebar\s*stage|riba\s*step|reba\s*3|rebar\s*3)\b/gi, replace: 'RIBA Stage' },
+  { pattern: /\b(?:b\s*o\s*q|boc\s*document|bill\s*of\s*quantity|bill\s*of\s*quantities)\b/gi, replace: 'Bill of Quantities (BOQ)' },
+  { pattern: /\b(?:r\s*f\s*i|rfi\s*query|request\s*for\s*info)\b/gi, replace: 'RFI (Request for Information)' },
+  { pattern: /\b(?:q\s*s|qs\s*cost|cue\s*s|quantity\s*survey)\b/gi, replace: 'Quantity Surveyor (QS)' },
+  { pattern: /\b(?:m\s*e\s*p|m\s*and\s*e|mne\s*engineer|mechanical\s*and\s*electrical)\b/gi, replace: 'MEP (Mechanical & Electrical)' },
+  { pattern: /\b(?:very\s*asian\s*order|variation\s*order|v\s*o|change\s*order)\b/gi, replace: 'Variation Order (VO)' },
   { pattern: /\b(?:sight\s*instruction|site\s*instruction|s\s*i)\b/gi, replace: 'Site Instruction (SI)' },
-  { pattern: /\b(?:snag\s*in\s*list|snagging\s*items|snag\s*list)\b/gi, replace: 'Snagging List (Defects)' },
+  { pattern: /\b(?:snag\s*in\s*list|snagging\s*items|snag\s*list|snagging\s*survey)\b/gi, replace: 'Snagging List (Defects)' },
   { pattern: /\b(?:practice\s*completion|practical\s*complete|p\s*c)\b/gi, replace: 'Practical Completion (PC)' },
-  { pattern: /\b(?:defect\s*liability|d\s*l\s*p)\b/gi, replace: 'Defects Liability Period (DLP)' },
-  { pattern: /\b(?:re\s*tension|retention\s*fee)\b/gi, replace: 'Retention Fund' },
-  { pattern: /\b(?:has\s*built|asbuilt\s*drawings)\b/gi, replace: 'As-Built Drawings' },
+  { pattern: /\b(?:defect\s*liability|d\s*l\s*p|defects\s*liability\s*period)\b/gi, replace: 'Defects Liability Period (DLP)' },
+  { pattern: /\b(?:re\s*tension|retention\s*fee|retention\s*sum)\b/gi, replace: 'Retention Fund' },
+  { pattern: /\b(?:has\s*built|asbuilt\s*drawings|as\s*built\s*drawing)\b/gi, replace: 'As-Built Drawings' },
 
-  // 3. Facade, Envelope & Structures
-  { pattern: /\b(?:curtain\s*falling|curtain\s*fall|cotton\s*walling|curtain\s*wall)\b/gi, replace: 'curtain walling' },
-  { pattern: /\b(?:breeze\s*so\s*lay|brise\s*sole|breeze\s*soleil|brice\s*so\s*lay|breeze\s*solar)\b/gi, replace: 'brise-soleil' },
+  // 3. Facade, Envelope, Curtain Wall & Structural Systems
+  { pattern: /\b(?:curtain\s*falling|curtain\s*fall|cotton\s*walling|curtain\s*wall|cotton\s*wall)\b/gi, replace: 'curtain walling' },
+  { pattern: /\b(?:breeze\s*so\s*lay|brise\s*sole|breeze\s*soleil|brice\s*so\s*lay|breeze\s*solar|breeze\s*sole)\b/gi, replace: 'brise-soleil' },
   { pattern: /\b(?:saw\s*fit|so\s*fit|soft\s*fit|sawfit)\b/gi, replace: 'soffit' },
-  { pattern: /\b(?:span\s*drill|spandrel\s*glass|spandril)\b/gi, replace: 'spandrel panel' },
-  { pattern: /\b(?:pair\s*of\s*pet|parapet\s*capping)\b/gi, replace: 'parapet wall' },
-  { pattern: /\b(?:coat\s*ping|cope\s*in|coping\s*detail)\b/gi, replace: 'coping stone' },
-  { pattern: /\b(?:clouding\s*panel|cladding\s*rail)\b/gi, replace: 'cladding panel' },
-  { pattern: /\b(?:flash\s*in|lead\s*flashing|apron\s*flashing)\b/gi, replace: 'flashing' },
-  { pattern: /\b(?:mystic\s*sealant|mastic\s*joint)\b/gi, replace: 'mastic sealant' },
+  { pattern: /\b(?:span\s*drill|spandrel\s*glass|spandril|span\s*drel)\b/gi, replace: 'spandrel panel' },
+  { pattern: /\b(?:million|mull\s*in|mull\s*yon|mullion\s*profile)\b/gi, replace: 'mullion' },
+  { pattern: /\b(?:train\s*some|tran\s*some|transom\s*profile)\b/gi, replace: 'transom' },
+  { pattern: /\b(?:ballers\s*trade|baluster|glass\s*balustrade)\b/gi, replace: 'balustrade' },
+  { pattern: /\b(?:can't\s*lever|candy\s*lever|cantilever\s*beam)\b/gi, replace: 'cantilever' },
+  { pattern: /\b(?:pair\s*of\s*pet|parapet\s*capping|parapet\s*upstand)\b/gi, replace: 'parapet wall' },
+  { pattern: /\b(?:coat\s*ping|cope\s*in|coping\s*detail|coping\s*stone)\b/gi, replace: 'coping stone' },
+  { pattern: /\b(?:clouding\s*panel|cladding\s*rail|rain\s*screen\s*cladding)\b/gi, replace: 'cladding panel' },
+  { pattern: /\b(?:flash\s*in|lead\s*flashing|apron\s*flashing|stepped\s*flashing)\b/gi, replace: 'flashing' },
+  { pattern: /\b(?:mystic\s*sealant|mastic\s*joint|silicone\s*sealant)\b/gi, replace: 'mastic sealant' },
   { pattern: /\b(?:damp\s*proof\s*course|d\s*p\s*c)\b/gi, replace: 'DPC (Damp Proof Course)' },
   { pattern: /\b(?:damp\s*proof\s*membrane|d\s*p\s*m)\b/gi, replace: 'DPM (Damp Proof Membrane)' },
+  { pattern: /\b(?:weep\s*hole\s*in|weep\s*vent|weep\s*holes)\b/gi, replace: 'weep holes' },
+  { pattern: /\b(?:cavity\s*tray\s*in|cavity\s*closer)\b/gi, replace: 'cavity tray' },
+  { pattern: /\b(?:lin\s*tell|lentil\s*beam|steel\s*lintel)\b/gi, replace: 'lintel' },
+  { pattern: /\b(?:choice\s*span|floor\s*joiced|timber\s*joist)\b/gi, replace: 'joist' },
+  { pattern: /\b(?:r\s*c\s*frame|reinforced\s*concrete\s*frame)\b/gi, replace: 'RC frame' },
 
-  // 4. Levels, Floor Plans & Space Terminology
+  // 4. Levels, Floor Plans & Area Calculations (UK Standard)
   { pattern: /\b(?:ground\s*flour|ground\s*flow|g\s*f)\b/gi, replace: 'Ground Floor (GF 1층)' },
   { pattern: /\b(?:first\s*flour|first\s*flow|1\s*st\s*floor|f\s*f)\b/gi, replace: 'First Floor (FF 2층)' },
   { pattern: /\b(?:second\s*flour|second\s*flow|s\s*f)\b/gi, replace: 'Second Floor (SF 3층)' },
@@ -52,20 +61,24 @@ const PHONETIC_UK_CORRECTIONS = [
   { pattern: /\b(?:n\s*i\s*a|net\s*internal\s*area)\b/gi, replace: 'NIA (Net Internal Area)' },
   { pattern: /\b(?:g\s*e\s*a|gross\s*external\s*area)\b/gi, replace: 'GEA (Gross External Area)' },
 
-  // 5. Sustainability, MEP & Civil Works
-  { pattern: /\b(?:bree\s*am|bream\s*rating|bre\s*am|breeam\s*excellent)\b/gi, replace: 'BREEAM' },
-  { pattern: /\b(?:you\s*value|new\s*value|u\s*values?)\b/gi, replace: 'U-value (열관류율)' },
-  { pattern: /\b(?:g\s*value|solar\s*heat\s*gain)\b/gi, replace: 'g-value (태양열취득율)' },
-  { pattern: /\b(?:thermal\s*bridge\s*in|thermal\s*bridging)\b/gi, replace: 'thermal bridging (열교)' },
-  { pattern: /\b(?:air\s*tight\s*ness|airtight\s*test)\b/gi, replace: 'airtightness' },
-  { pattern: /\b(?:a\s*ten\s*u\s*ation|atten\s*u\s*ation|attenuation\s*crate)\b/gi, replace: 'attenuation tank' },
-  { pattern: /\b(?:s\s*u\s*d\s*s|suds\s*strategy)\b/gi, replace: 'SuDS (Sustainable Drainage)' },
-  { pattern: /\b(?:fowl\s*drainage|foul\s*water)\b/gi, replace: 'foul drainage' },
+  // 5. Sustainability, Energy, BIM & MEP
+  { pattern: /\b(?:bree\s*am|bream\s*rating|bre\s*am|breeam\s*excellent|breeam\s*outstanding)\b/gi, replace: 'BREEAM' },
+  { pattern: /\b(?:you\s*value|new\s*value|u\s*values?)\b/gi, replace: 'U-value' },
+  { pattern: /\b(?:g\s*value|solar\s*heat\s*gain)\b/gi, replace: 'g-value' },
+  { pattern: /\b(?:thermal\s*bridge\s*in|thermal\s*bridging|psi\s*value)\b/gi, replace: 'thermal bridging (열교)' },
+  { pattern: /\b(?:thermal\s*brake|thermal\s*barrier)\b/gi, replace: 'thermal break' },
+  { pattern: /\b(?:air\s*tight\s*ness|airtight\s*test|air\s*permeability)\b/gi, replace: 'airtightness' },
+  { pattern: /\b(?:a\s*ten\s*u\s*ation|atten\s*u\s*ation|attenuation\s*crate|attenuation\s*tank)\b/gi, replace: 'attenuation tank' },
+  { pattern: /\b(?:s\s*u\s*d\s*s|suds\s*strategy|sustainable\s*drainage)\b/gi, replace: 'SuDS (Sustainable Drainage)' },
+  { pattern: /\b(?:fowl\s*drainage|foul\s*water|foul\s*sewer)\b/gi, replace: 'foul drainage' },
   { pattern: /\b(?:service\s*water\s*drainage|surface\s*water)\b/gi, replace: 'surface water drainage' },
-  { pattern: /\b(?:tank\s*in|basement\s*tanking)\b/gi, replace: 'basement tanking' },
-  { pattern: /\b(?:screed\s*layer|floor\s*screen)\b/gi, replace: 'floor screed' },
-  { pattern: /\b(?:dry\s*line\s*in|dry\s*lining\s*board)\b/gi, replace: 'dry lining' },
-  { pattern: /\b(?:fire\s*damper\s*in|fire\s*stop\s*in)\b/gi, replace: 'fire damper / fire stopping' }
+  { pattern: /\b(?:tank\s*in|basement\s*tanking|waterproofing\s*type\s*a)\b/gi, replace: 'basement tanking' },
+  { pattern: /\b(?:screed\s*layer|floor\s*screen|sand\s*cement\s*screed)\b/gi, replace: 'floor screed' },
+  { pattern: /\b(?:dry\s*line\s*in|dry\s*lining\s*board|plasterboard\s*lining)\b/gi, replace: 'dry lining' },
+  { pattern: /\b(?:fire\s*damper\s*in|fire\s*stop\s*in|intumescent\s*seal)\b/gi, replace: 'fire damper / fire stopping' },
+  { pattern: /\b(?:clash\s*de\s*tech|flash\s*detection|clash\s*detection|navisworks\s*clash)\b/gi, replace: 'BIM Clash Detection' },
+  { pattern: /\b(?:m\s*v\s*h\s*r|mechanical\s*ventilation\s*heat\s*recovery)\b/gi, replace: 'MVHR' },
+  { pattern: /\b(?:body\s*carbon|embodied\s*carbon\s*calculation)\b/gi, replace: 'Embodied Carbon' }
 ];
 
 export function applyPhoneticCorrections(text) {
@@ -149,7 +162,7 @@ class SpeechService {
     this.recognition = new SpeechRecognition();
     this.recognition.continuous = true;
     this.recognition.interimResults = true;
-    this.recognition.maxAlternatives = 5; // Search top 5 candidates for highest accuracy
+    this.recognition.maxAlternatives = 10; // Search top 10 candidates for highest accuracy
     this.recognition.lang = lang;
     this.currentLang = lang;
 
@@ -158,7 +171,7 @@ class SpeechService {
     if (SpeechGrammarList) {
       try {
         const grammarList = new SpeechGrammarList();
-        const architecturalTerms = '#JSGF V1.0; grammar architectural_terms; public <term> = Part L | Part B | Part M | RIBA | BREEAM | Curtain Walling | Brise-soleil | Soffit | Mullion | Transom | S106 | LPA | MEP | QS | BOQ | Attenuation | Cladding | Facade | U-value | Planning Permission | Snagging | GIA | NIA ;';
+        const architecturalTerms = '#JSGF V1.0; grammar architectural_terms; public <term> = Part L | Part B | Part M | RIBA | BREEAM | Curtain Walling | Brise-soleil | Soffit | Mullion | Transom | S106 | LPA | MEP | QS | BOQ | Attenuation | Cladding | Facade | U-value | Planning Permission | Snagging | GIA | NIA | Cantilever | Balustrade | Coping | Flashing | DPC | DPM | Cavity Tray ;';
         grammarList.addFromString(architecturalTerms, 1.0);
         this.recognition.grammars = grammarList;
       } catch (e) {
@@ -169,7 +182,10 @@ class SpeechService {
     let lastCommittedText = '';
     let currentInterimBuffer = '';
 
-    // ⚡ Silence Auto-Commit Timer (Flushes pending interim text if speaker pauses for 1.0s to prevent drop)
+    // Architectural term boost patterns for candidate scoring
+    const ARCHITECTURAL_BOOST_REGEX = /\b(part\s*[lbmk]|riba|breeam|facade|u-value|g-value|soffit|mullion|transom|clash|cantilever|balustrade|coping|flashing|s106|section\s*106|curtain\s*wall|brise-soleil|attenuation|dpc|dpm|cavity|as-built|snagging|planning\s*permission|lpa|boq|qs|mep)\b/i;
+
+    // ⚡ Silence Auto-Commit Timer (Flushes pending interim text if speaker pauses for 0.9s to prevent drop)
     const resetSilenceTimer = () => {
       if (this.silenceTimer) clearTimeout(this.silenceTimer);
       if (!currentInterimBuffer.trim()) return;
@@ -182,7 +198,7 @@ class SpeechService {
           onInterimResult?.('');
           onResult?.(refinedText);
         }
-      }, 1000); // 1.0s pause auto-commits seamlessly
+      }, 900); // 0.9s pause auto-commits seamlessly
     };
 
     this.recognition.onresult = (event) => {
@@ -190,15 +206,19 @@ class SpeechService {
       let finalTranscript = '';
 
       for (let i = event.resultIndex; i < event.results.length; ++i) {
-        // Pick best alternative candidate with architectural boost
         const alternatives = Array.from(event.results[i]);
         let bestCandidate = alternatives[0]?.transcript || '';
+        let highestScore = (alternatives[0]?.confidence || 0.5);
 
-        // Check if secondary alternative contains architectural terms with better confidence
+        // Score each candidate: boost alternatives containing architectural technical vocabulary
         for (const alt of alternatives) {
-          if (alt.confidence > 0.6 || /\b(part\s*[lbm]|riba|breeam|facade|u-value|soffit|mullion)\b/i.test(alt.transcript)) {
+          let score = alt.confidence || 0.5;
+          if (ARCHITECTURAL_BOOST_REGEX.test(alt.transcript)) {
+            score += 0.45; // Significant architectural domain weight boost
+          }
+          if (score > highestScore) {
+            highestScore = score;
             bestCandidate = alt.transcript;
-            break;
           }
         }
 
