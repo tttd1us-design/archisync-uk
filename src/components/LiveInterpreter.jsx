@@ -34,7 +34,7 @@ import {
 import { findGlossaryMatches } from '../data/architectureGlossary';
 import { DEMO_SCENARIOS } from '../data/demoScenarios';
 
-// ⚡ Ultra-Compact High-Density 8pt Memoized Message Card Component (Maximum information density, minimal padding)
+// ⚡ Ultra-Clean Pure Content 8pt Card (No redundant speaker headers, 100% content focused)
 const MessageCardItem = React.memo(function MessageCardItem({
   msg,
   isDark,
@@ -50,94 +50,45 @@ const MessageCardItem = React.memo(function MessageCardItem({
   onSaveEdit
 }) {
   const isUK = msg.lang === 'en-GB' || msg.lang?.startsWith('en');
-  const isZH = msg.lang?.startsWith('zh');
-  const isJP = msg.lang?.startsWith('ja');
-  const flag = isZH ? '🇨🇳' : isJP ? '🇯🇵' : isUK ? '🇬🇧' : '🇰🇷';
 
   return (
-    <div className={`w-full rounded-xl p-2 border transition-all ${
-      isDark ? 'bg-slate-950/90 border-slate-800/90 text-slate-100' : 'bg-white border-slate-200 text-slate-900 shadow-xs'
-    } space-y-1`}>
+    <div className={`w-full rounded-lg p-2 border transition-all ${
+      isDark ? 'bg-slate-950/80 border-slate-800/80 text-slate-100' : 'bg-white border-slate-200 text-slate-900 shadow-xs'
+    }`}>
       
-      {/* 1. Compact Top Bar: Speaker, Timestamp, Quick Actions */}
-      <div className={`flex items-center justify-between pb-1 border-b text-[8pt] ${
-        isDark ? 'border-slate-800/80 text-slate-400' : 'border-slate-100 text-slate-500'
-      }`}>
-        <div className="flex items-center space-x-1.5 truncate">
-          <span>{flag}</span>
-          <span className={`font-bold ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>{msg.speaker}</span>
-          <span className="text-[7.5pt] font-mono text-slate-500">({msg.timestamp})</span>
-          {msg.isLearned && (
-            <span className="text-[7pt] font-bold px-1 py-0.1 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-              ✨학습됨
-            </span>
-          )}
-        </div>
-        
-        <div className="flex items-center space-x-1 shrink-0">
-          <button
-            onClick={() => onPlaySpeech(msg.original, msg.lang)}
-            className="px-1 py-0.5 hover:text-amber-400 text-slate-400 rounded transition text-[7.5pt] flex items-center gap-0.5"
-            title="원문 듣기"
-          >
-            <Volume2 className="w-2.5 h-2.5 text-amber-500" />
-            <span>원문</span>
-          </button>
-          <button
-            onClick={() => onPlaySpeech(msg.translation, isUK ? 'ko-KR' : 'en-GB')}
-            className="px-1 py-0.5 hover:text-sky-400 text-slate-400 rounded transition text-[7.5pt] flex items-center gap-0.5"
-            title="번역 듣기"
-          >
-            <Volume2 className="w-2.5 h-2.5 text-sky-500" />
-            <span>한글</span>
-          </button>
-          <button
-            onClick={() => onStartEdit(msg.id, msg.translation)}
-            className="px-1 py-0.5 hover:text-amber-400 text-slate-400 rounded transition text-[7.5pt]"
-            title="번역 수정·학습"
-          >
-            ✏️
-          </button>
-          <button
-            onClick={() => onCopy(msg.id, `[원문] ${msg.original}\n[한글] ${msg.translation}`)}
-            className="p-0.5 hover:text-amber-500 rounded transition text-slate-400"
-            title="복사"
-          >
-            {copiedId === msg.id ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
-          </button>
-        </div>
-      </div>
-
-      {/* 2. Dual Column 8pt Layout: Left Original 8pt | Right Korean 8pt */}
+      {/* Pure Dual Column 8pt Layout: Left Spoken Original 8pt | Right Korean Translation 8pt */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-2 items-start text-[8pt] leading-snug">
         
-        {/* ⬅️ LEFT: Original 8pt */}
-        <div className={`p-1.5 rounded-lg border ${
-          isDark ? 'bg-slate-900/80 border-slate-800/80 text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-800'
+        {/* ⬅️ LEFT: Original Spoken Speech (8pt) */}
+        <div className={`p-2 rounded-md border relative group ${
+          isDark ? 'bg-slate-900/70 border-slate-800 text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-800'
         }`}>
-          <p className="select-text break-keep-all font-medium">
+          <p className="select-text break-keep-all font-medium pr-12">
             {msg.original}
           </p>
-          {msg.terms && msg.terms.length > 0 && (
-            <div className="mt-1 flex flex-wrap items-center gap-1">
-              {msg.terms.map((term, i) => (
-                <button
-                  key={i}
-                  onClick={() => onOpenGlossary(term)}
-                  className={`text-[7pt] font-bold px-1 py-0.2 rounded border transition ${
-                    isDark ? 'bg-amber-500/20 text-amber-300 border-amber-500/40' : 'bg-amber-50 text-amber-800 border-amber-300'
-                  }`}
-                >
-                  {term}
-                </button>
-              ))}
-            </div>
-          )}
+
+          {/* Floating Subtle Actions (Hover or compact) */}
+          <div className="absolute top-1.5 right-1.5 flex items-center space-x-1 opacity-70 group-hover:opacity-100 transition">
+            <button
+              onClick={() => onPlaySpeech(msg.original, msg.lang)}
+              className="p-0.5 hover:text-amber-400 text-slate-400 transition"
+              title="원문 듣기"
+            >
+              <Volume2 className="w-3 h-3" />
+            </button>
+            <button
+              onClick={() => onCopy(msg.id, `[원문] ${msg.original}\n[한글] ${msg.translation}`)}
+              className="p-0.5 hover:text-amber-400 text-slate-400 transition"
+              title="복사"
+            >
+              {copiedId === msg.id ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
+            </button>
+          </div>
         </div>
 
-        {/* ➡️ RIGHT: Korean 8pt */}
-        <div className={`p-1.5 rounded-lg border ${
-          isDark ? 'bg-indigo-950/40 border-indigo-500/30 text-amber-300' : 'bg-indigo-50/60 border-indigo-200 text-indigo-950'
+        {/* ➡️ RIGHT: Korean Real-time Translation (8pt) */}
+        <div className={`p-2 rounded-md border relative group ${
+          isDark ? 'bg-indigo-950/30 border-indigo-500/30 text-amber-300' : 'bg-indigo-50/50 border-indigo-200 text-indigo-950'
         }`}>
           {editingId === msg.id ? (
             <div className="space-y-1">
@@ -162,9 +113,29 @@ const MessageCardItem = React.memo(function MessageCardItem({
               </div>
             </div>
           ) : (
-            <p className="select-text break-keep-all font-bold">
-              {msg.translation}
-            </p>
+            <>
+              <p className="select-text break-keep-all font-bold pr-12">
+                {msg.translation}
+              </p>
+
+              {/* Floating Action for Korean column */}
+              <div className="absolute top-1.5 right-1.5 flex items-center space-x-1 opacity-70 group-hover:opacity-100 transition">
+                <button
+                  onClick={() => onPlaySpeech(msg.translation, isUK ? 'ko-KR' : 'en-GB')}
+                  className="p-0.5 hover:text-sky-400 text-slate-400 transition"
+                  title="한글 번역 듣기"
+                >
+                  <Volume2 className="w-3 h-3 text-sky-400" />
+                </button>
+                <button
+                  onClick={() => onStartEdit(msg.id, msg.translation)}
+                  className="p-0.5 hover:text-amber-400 text-slate-400 transition text-[7.5pt]"
+                  title="번역 수정·학습"
+                >
+                  ✏️
+                </button>
+              </div>
+            </>
           )}
         </div>
 
@@ -410,8 +381,29 @@ export default function LiveInterpreter({
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
           };
 
-          // ⚡ Insert complete message at top
-          setMessages(prev => [newMessage, ...prev]);
+          // ⚡ Intelligent In-Place Deduplication & Merging (Prevents repetitive clutter cards)
+          setMessages(prev => {
+            if (prev.length > 0) {
+              const last = prev[0];
+              const cleanCurrent = fullSentence.toLowerCase().trim();
+              const cleanLast = last.original.toLowerCase().trim();
+
+              // 1. Identical text => skip duplicate
+              if (cleanCurrent === cleanLast) return prev;
+
+              // 2. Incremental sentence expansion => update in-place without spawning duplicate card
+              if (cleanCurrent.startsWith(cleanLast) || cleanCurrent.includes(cleanLast) || cleanLast.startsWith(cleanCurrent) || cleanLast.includes(cleanCurrent)) {
+                const updated = {
+                  ...last,
+                  original: fullSentence.length >= last.original.length ? fullSentence : last.original,
+                  translation: translated.length >= last.translation.length ? translated : last.translation,
+                  timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+                };
+                return [updated, ...prev.slice(1)];
+              }
+            }
+            return [newMessage, ...prev];
+          });
 
           // Auto speak translation if enabled
           if (autoSpeakKorean && targetLang === 'ko-KR') {
@@ -429,55 +421,40 @@ export default function LiveInterpreter({
     }
   };
 
-  // Handle Manual Text Submission with Intelligible Breakdown
+  // Handle Manual Text Submission
   const handleManualSend = async (e) => {
     e?.preventDefault();
     if (!customInput.trim()) return;
 
-    const textToSend = customInput;
+    const textToSend = customInput.trim();
     setCustomInput('');
 
-    const chunks = splitIntoIntelligibleChunks(textToSend);
+    const detectedLang = (inputLang === 'auto') ? detectSourceLanguage(textToSend) : inputLang;
+    const targetLang = 'ko-KR';
 
-    for (const chunk of chunks) {
-      if (!chunk.trim()) continue;
+    const translated = await translateArchitectureText({
+      text: textToSend,
+      sourceLang: detectedLang,
+      targetLang: targetLang,
+      apiKey: apiKey
+    });
 
-      const detectedLang = (inputLang === 'auto') ? detectSourceLanguage(chunk) : inputLang;
-      const targetLang = 'ko-KR'; // Always translate to Korean for right HUD
+    const isZH = detectedLang.startsWith('zh');
+    const isJP = detectedLang.startsWith('ja');
+    const isEN = detectedLang.startsWith('en');
 
-      const translated = await translateArchitectureText({
-        text: chunk,
-        sourceLang: detectedLang,
-        targetLang: targetLang,
-        apiKey: apiKey
-      });
+    const newMessage = {
+      id: Date.now() + Math.random(),
+      speaker: isZH ? 'Shanghai Lead Architect' : isJP ? 'Tokyo Lead Architect' : isEN ? 'UK Lead Architect' : 'Seoul Design Lead',
+      speakerRole: isZH ? 'CN Architect' : isJP ? 'JP Architect' : isEN ? 'UK Architect' : 'KR Director',
+      lang: detectedLang,
+      accent: isZH ? 'Chinese (Mandarin)' : isJP ? 'Japanese (Tokyo)' : detectedLang === 'en-GB' ? 'UK (London RP)' : detectedLang === 'en-US' ? 'US (General)' : 'Korean',
+      original: textToSend,
+      translation: translated,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+    };
 
-      const matchedTerms = findGlossaryMatches(chunk);
-      const intent = detectMeetingIntent(chunk, translated);
-
-      const isZH = detectedLang.startsWith('zh');
-      const isJP = detectedLang.startsWith('ja');
-      const isEN = detectedLang.startsWith('en');
-
-      const newMessage = {
-        id: Date.now() + Math.random(),
-        speaker: isZH ? 'Shanghai Lead Architect' : isJP ? 'Tokyo Lead Architect' : isEN ? 'UK Lead Architect' : 'Seoul Design Lead',
-        speakerRole: isZH ? 'CN Architect' : isJP ? 'JP Architect' : isEN ? 'UK Architect' : 'KR Director',
-        lang: detectedLang,
-        accent: isZH ? 'Chinese (Mandarin)' : isJP ? 'Japanese (Tokyo)' : detectedLang === 'en-GB' ? 'UK (London RP)' : detectedLang === 'en-US' ? 'US (General)' : 'Korean',
-        original: chunk,
-        translation: translated,
-        intent: intent,
-        terms: matchedTerms.map(t => t.term),
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-      };
-
-      // Put newest sentence at the TOP
-      setMessages(prev => [newMessage, ...prev]);
-      if (autoSpeakKorean && targetLang === 'ko-KR') {
-        speechService.speak(translated, 'ko-KR');
-      }
-    }
+    setMessages(prev => [newMessage, ...prev]);
   };
 
   // Play Speech
