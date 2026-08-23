@@ -250,7 +250,7 @@ export default function LiveInterpreter({
   const [summaryData, setSummaryData] = useState(null);
   const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
 
-  const messagesTopRef = useRef(null);
+  const messagesBottomRef = useRef(null);
   const liveLeftViewportRef = useRef(null);
   const liveRightViewportRef = useRef(null);
   const simulationTimerRef = useRef(null);
@@ -271,6 +271,13 @@ export default function LiveInterpreter({
       liveRightViewportRef.current.scrollTop = liveRightViewportRef.current.scrollHeight;
     }
   }, [currentLiveTranslation]);
+
+  // 📜 Auto-Scroll Backup Archive to Bottom (Always displays newest finalized card at bottom matching live stage)
+  useEffect(() => {
+    if (messagesBottomRef.current) {
+      messagesBottomRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages]);
 
   // ⌨️ Global Commercial Hotkeys (Spacebar Push-to-Talk, Ctrl+S Save)
   useEffect(() => {
@@ -472,7 +479,7 @@ export default function LiveInterpreter({
         const isJP = detectedLang.startsWith('ja');
         const isEN = detectedLang.startsWith('en');
 
-        setMessages(prev => [{
+        setMessages(prev => [...prev, {
           id: Date.now() + Math.random(),
           speaker: isZH ? 'Shanghai Lead Architect' : isJP ? 'Tokyo Lead Architect' : isEN ? 'UK Lead Architect' : 'Seoul Design Lead',
           speakerRole: isZH ? 'CN Architect' : isJP ? 'JP Architect' : isEN ? 'UK Architect' : 'KR Director',
@@ -483,7 +490,7 @@ export default function LiveInterpreter({
           intent: intent,
           terms: matchedTerms.map(t => t.term),
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-        }, ...prev]);
+        }]);
       }
 
       speechService.stopRecognition();
@@ -554,18 +561,18 @@ export default function LiveInterpreter({
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
           };
 
-          // ⚡ 3~4 Sentence Block Archiving Engine: Groups speech into clean 3~4 sentence blocks
+          // ⚡ 3~4 Sentence Block Archiving Engine (Chronological Order: Newest at Bottom)
           const currentSentences = splitIntoSentences(fullSentence);
           const currentTransSentences = splitIntoSentences(translated);
 
           setMessages(prev => {
-            // If we have existing cards, check whether to update current card or spawn next 3-4 sentence block
             if (prev.length > 0) {
-              const last = prev[0];
+              const lastIdx = prev.length - 1;
+              const last = prev[lastIdx];
               const lastSentences = splitIntoSentences(last.original);
 
-              // If last card already has 3~4 sentences and current speech has grown beyond that,
-              // let the first 3~4 sentences stay in previous card and start a new clean card for subsequent sentences
+              // 1. If last card already has 3~4 sentences and current speech has grown beyond that,
+              // let the first 3~4 sentences stay in previous card and append a new card at the BOTTOM
               if (lastSentences.length >= 3 && currentSentences.length > lastSentences.length) {
                 const newSliceOrig = currentSentences.slice(lastSentences.length).join(' ');
                 const newSliceTrans = currentTransSentences.slice(lastSentences.length).join(' ') || translated;
@@ -578,11 +585,11 @@ export default function LiveInterpreter({
                     translation: newSliceTrans,
                     timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
                   };
-                  return [continuationCard, ...prev];
+                  return [...prev, continuationCard];
                 }
               }
 
-              // Otherwise, update the current card in-place with the latest full sentences
+              // 2. Otherwise, update the LAST card at the bottom in-place
               const normalize = (t) => t.toLowerCase().replace(/[^a-z0-9가-힣\s]/g, '').replace(/\s+/g, ' ').trim();
               const normCurrent = normalize(fullSentence);
               const normLast = normalize(last.original);
@@ -602,11 +609,11 @@ export default function LiveInterpreter({
                   translation: translated.length >= last.translation.length ? translated : last.translation,
                   timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
                 };
-                return [updated, ...prev.slice(1)];
+                return [...prev.slice(0, lastIdx), updated];
               }
             }
 
-            return [newMessage, ...prev];
+            return [...prev, newMessage];
           });
 
           // Auto speak translation if enabled
@@ -656,7 +663,7 @@ export default function LiveInterpreter({
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
     };
 
-    setMessages(prev => [newMessage, ...prev]);
+    setMessages(prev => [...prev, newMessage]);
   };
 
   // Play Speech
@@ -676,7 +683,7 @@ export default function LiveInterpreter({
 
   const startSimulation = () => {
     if (isSimulating) {
-      clearTimeout(simulationTimerRef.current);
+      if (simulationTimerRef.current) clearTimeout(simulationTimerRef.current);
       speechService.stopSpeaking();
       setIsSimulating(false);
       return;
@@ -702,12 +709,12 @@ export default function LiveInterpreter({
         const itemIntent = detectMeetingIntent(item.original, item.translation);
         setCurrentLiveOriginal(item.original);
         setCurrentLiveTranslation(item.translation);
-        setMessages(prev => [{
+        setMessages(prev => [...prev, {
           ...item,
           id: Date.now() + idx,
           intent: itemIntent,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-        }, ...prev]);
+        }]);
 
         setTimeout(() => {
           const targetLang = item.lang === 'en-GB' ? 'ko-KR' : 'en-GB';
@@ -751,7 +758,7 @@ export default function LiveInterpreter({
     const isJP = lang.startsWith('ja');
     const isZH = lang.startsWith('zh');
 
-    setMessages(prev => [{
+    setMessages(prev => [...prev, {
       id: Date.now(),
       speaker: isZH ? 'Shanghai Lead Architect (Xiaoxiao)' : isJP ? 'Tokyo Lead Architect (Haruka)' : 'UK Lead Architect (Oliver)',
       speakerRole: isZH ? 'CN Architect' : isJP ? 'JP Architect' : 'UK Architect',
@@ -762,7 +769,7 @@ export default function LiveInterpreter({
       intent: intent,
       terms: matchedTerms.map(t => t.term),
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-    }, ...prev]);
+    }]);
 
     if (autoSpeakKorean) {
       setTimeout(() => {
@@ -934,17 +941,17 @@ export default function LiveInterpreter({
                       detectSourceLanguage(interimText) === 'zh-CN' ? '🇨🇳 중국어 감지' :
                       detectSourceLanguage(interimText) === 'ja-JP' ? '🇯🇵 일본어 감지' :
                       detectSourceLanguage(interimText) === 'ko-KR' ? '🇰🇷 한국어 감지' : '🇬🇧/🇺🇸 영어 감지'
-                    ) : messages[0]?.lang ? (
-                      messages[0].lang.startsWith('zh') ? '🇨🇳 중국어' :
-                      messages[0].lang.startsWith('ja') ? '🇯🇵 일본어' :
-                      messages[0].lang.startsWith('ko') ? '🇰🇷 한국어' : '🇬🇧/🇺🇸 영어'
+                    ) : messages[messages.length - 1]?.lang ? (
+                      messages[messages.length - 1].lang.startsWith('zh') ? '🇨🇳 중국어' :
+                      messages[messages.length - 1].lang.startsWith('ja') ? '🇯🇵 일본어' :
+                      messages[messages.length - 1].lang.startsWith('ko') ? '🇰🇷 한국어' : '🇬🇧/🇺🇸 영어'
                     ) : '음성 대기 중'
                   })</>
-                ) : activeMic === 'zh-CN' || messages[0]?.lang?.startsWith('zh') ? (
+                ) : activeMic === 'zh-CN' || messages[messages.length - 1]?.lang?.startsWith('zh') ? (
                   <>🇨🇳 실시간 중국어 발화 (Live Chinese)</>
-                ) : activeMic === 'ja-JP' || messages[0]?.lang?.startsWith('ja') ? (
+                ) : activeMic === 'ja-JP' || messages[messages.length - 1]?.lang?.startsWith('ja') ? (
                   <>🇯🇵 실시간 일본어 발화 (Live Japanese)</>
-                ) : activeMic === 'ko-KR' || messages[0]?.lang?.startsWith('ko') ? (
+                ) : activeMic === 'ko-KR' || messages[messages.length - 1]?.lang?.startsWith('ko') ? (
                   <>🇰🇷 실시간 한국어 발화 (Live Korean)</>
                 ) : (
                   <>🇬🇧/🇺🇸 실시간 영어 발화 (Live English)</>
@@ -1245,6 +1252,7 @@ export default function LiveInterpreter({
             onSaveEdit={handleSaveCorrection}
           />
         ))}
+        <div ref={messagesBottomRef} />
       </div>
 
       {/* Bottom Microphone & Text Input Dock */}
