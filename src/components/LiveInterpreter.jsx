@@ -85,6 +85,44 @@ function splitIntoSentences(text) {
   return rawSentences.length > 0 ? rawSentences : [raw];
 }
 
+// 🏛️ Translate Sentence-by-Sentence with 100% 1:1 Exact Alignment Guarantee
+async function translateWithSentenceAlignment({ text, sourceLang, targetLang, apiKey }) {
+  if (!text || !text.trim()) return { fullTranslation: '', pairs: [] };
+
+  const sentences = splitIntoSentences(text);
+  if (sentences.length <= 1) {
+    const singleTrans = await translateArchitectureText({
+      text: sentences[0] || text,
+      sourceLang,
+      targetLang,
+      apiKey
+    });
+    return {
+      fullTranslation: singleTrans,
+      pairs: [{ orig: sentences[0] || text, trans: singleTrans }]
+    };
+  }
+
+  // Translate each sentence individually to guarantee 100% strict 1:1 mapping
+  const pairs = await Promise.all(
+    sentences.map(async (origSentence) => {
+      const transSentence = await translateArchitectureText({
+        text: origSentence,
+        sourceLang,
+        targetLang,
+        apiKey
+      });
+      return {
+        orig: origSentence,
+        trans: transSentence
+      };
+    })
+  );
+
+  const fullTranslation = pairs.map(p => p.trans).join(' ');
+  return { fullTranslation, pairs };
+}
+
 // 💎 Commercial Grade 8pt High-Density Card with Crisp Contrast Alignment
 const MessageCardItem = React.memo(function MessageCardItem({
   msg,
@@ -188,15 +226,9 @@ const MessageCardItem = React.memo(function MessageCardItem({
           </div>
         ) : (
           (() => {
-            const originalSentences = splitIntoSentences(msg.original || '');
-            const translationSentences = splitIntoSentences(msg.translation || '');
-            const maxRows = Math.max(originalSentences.length, translationSentences.length, 1);
-
-            return Array.from({ length: maxRows }).map((_, idx) => {
-              const orig = originalSentences[idx] || (idx === 0 ? msg.original : '');
-              const trans = translationSentences[idx] || (idx === 0 ? msg.translation : '');
-
-              return (
+            // 1. If message has pre-aligned pairs, render them directly (100% Guaranteed 1:1 Match)
+            if (msg.pairs && Array.isArray(msg.pairs) && msg.pairs.length > 0) {
+              return msg.pairs.map((pair, idx) => (
                 <div 
                   key={idx} 
                   className={`grid grid-cols-1 md:grid-cols-2 gap-2.5 p-2 rounded-lg border transition ${
@@ -205,24 +237,76 @@ const MessageCardItem = React.memo(function MessageCardItem({
                       : 'bg-slate-50 border-slate-200 hover:border-slate-300'
                   }`}
                 >
-                  {/* ⬅️ Left: Original Spoken Sentence */}
+                  <div className="flex items-start gap-1.5 font-medium select-text">
+                    <span className="font-mono text-[7pt] text-amber-500/80 font-bold shrink-0 mt-0.5">[{idx + 1}]</span>
+                    <p className={`break-keep-all ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
+                      {pair.orig}
+                    </p>
+                  </div>
+                  <div className="flex items-start gap-1.5 font-bold select-text">
+                    <span className="font-mono text-[7pt] text-indigo-400 font-bold shrink-0 mt-0.5">[{idx + 1}]</span>
+                    <p className={`break-keep-all ${isDark ? 'text-amber-300' : 'text-indigo-950'}`}>
+                      {pair.trans}
+                    </p>
+                  </div>
+                </div>
+              ));
+            }
+
+            // 2. Fallback Alignment for legacy messages or external text
+            const originalSentences = splitIntoSentences(msg.original || '');
+            const translationSentences = splitIntoSentences(msg.translation || '');
+
+            // If sentence counts match, display 1:1
+            if (originalSentences.length === translationSentences.length) {
+              return originalSentences.map((orig, idx) => (
+                <div 
+                  key={idx} 
+                  className={`grid grid-cols-1 md:grid-cols-2 gap-2.5 p-2 rounded-lg border transition ${
+                    isDark 
+                      ? 'bg-slate-900/60 border-slate-800/80 hover:border-slate-700' 
+                      : 'bg-slate-50 border-slate-200 hover:border-slate-300'
+                  }`}
+                >
                   <div className="flex items-start gap-1.5 font-medium select-text">
                     <span className="font-mono text-[7pt] text-amber-500/80 font-bold shrink-0 mt-0.5">[{idx + 1}]</span>
                     <p className={`break-keep-all ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
                       {orig}
                     </p>
                   </div>
-
-                  {/* ➡️ Right: Korean Translated Sentence */}
                   <div className="flex items-start gap-1.5 font-bold select-text">
                     <span className="font-mono text-[7pt] text-indigo-400 font-bold shrink-0 mt-0.5">[{idx + 1}]</span>
                     <p className={`break-keep-all ${isDark ? 'text-amber-300' : 'text-indigo-950'}`}>
-                      {trans}
+                      {translationSentences[idx]}
                     </p>
                   </div>
                 </div>
-              );
-            });
+              ));
+            }
+
+            // If sentence counts differ, display as single cohesive matching block to prevent empty rows
+            return (
+              <div 
+                className={`grid grid-cols-1 md:grid-cols-2 gap-2.5 p-2 rounded-lg border transition ${
+                  isDark 
+                    ? 'bg-slate-900/60 border-slate-800/80 hover:border-slate-700' 
+                    : 'bg-slate-50 border-slate-200 hover:border-slate-300'
+                }`}
+              >
+                <div className="flex items-start gap-1.5 font-medium select-text">
+                  <span className="font-mono text-[7pt] text-amber-500/80 font-bold shrink-0 mt-0.5">[1]</span>
+                  <p className={`break-keep-all ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
+                    {msg.original}
+                  </p>
+                </div>
+                <div className="flex items-start gap-1.5 font-bold select-text">
+                  <span className="font-mono text-[7pt] text-indigo-400 font-bold shrink-0 mt-0.5">[1]</span>
+                  <p className={`break-keep-all ${isDark ? 'text-amber-300' : 'text-indigo-950'}`}>
+                    {msg.translation}
+                  </p>
+                </div>
+              </div>
+            );
           })()
         )}
       </div>
@@ -547,12 +631,13 @@ export default function LiveInterpreter({
         const detectedLang = (lang === 'auto' || !lang) ? detectSourceLanguage(pendingText) : lang;
         const targetLang = 'ko-KR'; // Always translate to Korean for right HUD
 
-        const translated = await translateArchitectureText({
+        const { fullTranslation, pairs } = await translateWithSentenceAlignment({
           text: pendingText,
           sourceLang: detectedLang,
           targetLang: targetLang,
           apiKey: apiKey
         });
+        const translated = fullTranslation;
         const matchedTerms = findGlossaryMatches(pendingText);
         const intent = detectMeetingIntent(pendingText, translated);
 
@@ -568,6 +653,7 @@ export default function LiveInterpreter({
           accent: isZH ? 'Chinese (Mandarin)' : isJP ? 'Japanese (Tokyo)' : detectedLang === 'en-GB' ? 'UK (London RP)' : detectedLang === 'en-US' ? 'US (General)' : 'Korean',
           original: pendingText,
           translation: translated,
+          pairs: pairs,
           intent: intent,
           terms: matchedTerms.map(t => t.term),
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
@@ -618,13 +704,14 @@ export default function LiveInterpreter({
 
           const detectedLang = (lang === 'auto') ? detectSourceLanguage(fullSentence) : lang;
 
-          const translated = await translateArchitectureText({
+          const { fullTranslation, pairs } = await translateWithSentenceAlignment({
             text: fullSentence,
             sourceLang: detectedLang,
             targetLang: targetLang,
             apiKey: apiKey
           });
 
+          const translated = fullTranslation;
           setCurrentLiveTranslation(translated);
 
           const isZH = detectedLang.startsWith('zh');
@@ -639,6 +726,7 @@ export default function LiveInterpreter({
             accent: isZH ? 'Chinese (Mandarin)' : isJP ? 'Japanese (Tokyo)' : detectedLang === 'en-GB' ? 'UK (London RP)' : detectedLang === 'en-US' ? 'US (General)' : 'Korean',
             original: fullSentence,
             translation: translated,
+            pairs: pairs,
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
           };
 
@@ -722,13 +810,14 @@ export default function LiveInterpreter({
     const detectedLang = (inputLang === 'auto') ? detectSourceLanguage(textToSend) : inputLang;
     const targetLang = 'ko-KR';
 
-    const translated = await translateArchitectureText({
+    const { fullTranslation, pairs } = await translateWithSentenceAlignment({
       text: textToSend,
       sourceLang: detectedLang,
       targetLang: targetLang,
       apiKey: apiKey
     });
 
+    const translated = fullTranslation;
     const isZH = detectedLang.startsWith('zh');
     const isJP = detectedLang.startsWith('ja');
     const isEN = detectedLang.startsWith('en');
@@ -741,6 +830,7 @@ export default function LiveInterpreter({
       accent: isZH ? 'Chinese (Mandarin)' : isJP ? 'Japanese (Tokyo)' : detectedLang === 'en-GB' ? 'UK (London RP)' : detectedLang === 'en-US' ? 'US (General)' : 'Korean',
       original: textToSend,
       translation: translated,
+      pairs: pairs,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
     };
 
@@ -825,13 +915,14 @@ export default function LiveInterpreter({
 
     // 2. Immediately translate to Korean (Always Korean for right HUD!)
     const targetLang = 'ko-KR';
-    const translated = await translateArchitectureText({
+    const { fullTranslation, pairs } = await translateWithSentenceAlignment({
       text: testSentence,
       sourceLang: lang,
       targetLang: targetLang,
       apiKey: apiKey
     });
 
+    const translated = fullTranslation;
     setCurrentLiveTranslation(translated);
     const matchedTerms = findGlossaryMatches(testSentence);
     const intent = detectMeetingIntent(testSentence, translated);
@@ -847,6 +938,7 @@ export default function LiveInterpreter({
       accent: isZH ? 'Chinese (Mandarin)' : isJP ? 'Japanese (Tokyo)' : 'UK (London RP)',
       original: testSentence,
       translation: translated,
+      pairs: pairs,
       intent: intent,
       terms: matchedTerms.map(t => t.term),
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
