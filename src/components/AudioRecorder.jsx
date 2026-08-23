@@ -23,6 +23,7 @@ export default function AudioRecorder({
   onLoadSample 
 }) {
   const [isRecording, setIsRecording] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [uploadedFile, setUploadedFile] = useState(null);
   const [liveTranscriptLog, setLiveTranscriptLog] = useState([]);
@@ -44,7 +45,7 @@ export default function AudioRecorder({
         Math.cos(frame * 0.08) * 0.7 + 0.3,
         Math.sin(frame * 0.2) * 0.8 + 0.2,
       ];
-      drawWaveform(canvas, simulatedData, isRecording);
+      drawWaveform(canvas, simulatedData, isRecording && !isPaused);
       animationRef.current = requestAnimationFrame(render);
     };
     render();
@@ -52,11 +53,11 @@ export default function AudioRecorder({
     return () => {
       if (animationRef.current) cancelAnimationFrame(animationRef.current);
     };
-  }, [isRecording]);
+  }, [isRecording, isPaused]);
 
   // Recording Timer & Live speech bubble simulator
   useEffect(() => {
-    if (isRecording) {
+    if (isRecording && !isPaused) {
       timerRef.current = setInterval(() => {
         setRecordingSeconds(prev => {
           const next = prev + 1;
@@ -76,39 +77,52 @@ export default function AudioRecorder({
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [isRecording]);
+  }, [isRecording, isPaused]);
 
-  const toggleRecording = () => {
-    if (!isRecording) {
-      setIsRecording(true);
-      setRecordingSeconds(0);
-      setLiveTranscriptLog([]);
-      setUploadedFile(null);
-    } else {
-      setIsRecording(false);
-      // Auto complete recording and prepare payload
-      const customMeeting = {
-        id: `meeting-${Date.now()}`,
-        industryId: selectedIndustry,
-        title: `[실시간 녹음 회의] ${new Date().toLocaleDateString('ko-KR')} 회의`,
-        date: new Date().toISOString().replace('T', ' ').slice(0, 16),
-        duration: `${Math.floor(recordingSeconds / 60)}분 ${recordingSeconds % 60}초`,
-        speakers: [
-          { id: 'spk-live-1', name: '화자 1 (진행자)', role: '진행', color: 'bg-indigo-600' },
-          { id: 'spk-live-2', name: '화자 2 (담당자)', role: '담당자', color: 'bg-emerald-600' }
-        ],
-        transcript: liveTranscriptLog.length > 0 ? liveTranscriptLog.map((l, i) => ({
-          id: `t-live-${i}`,
-          speakerId: i % 2 === 0 ? 'spk-live-1' : 'spk-live-2',
-          speakerName: l.speaker,
-          time: l.time,
-          text: l.text
-        })) : [
-          { id: 't-1', speakerId: 'spk-live-1', speakerName: '화자 1 (진행자)', time: '00:05', text: '주요 안건에 대해 논의를 마치고 즉시 실행에 들어가겠습니다.' }
-        ]
-      };
-      onStartAnalysis(customMeeting);
-    }
+  const startRecording = () => {
+    setIsRecording(true);
+    setIsPaused(false);
+    setRecordingSeconds(0);
+    setLiveTranscriptLog([]);
+    setUploadedFile(null);
+  };
+
+  const togglePause = () => {
+    setIsPaused(prev => !prev);
+  };
+
+  const cancelRecording = () => {
+    setIsRecording(false);
+    setIsPaused(false);
+    setRecordingSeconds(0);
+    setLiveTranscriptLog([]);
+  };
+
+  const completeRecording = () => {
+    setIsRecording(false);
+    setIsPaused(false);
+    // Auto complete recording and prepare payload
+    const customMeeting = {
+      id: `meeting-${Date.now()}`,
+      industryId: selectedIndustry,
+      title: `[실시간 녹음 회의] ${new Date().toLocaleDateString('ko-KR')} 회의`,
+      date: new Date().toISOString().replace('T', ' ').slice(0, 16),
+      duration: `${Math.floor(recordingSeconds / 60)}분 ${recordingSeconds % 60}초`,
+      speakers: [
+        { id: 'spk-live-1', name: '화자 1 (진행자)', role: '진행', color: 'bg-indigo-600' },
+        { id: 'spk-live-2', name: '화자 2 (담당자)', role: '담당자', color: 'bg-emerald-600' }
+      ],
+      transcript: liveTranscriptLog.length > 0 ? liveTranscriptLog.map((l, i) => ({
+        id: `t-live-${i}`,
+        speakerId: i % 2 === 0 ? 'spk-live-1' : 'spk-live-2',
+        speakerName: l.speaker,
+        time: l.time,
+        text: l.text
+      })) : [
+        { id: 't-1', speakerId: 'spk-live-1', speakerName: '화자 1 (진행자)', time: '00:05', text: '주요 안건에 대해 논의를 마치고 즉시 실행에 들어가겠습니다.' }
+      ]
+    };
+    onStartAnalysis(customMeeting);
   };
 
   const handleFileUpload = (e) => {
@@ -188,28 +202,46 @@ export default function AudioRecorder({
           </div>
 
           {/* Recording Trigger Buttons */}
-          <div className="flex items-center gap-3">
-            <button
-              onClick={toggleRecording}
-              disabled={isAnalyzing}
-              className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-xs font-bold transition-all shadow-lg ${
-                isRecording
-                  ? 'bg-rose-600 hover:bg-rose-500 text-white shadow-rose-600/30'
-                  : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-600/30'
-              }`}
-            >
-              {isRecording ? (
-                <>
+          <div className="flex flex-wrap items-center gap-2">
+            {!isRecording ? (
+              <button
+                onClick={startRecording}
+                disabled={isAnalyzing}
+                className="flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-xs font-bold transition-all shadow-lg bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-600/30"
+              >
+                <Mic className="w-4 h-4" />
+                마이크 실시간 녹음 켜기 (Start)
+              </button>
+            ) : (
+              <>
+                <button
+                  onClick={togglePause}
+                  className={`px-3.5 py-3 rounded-xl text-xs font-bold transition-all border ${
+                    isPaused 
+                      ? 'bg-amber-600 hover:bg-amber-500 text-white border-amber-500' 
+                      : 'bg-slate-800 hover:bg-slate-700 text-amber-300 border-slate-700'
+                  }`}
+                  title={isPaused ? "녹음 재개" : "녹음 일시정지"}
+                >
+                  {isPaused ? '▶️ 재개' : '⏸️ 일시정지'}
+                </button>
+                <button
+                  onClick={cancelRecording}
+                  className="px-3.5 py-3 rounded-xl text-xs font-bold transition-all bg-slate-800 hover:bg-rose-950/80 text-slate-400 hover:text-rose-300 border border-slate-700"
+                  title="녹음 끄기 (취소)"
+                >
+                  ❌ 끄기
+                </button>
+                <button
+                  onClick={completeRecording}
+                  disabled={isAnalyzing}
+                  className="flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-xs font-bold transition-all shadow-lg bg-rose-600 hover:bg-rose-500 text-white shadow-rose-600/30"
+                >
                   <Square className="w-4 h-4 fill-current" />
-                  녹음 종료 및 즉시 AI 회의록 분석
-                </>
-              ) : (
-                <>
-                  <Mic className="w-4 h-4" />
-                  마이크 실시간 녹음 시작
-                </>
-              )}
-            </button>
+                  녹음 완료 & AI 회의록 생성
+                </button>
+              </>
+            )}
           </div>
 
           {/* Live speech preview during recording */}

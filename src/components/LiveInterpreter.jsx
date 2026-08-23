@@ -559,12 +559,12 @@ export default function LiveInterpreter({
             onClick={() => toggleMic('en-GB')}
             className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl font-bold text-xs transition shadow-lg ${
               activeMic === 'en-GB'
-                ? 'bg-amber-500 text-slate-950 ring-4 ring-amber-500/30 animate-pulse'
+                ? 'bg-rose-600 hover:bg-rose-700 text-white ring-4 ring-rose-500/30'
                 : 'bg-slate-900 hover:bg-slate-700 text-amber-400 border border-amber-500/40'
             }`}
           >
-            {activeMic === 'en-GB' ? <Mic className="w-4 h-4" /> : <MicOff className="w-4 h-4" />}
-            <span>{activeMic === 'en-GB' ? '🇬🇧 영국 마이크 청취 중 (클릭 시 끔)' : '🇬🇧 영국 마이크 켜기'}</span>
+            {activeMic === 'en-GB' ? <Square className="w-4 h-4 fill-current" /> : <Mic className="w-4 h-4" />}
+            <span>{activeMic === 'en-GB' ? '⏹️ 🇬🇧 영국 마이크 끄기 (ON)' : '🎙️ 🇬🇧 영국 마이크 켜기 (OFF)'}</span>
           </button>
 
           {/* KR Mic Button */}
@@ -572,12 +572,12 @@ export default function LiveInterpreter({
             onClick={() => toggleMic('ko-KR')}
             className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl font-bold text-xs transition shadow-lg ${
               activeMic === 'ko-KR'
-                ? 'bg-indigo-500 text-white ring-4 ring-indigo-500/30 animate-pulse'
+                ? 'bg-rose-600 hover:bg-rose-700 text-white ring-4 ring-rose-500/30'
                 : 'bg-slate-900 hover:bg-slate-700 text-indigo-300 border border-indigo-500/40'
             }`}
           >
-            {activeMic === 'ko-KR' ? <Mic className="w-4 h-4" /> : <MicOff className="w-4 h-4" />}
-            <span>{activeMic === 'ko-KR' ? '🇰🇷 한국어 마이크 (클릭 시 끔)' : '🇰🇷 한국어 마이크'}</span>
+            {activeMic === 'ko-KR' ? <Square className="w-4 h-4 fill-current" /> : <Mic className="w-4 h-4" />}
+            <span>{activeMic === 'ko-KR' ? '⏹️ 🇰🇷 한국어 마이크 끄기 (ON)' : '🎙️ 🇰🇷 한국어 마이크 켜기 (OFF)'}</span>
           </button>
 
           {/* Manual Input Field */}
