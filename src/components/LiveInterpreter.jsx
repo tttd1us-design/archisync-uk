@@ -882,23 +882,23 @@ export default function LiveInterpreter({
               <span>{isGeneratingSummary ? 'AI 분석 중...' : '⚡ AI 회의록'}</span>
             </button>
 
-            {/* 🔴 Manual Audio Recording Toggle Button */}
+            {/* 🔴 Manual Audio Recording Toggle Button (Default: OFF) */}
             <button
               onClick={toggleAudioRecording}
               className={`flex items-center space-x-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition border ${
                 isRecordingAudio
                   ? 'bg-rose-600 hover:bg-rose-700 text-white border-rose-400 ring-2 ring-rose-500/30 animate-pulse'
                   : isDark 
-                    ? 'bg-slate-800 hover:bg-slate-700 text-rose-300 border-slate-700' 
-                    : 'bg-white hover:bg-rose-50 text-rose-700 border-slate-200 shadow-xs'
+                    ? 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700' 
+                    : 'bg-white hover:bg-slate-100 text-slate-700 border-slate-200 shadow-xs'
               }`}
-              title={isRecordingAudio ? "음성 녹음 중지" : "음성 녹음 시작 (내문서\\음성에 저장)"}
+              title={isRecordingAudio ? "음성 녹음 중지" : "음성 녹음 시작 (필요 시 클릭하여 켬)"}
             >
-              <span className={`w-2 h-2 rounded-full ${isRecordingAudio ? 'bg-white animate-ping' : 'bg-rose-500'}`} />
+              <span className={`w-2 h-2 rounded-full ${isRecordingAudio ? 'bg-white animate-ping' : 'bg-slate-400'}`} />
               <span>
                 {isRecordingAudio 
-                  ? `● REC (${formatTime(recordingSeconds)})` 
-                  : '🔴 음성 녹음'}
+                  ? `● REC 녹음 중 (${formatTime(recordingSeconds)})` 
+                  : '⚪ 음성 녹음 (기본 OFF)'}
               </span>
             </button>
 
@@ -1401,7 +1401,7 @@ export default function LiveInterpreter({
             <span>{activeMic === 'ko-KR' ? '⏹️ 🇰🇷 한국어 (ON)' : '🎙️ 🇰🇷 한국어 (OFF)'}</span>
           </button>
 
-          {/* 🔴 Manual Audio Recording ON/OFF Adjustment Button */}
+          {/* 🔴 Manual Audio Recording ON/OFF Adjustment Button (Default: OFF) */}
           <button
             type="button"
             onClick={toggleAudioRecording}
@@ -1409,16 +1409,16 @@ export default function LiveInterpreter({
               isRecordingAudio
                 ? 'bg-rose-600 hover:bg-rose-700 text-white border-rose-400 ring-4 ring-rose-500/40 animate-pulse'
                 : isDark 
-                  ? 'bg-slate-900 hover:bg-slate-800 text-rose-300 border-rose-500/40 hover:border-rose-400' 
-                  : 'bg-rose-50 hover:bg-rose-100 text-rose-800 border-rose-300'
+                  ? 'bg-slate-900 hover:bg-slate-800 text-slate-300 border-slate-700 hover:border-slate-500' 
+                  : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-300'
             }`}
-            title="필요할 때 실제 마이크 음성을 고음질 오디오 파일로 녹음하거나 중지합니다"
+            title="기본은 OFF 상태이며, 필요할 때 클릭하여 실제 마이크 음성을 오디오 파일로 녹음합니다"
           >
-            <span className={`w-3 h-3 rounded-full ${isRecordingAudio ? 'bg-white animate-ping' : 'bg-rose-500'}`} />
+            <span className={`w-3 h-3 rounded-full ${isRecordingAudio ? 'bg-white animate-ping' : 'bg-slate-400'}`} />
             <span>
               {isRecordingAudio 
                 ? `⏹️ ● REC 녹음 중 (${formatTime(recordingSeconds)})` 
-                : '🔴 음성 녹음 (OFF)'}
+                : '⚪ 음성 파일 저장 (기본 OFF)'}
             </span>
           </button>
 
