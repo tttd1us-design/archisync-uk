@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Building2, 
   BookOpen, 
@@ -9,7 +9,8 @@ import {
   Sparkles,
   Volume2,
   Clock,
-  ExternalLink
+  ExternalLink,
+  Smartphone
 } from 'lucide-react';
 
 export default function Header({ 
@@ -19,6 +20,7 @@ export default function Header({
   onOpenSettings, 
   onOpenDrawings,
   onOpenMinutes,
+  onOpenIosInstall,
   hasApiKey,
   isLive,
   activeTab,
@@ -113,6 +115,15 @@ export default function Header({
 
           {/* Navigation Controls */}
           <div className="flex items-center space-x-2">
+            <button
+              onClick={onOpenIosInstall}
+              className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-amber-300 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 transition shadow-sm"
+              title="아이폰 / 아이패드 앱(PWA) 설치 가이드"
+            >
+              <Smartphone className="w-3.5 h-3.5 text-amber-400" />
+              <span className="hidden sm:inline">📱 iOS 앱 설치</span>
+            </button>
+
             <button
               onClick={onOpenDrawings}
               className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-300 bg-slate-800 hover:bg-slate-700 hover:text-white border border-slate-700 transition"

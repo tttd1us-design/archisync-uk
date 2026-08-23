@@ -1,10 +1,11 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import Header from './components/Header';
 import LiveInterpreter from './components/LiveInterpreter';
 import MeetingMinutes from './components/MeetingMinutes';
 import GlossaryModal from './components/GlossaryModal';
 import DrawingViewerModal from './components/DrawingViewerModal';
 import SettingsModal from './components/SettingsModal';
+import IosInstallModal from './components/IosInstallModal';
 import { DEMO_SCENARIOS } from './data/demoScenarios';
 
 export default function App() {
@@ -28,6 +29,7 @@ export default function App() {
   const [glossaryInitialSearch, setGlossaryInitialSearch] = useState('');
   const [isDrawingsOpen, setIsDrawingsOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isIosInstallOpen, setIsIosInstallOpen] = useState(false);
 
   // Sync project info when scenario changes
   const handleScenarioChange = (scenarioId) => {
@@ -64,6 +66,7 @@ export default function App() {
         onOpenGlossary={() => { setGlossaryInitialSearch(''); setIsGlossaryOpen(true); }}
         onOpenSettings={() => setIsSettingsOpen(true)}
         onOpenDrawings={() => setIsDrawingsOpen(true)}
+        onOpenIosInstall={() => setIsIosInstallOpen(true)}
         hasApiKey={Boolean(apiKey)}
         isLive={messages.length > 0}
         activeTab={activeTab}
@@ -109,6 +112,11 @@ export default function App() {
         onClose={() => setIsSettingsOpen(false)}
         apiKey={apiKey}
         onSaveApiKey={handleSaveApiKey}
+      />
+
+      <IosInstallModal
+        isOpen={isIosInstallOpen}
+        onClose={() => setIsIosInstallOpen(false)}
       />
 
     </div>
