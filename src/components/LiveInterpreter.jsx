@@ -519,11 +519,6 @@ export default function LiveInterpreter({
     }
   };
 
-  // Auto scroll to TOP when a new message arrives (keeps newest content in view)
-  useEffect(() => {
-    messagesTopRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages.length]);
-
   // Audio level visualizer during active mic
   useEffect(() => {
     if (activeMic) {
