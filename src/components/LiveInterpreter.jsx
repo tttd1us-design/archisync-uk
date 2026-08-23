@@ -169,7 +169,7 @@ export default function LiveInterpreter({
       
       // If there's pending interim text on stop, commit it immediately so no words are dropped
       if (interimText.trim()) {
-        const targetLang = lang === 'en-GB' ? 'ko-KR' : 'en-GB';
+        const targetLang = lang.startsWith('en') ? 'ko-KR' : 'en-GB';
         const pendingText = interimText.trim();
         const translated = await translateArchitectureText({
           text: pendingText,
@@ -182,10 +182,10 @@ export default function LiveInterpreter({
 
         setMessages(prev => [{
           id: Date.now() + Math.random(),
-          speaker: lang === 'en-GB' ? 'UK Lead Architect' : 'Seoul Design Lead',
-          speakerRole: lang === 'en-GB' ? 'UK Architect' : 'KR Director',
+          speaker: lang.startsWith('en') ? 'UK Lead Architect' : 'Seoul Design Lead',
+          speakerRole: lang.startsWith('en') ? 'UK Architect' : 'KR Director',
           lang: lang,
-          accent: lang === 'en-GB' ? 'UK (London RP)' : 'Korean',
+          accent: lang === 'en-GB' ? 'UK (London RP)' : lang === 'en-US' ? 'US (General)' : 'Korean',
           original: pendingText,
           translation: translated,
           intent: intent,
@@ -206,7 +206,7 @@ export default function LiveInterpreter({
       setInterimText('');
       setLiveStreamingTranslation('');
       
-      const targetLang = lang === 'en-GB' ? 'ko-KR' : 'en-GB';
+      const targetLang = lang.startsWith('en') ? 'ko-KR' : 'en-GB';
 
       speechService.startRecognition({
         lang: lang,
@@ -214,7 +214,7 @@ export default function LiveInterpreter({
         onInterimResult: (streamText) => {
           setInterimText(streamText);
           
-          // Ultra-fast 100ms interim translation for instantaneous feedback
+          // Ultra-fast 80ms interim translation for instantaneous feedback
           if (interimTranslateTimerRef.current) clearTimeout(interimTranslateTimerRef.current);
           if (streamText.length > 1) {
             interimTranslateTimerRef.current = setTimeout(async () => {
@@ -225,7 +225,7 @@ export default function LiveInterpreter({
                 apiKey: apiKey
               });
               setLiveStreamingTranslation(streamTrans);
-            }, 100);
+            }, 80);
           }
         },
         onResult: async (finalText) => {
@@ -250,10 +250,10 @@ export default function LiveInterpreter({
 
             const newMessage = {
               id: Date.now() + Math.random(),
-              speaker: lang === 'en-GB' ? 'UK Lead Architect' : 'Seoul Design Lead',
-              speakerRole: lang === 'en-GB' ? 'UK Architect' : 'KR Director',
+              speaker: lang.startsWith('en') ? 'UK Lead Architect' : 'Seoul Design Lead',
+              speakerRole: lang.startsWith('en') ? 'UK Architect' : 'KR Director',
               lang: lang,
-              accent: lang === 'en-GB' ? 'UK (London RP)' : 'Korean',
+              accent: lang === 'en-GB' ? 'UK (London RP)' : lang === 'en-US' ? 'US (General)' : 'Korean',
               original: chunk,
               translation: translated,
               intent: intent,

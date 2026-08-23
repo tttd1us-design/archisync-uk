@@ -83,6 +83,42 @@ function localVoiceStoragePlugin() {
           next()
         }
       })
+
+      server.middlewares.use('/api/translate', async (req, res, next) => {
+        if (req.method === 'POST') {
+          let body = ''
+          req.on('data', chunk => body += chunk)
+          req.on('end', async () => {
+            try {
+              const { text, sl = 'en', tl = 'ko' } = JSON.parse(body)
+              if (!text || !text.trim()) {
+                res.setHeader('Content-Type', 'application/json')
+                return res.end(JSON.stringify({ success: true, translation: '' }))
+              }
+
+              const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${sl}&tl=${tl}&dt=t&q=${encodeURIComponent(text.trim())}`
+              const fetchRes = await fetch(url)
+              if (fetchRes.ok) {
+                const data = await fetchRes.json()
+                if (Array.isArray(data) && Array.isArray(data[0])) {
+                  const translatedText = data[0].map(item => item[0]).filter(Boolean).join('')
+                  res.setHeader('Content-Type', 'application/json')
+                  return res.end(JSON.stringify({ success: true, translation: translatedText }))
+                }
+              }
+
+              res.setHeader('Content-Type', 'application/json')
+              res.end(JSON.stringify({ success: false, translation: text }))
+            } catch (err) {
+              console.error('Translation proxy error:', err)
+              res.setHeader('Content-Type', 'application/json')
+              res.end(JSON.stringify({ success: false, error: err.message }))
+            }
+          })
+        } else {
+          next()
+        }
+      })
     }
   }
 }
