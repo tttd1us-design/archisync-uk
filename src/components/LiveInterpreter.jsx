@@ -106,11 +106,43 @@ export default function LiveInterpreter({
   const [editingId, setEditingId] = useState(null);
   const [editTranslationText, setEditTranslationText] = useState('');
   const [learnedCount, setLearnedCount] = useState(() => getLearnedStats().totalLearnedTerms);
+  const [isRecordingAudio, setIsRecordingAudio] = useState(false);
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
 
   const messagesTopRef = useRef(null);
   const simulationTimerRef = useRef(null);
   const visualizerCleanupRef = useRef(null);
   const interimTranslateTimerRef = useRef(null);
+  const recordingTimerRef = useRef(null);
+
+  // 🔴 Toggle Manual Voice Recording (ON / OFF)
+  const toggleAudioRecording = async () => {
+    if (isRecordingAudio) {
+      // STOP recording
+      if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+      await speechService.stopMediaRecording();
+      setIsRecordingAudio(false);
+    } else {
+      // START recording
+      if (!speechService.mediaStream) {
+        await speechService.startAudioVisualizer((lvl) => setAudioLevel(lvl));
+      }
+      speechService.startMediaRecording();
+      setIsRecordingAudio(true);
+      setRecordingSeconds(0);
+      if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+      recordingTimerRef.current = setInterval(() => {
+        setRecordingSeconds(prev => prev + 1);
+      }, 1000);
+    }
+  };
+
+  // Format seconds to MM:SS
+  const formatTime = (secs) => {
+    const m = Math.floor(secs / 60).toString().padStart(2, '0');
+    const s = (secs % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
+  };
 
   // 🧠 Save and Learn User Correction in Real-Time
   const handleSaveCorrection = (msgId, originalText, newKorean) => {
@@ -125,14 +157,15 @@ export default function LiveInterpreter({
   const handleSaveToDocuments = async () => {
     setIsSaving(true);
     try {
-      const audioBlob = await speechService.stopMediaRecording();
+      let audioBlob = null;
+      if (isRecordingAudio) {
+        audioBlob = await speechService.stopMediaRecording();
+        setIsRecordingAudio(false);
+        if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+      }
+      
       const res = await speechService.saveVoiceRecordingToDocuments(audioBlob, messages);
       
-      // Resume recording if mic is still active
-      if (activeMic) {
-        speechService.startMediaRecording();
-      }
-
       setSaveStatus({
         success: res.success,
         path: res.path || 'C:\\Users\\tttd1\\Documents\\음성',
@@ -545,7 +578,27 @@ export default function LiveInterpreter({
             </div>
           </div>
 
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-3">
+            {/* 🔴 Manual Audio Recording Toggle Button */}
+            <button
+              onClick={toggleAudioRecording}
+              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition shadow-md border ${
+                isRecordingAudio
+                  ? 'bg-rose-600 hover:bg-rose-700 text-white border-rose-400 ring-2 ring-rose-500/40 animate-pulse'
+                  : isDark 
+                    ? 'bg-slate-800 hover:bg-slate-700 text-rose-300 border-slate-700 hover:border-rose-500/50' 
+                    : 'bg-white hover:bg-rose-50 text-rose-700 border-slate-300 hover:border-rose-400 shadow-sm'
+              }`}
+              title={isRecordingAudio ? "음성 녹음을 중지합니다" : "실제 마이크 음성을 고음질 오디오 파일로 녹음합니다"}
+            >
+              <span className={`w-2.5 h-2.5 rounded-full ${isRecordingAudio ? 'bg-white animate-ping' : 'bg-rose-500'}`} />
+              <span>
+                {isRecordingAudio 
+                  ? `⏹️ ● REC (${formatTime(recordingSeconds)})` 
+                  : '🔴 음성 녹음 (OFF)'}
+              </span>
+            </button>
+
             <label className={`flex items-center space-x-2 text-xs md:text-sm font-bold cursor-pointer px-3 py-1.5 rounded-xl border transition ${
               isDark 
                 ? 'bg-slate-800/90 text-slate-200 border-slate-700 hover:border-amber-500/50' 
@@ -558,7 +611,7 @@ export default function LiveInterpreter({
                 className="rounded text-amber-500 focus:ring-amber-400 bg-slate-900 border-slate-700 w-4 h-4"
               />
               <span className="flex items-center gap-1.5 text-xs font-bold">
-                <Volume2 className="w-4 h-4 text-amber-500" /> 한국어 음성 동시 출력 (TTS)
+                <Volume2 className="w-4 h-4 text-amber-500" /> 한국어 TTS
               </span>
             </label>
           </div>
@@ -1204,6 +1257,27 @@ export default function LiveInterpreter({
           >
             {activeMic === 'ko-KR' ? <Square className="w-4 h-4 fill-current" /> : <Mic className="w-4 h-4" />}
             <span>{activeMic === 'ko-KR' ? '⏹️ 🇰🇷 한국어 (ON)' : '🎙️ 🇰🇷 한국어 (OFF)'}</span>
+          </button>
+
+          {/* 🔴 Manual Audio Recording ON/OFF Adjustment Button */}
+          <button
+            type="button"
+            onClick={toggleAudioRecording}
+            className={`flex items-center space-x-1.5 px-3.5 py-2.5 rounded-xl font-extrabold text-xs transition shadow-lg border ${
+              isRecordingAudio
+                ? 'bg-rose-600 hover:bg-rose-700 text-white border-rose-400 ring-4 ring-rose-500/40 animate-pulse'
+                : isDark 
+                  ? 'bg-slate-900 hover:bg-slate-800 text-rose-300 border-rose-500/40 hover:border-rose-400' 
+                  : 'bg-rose-50 hover:bg-rose-100 text-rose-800 border-rose-300'
+            }`}
+            title="필요할 때 실제 마이크 음성을 고음질 오디오 파일로 녹음하거나 중지합니다"
+          >
+            <span className={`w-3 h-3 rounded-full ${isRecordingAudio ? 'bg-white animate-ping' : 'bg-rose-500'}`} />
+            <span>
+              {isRecordingAudio 
+                ? `⏹️ ● REC 녹음 중 (${formatTime(recordingSeconds)})` 
+                : '🔴 음성 녹음 (OFF)'}
+            </span>
           </button>
 
           {/* Manual Input Field */}

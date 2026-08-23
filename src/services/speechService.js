@@ -478,9 +478,6 @@ class SpeechService {
         } 
       });
 
-      // Start MediaRecorder alongside visualizer
-      this.startMediaRecording();
-
       this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
       const source = this.audioContext.createMediaStreamSource(this.mediaStream);
 
