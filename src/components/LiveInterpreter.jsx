@@ -24,35 +24,50 @@ import { translateArchitectureText, detectMeetingIntent } from '../services/gemi
 import { findGlossaryMatches } from '../data/architectureGlossary';
 import { DEMO_SCENARIOS } from '../data/demoScenarios';
 
-// 🏛️ Intelligible Chunk & Sentence Splitter for Optimal Human Recognition (4-7 words / clause)
+// 🏛️ Natural Clause & Sentence Splitter (Prevents awkward fragments, splits long speech into clean 5-9 word clauses)
 function splitIntoIntelligibleChunks(text) {
   if (!text || !text.trim()) return [];
 
   const raw = text.trim();
 
-  // 1. Primary split by punctuation (. ? ! \n ,)
-  let primaryChunks = raw
-    .split(/(?<=[.?!,;:\n—])\s+|\n+/)
+  // 1. Primary split by sentence boundaries (. ? ! \n)
+  const primarySentences = raw
+    .split(/(?<=[.?!;:\n])\s+|\n+/)
     .map(s => s.trim())
     .filter(Boolean);
 
-  // 2. Secondary split by conversational connectives if phrase exceeds 7 words
-  const intelligibleChunks = [];
-  const connectiveRegex = /\b(?:and|but|so|then|because|however|therefore|regarding|about|with|for|which|that|please|make sure|we need|let's|in terms of|as well as)\b/i;
+  const cleanChunks = [];
 
-  for (const chunk of primaryChunks) {
-    const words = chunk.split(/\s+/);
-    if (words.length > 7) {
-      const subParts = chunk.split(new RegExp(`(?<=\\s)(?=${connectiveRegex.source})`, 'i'))
-        .map(s => s.trim())
-        .filter(Boolean);
-      intelligibleChunks.push(...subParts);
-    } else {
-      intelligibleChunks.push(chunk);
+  for (const sentence of primarySentences) {
+    const words = sentence.split(/\s+/);
+    // If sentence is concise (under 9 words), keep it intact for natural flow
+    if (words.length <= 8) {
+      cleanChunks.push(sentence);
+      continue;
     }
+
+    // If sentence is long (9+ words), split on natural comma or connective boundaries
+    const subClauses = sentence
+      .split(/(?<=,)\s+|\s+(?=\b(?:and|but|so|however|therefore|because|regarding|in terms of|as per|please|make sure)\b)/i)
+      .map(s => s.trim())
+      .filter(Boolean);
+
+    // Merge fragments that are too short (< 3 words) with neighboring clause
+    const merged = [];
+    for (let i = 0; i < subClauses.length; i++) {
+      const clause = subClauses[i];
+      const clauseWords = clause.split(/\s+/);
+      if (clauseWords.length < 3 && merged.length > 0) {
+        merged[merged.length - 1] += ` ${clause}`;
+      } else {
+        merged.push(clause);
+      }
+    }
+
+    cleanChunks.push(...(merged.length > 0 ? merged : [sentence]));
   }
 
-  return intelligibleChunks.length > 0 ? intelligibleChunks : [raw];
+  return cleanChunks.length > 0 ? cleanChunks : [raw];
 }
 
 export default function LiveInterpreter({ 
@@ -399,52 +414,61 @@ export default function LiveInterpreter({
           </div>
         </div>
 
-        {/* 🌟 Dual-Screen Display (Left English 🇬🇧 12pt | Right Korean 🇰🇷 10pt) */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 items-stretch">
+        {/* 🌟 CENTRAL LIVE REAL-TIME STAGE (Single Focus: Left English 12pt 🇬🇧 | Right Korean 10pt 🇰🇷) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch">
           
-          {/* ⬅️ LEFT SCREEN: Real-time Spoken English (Fixed 12pt) */}
-          <div className="bg-slate-950/90 p-3.5 rounded-2xl border-2 border-slate-700/80 flex flex-col justify-between shadow-inner space-y-2.5">
-            <div className="flex items-center justify-between pb-1.5 border-b border-slate-800/80">
-              <span className="text-[10pt] font-extrabold text-amber-400 flex items-center gap-1.5">
-                🇬🇧 실시간 영국 영어 (English Live Speech)
+          {/* ⬅️ LEFT SCREEN: Live Spoken English (Fixed 12pt - Focus Stage) */}
+          <div className="bg-slate-950/90 p-4 rounded-2xl border-2 border-slate-700/90 flex flex-col justify-between shadow-xl space-y-2.5">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+              <span className="text-[10.5pt] font-extrabold text-amber-400 flex items-center gap-1.5">
+                🇬🇧 실시간 영국 영어 (Live English Speech)
               </span>
-              <span className="text-[9pt] font-mono font-bold px-2 py-0.5 rounded bg-slate-800 text-slate-400">
-                {activeMic === 'en-GB' ? '🎙️ 수신 중' : '대기 중'}
+              <span className={`text-[8.5pt] font-mono font-bold px-2 py-0.5 rounded-full ${
+                activeMic === 'en-GB' 
+                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 animate-pulse' 
+                  : 'bg-slate-800 text-slate-400'
+              }`}>
+                {activeMic === 'en-GB' ? '🎙️ 실시간 수신 중' : '마이크 대기 중'}
               </span>
             </div>
             
-            <div className="flex-1 flex items-center min-h-[48px]">
+            <div className="flex-1 flex items-center min-h-[56px] py-1">
               <p className="text-[12pt] font-semibold text-slate-100 leading-relaxed font-sans select-text">
                 {interimText ? (
-                  <span className="text-white">"{interimText}"</span>
+                  <span className="text-white drop-shadow-sm font-bold">"{interimText}"</span>
                 ) : (
                   <span className="text-slate-500 font-normal italic">
                     {messages[0]?.lang?.startsWith('en') 
                       ? `"${messages[0]?.original}"` 
-                      : "영국인 음성을 기다리는 중입니다... (마이크를 켜거나 테스트 버튼을 누르세요)"}
+                      : "영국인 음성을 실시간 수신합니다. (하단 마이크를 켜거나 테스트 버튼을 누르세요)"}
                   </span>
                 )}
               </p>
             </div>
 
-            <div className="pt-1.5 text-[9pt] font-medium text-slate-400 flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-              <span>영문 12pt 고정 및 문장/의미 단위 끊어 읽기 적용</span>
+            <div className="pt-1.5 border-t border-slate-800/80 text-[8.5pt] font-medium text-slate-400 flex items-center justify-between">
+              <span className="flex items-center gap-1.5">
+                <span className={`w-2 h-2 rounded-full ${activeMic ? 'bg-amber-400' : 'bg-slate-600'}`} />
+                <span>영문 12pt 고정 · 호흡/의미절 단위 스마트 분할</span>
+              </span>
+              {interimText && (
+                <span className="text-amber-400 font-mono text-[8pt]">Live Transcribing...</span>
+              )}
             </div>
           </div>
 
-          {/* ➡️ RIGHT SCREEN: Real-time Instant Korean Translation (Fixed 10pt) */}
-          <div className="bg-indigo-950/70 p-3.5 rounded-2xl border-2 border-indigo-500/60 flex flex-col justify-between shadow-2xl space-y-2.5">
-            <div className="flex items-center justify-between pb-1.5 border-b border-indigo-500/30">
-              <span className="text-[10pt] font-extrabold text-sky-300 flex items-center gap-1.5">
+          {/* ➡️ RIGHT SCREEN: Live Instant Korean Translation (Fixed 10pt - Focus Stage) */}
+          <div className="bg-indigo-950/70 p-4 rounded-2xl border-2 border-indigo-500/60 flex flex-col justify-between shadow-xl space-y-2.5">
+            <div className="flex items-center justify-between pb-2 border-b border-indigo-500/30">
+              <span className="text-[10.5pt] font-extrabold text-sky-300 flex items-center gap-1.5">
                 <Sparkles className="w-3.5 h-3.5 text-amber-400" /> 🇰🇷 실시간 초고속 한글 뜻 (Instant Korean)
               </span>
-              <span className="text-[9pt] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40">
+              <span className="text-[8.5pt] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40">
                 ⚡ 0.1초 즉시 번역
               </span>
             </div>
 
-            <div className="flex-1 flex items-center min-h-[48px]">
+            <div className="flex-1 flex items-center min-h-[56px] py-1">
               <p className="text-[10pt] font-bold text-amber-300 leading-relaxed select-text">
                 {liveStreamingTranslation ? (
                   <span>{liveStreamingTranslation}</span>
@@ -452,15 +476,20 @@ export default function LiveInterpreter({
                   <span className="text-slate-400 font-normal">
                     {messages[0]?.lang?.startsWith('en') 
                       ? messages[0]?.translation 
-                      : "영어로 말하면 즉시 10pt 고정 글씨의 한국어 뜻이 실시간 표시됩니다."}
+                      : "영어로 말하면 즉시 10pt 크기의 한국어 뜻이 실시간 표시됩니다."}
                   </span>
                 )}
               </p>
             </div>
 
-            <div className="pt-1.5 text-[9pt] font-medium text-sky-300 flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-sky-400" />
-              <span>한글 10pt 고정 및 영국 건축 전문 용어(3,000+) 자동 보정</span>
+            <div className="pt-1.5 border-t border-indigo-500/20 text-[8.5pt] font-medium text-sky-300 flex items-center justify-between">
+              <span className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-sky-400" />
+                <span>한글 10pt 고정 · 영국 건축 용어 3,000+ 자동 보정</span>
+              </span>
+              {liveStreamingTranslation && (
+                <span className="text-sky-300 font-mono text-[8pt]">Auto Syncing...</span>
+              )}
             </div>
           </div>
 
@@ -471,14 +500,14 @@ export default function LiveInterpreter({
       <div className="bg-slate-800/80 border border-slate-700/80 rounded-2xl px-4 py-2 shadow-md flex flex-wrap items-center justify-between gap-3">
         
         <div className="flex items-center gap-2 overflow-x-auto max-w-full pb-1">
-          <span className="text-[10pt] font-bold text-amber-400 shrink-0 flex items-center gap-1">
+          <span className="text-[9.5pt] font-bold text-amber-400 shrink-0 flex items-center gap-1">
             ⚡ 원터치 영국 음성 테스트:
           </span>
           {ukQuickPhrases.slice(0, 3).map((phrase, i) => (
             <button
               key={i}
               onClick={() => runVoiceTest(phrase)}
-              className="text-[9pt] font-semibold px-2.5 py-1 rounded-lg bg-slate-900/80 hover:bg-amber-500/20 text-slate-300 hover:text-amber-300 border border-slate-700 hover:border-amber-500/40 whitespace-nowrap transition flex items-center gap-1"
+              className="text-[8.5pt] font-semibold px-2.5 py-1 rounded-lg bg-slate-900/80 hover:bg-amber-500/20 text-slate-300 hover:text-amber-300 border border-slate-700 hover:border-amber-500/40 whitespace-nowrap transition flex items-center gap-1"
               title="클릭 시 영국식 발음으로 재생되고 한국어 뜻을 즉시 통역합니다"
             >
               <Play className="w-2.5 h-2.5 fill-current text-amber-400" />
@@ -490,13 +519,13 @@ export default function LiveInterpreter({
         <div className="flex items-center gap-2">
           <button
             onClick={startSimulation}
-            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-[9pt] font-bold transition shadow-md ${
+            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-[8.5pt] font-bold transition shadow-md ${
               isSimulating 
                 ? 'bg-rose-600 hover:bg-rose-700 text-white animate-pulse' 
                 : 'bg-gradient-to-r from-amber-500 to-indigo-600 hover:from-amber-600 text-white'
             }`}
           >
-            {isSimulating ? <Square className="w-3.5 h-3.5 fill-current" /> : <Play className="w-3.5 h-3.5 fill-current" />}
+            {isSimulating ? <Square className="w-3 h-3 fill-current" /> : <Play className="w-3 h-3 fill-current" />}
             <span>{isSimulating ? '중지' : '전체 시뮬레이션'}</span>
           </button>
 
@@ -511,67 +540,41 @@ export default function LiveInterpreter({
 
       </div>
 
-      {/* Main Conversation Stream (Newest First at Top) */}
-      <div className="flex-1 bg-slate-900/90 border border-slate-800 rounded-2xl p-4 overflow-y-auto space-y-4 shadow-inner">
+      {/* 📜 SESSION BACKUP HISTORY ARCHIVE (Clean Previous Conversation Log - No Duplicate Streaming) */}
+      <div className="flex-1 bg-slate-900/90 border border-slate-800 rounded-2xl p-4 overflow-y-auto space-y-3.5 shadow-inner">
         <div ref={messagesTopRef} />
 
-        {/* 🌟 Live Interim Speech Bubble (Pinned at the TOP in Dual-Column Layout) */}
-        {interimText && (
-          <div className="w-full transition-opacity duration-150">
-            <div className="w-full bg-slate-950/95 border-2 border-amber-400 rounded-2xl p-3.5 text-slate-200 shadow-2xl space-y-2.5">
-              <div className="flex items-center justify-between pb-1.5 border-b border-slate-800">
-                <div className="flex items-center space-x-2 text-[10pt] font-black text-amber-400">
-                  <span className="w-2 h-2 rounded-full bg-amber-400" />
-                  <span>실시간 음성 인식 스트리밍 (Live Dual Track)</span>
-                </div>
-                <span className="text-[9pt] font-bold px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                  인식 중
-                </span>
-              </div>
-
-              {/* Dual Column: Left English (12pt) | Right Korean (10pt) */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {/* Left: English 12pt */}
-                <div className="bg-slate-900/90 p-3 rounded-xl border border-slate-800 space-y-1">
-                  <span className="text-[9pt] font-bold text-amber-400 flex items-center gap-1">
-                    🇬🇧 영문 발화 (English):
-                  </span>
-                  <p className="text-[12pt] font-semibold text-slate-100 leading-relaxed">
-                    "{interimText}"
-                  </p>
-                </div>
-
-                {/* Right: Korean 10pt */}
-                <div className="bg-indigo-950/60 p-3 rounded-xl border border-indigo-500/40 space-y-1">
-                  <span className="text-[9pt] font-bold text-sky-400 flex items-center gap-1">
-                    <Sparkles className="w-3 h-3 text-amber-400" /> 🇰🇷 한글 번역 (Korean):
-                  </span>
-                  <p className="text-[10pt] font-bold text-amber-300 leading-relaxed">
-                    {liveStreamingTranslation || '번역 중...'}
-                  </p>
-                </div>
-              </div>
-            </div>
+        {/* Section Title for Backup Archive */}
+        <div className="flex items-center justify-between pb-2 border-b border-slate-800/80">
+          <div className="flex items-center space-x-2 text-xs font-bold text-slate-400">
+            <BookOpen className="w-3.5 h-3.5 text-indigo-400" />
+            <span>이전 대화 백업 아카이브 (Session History Log)</span>
+            <span className="px-2 py-0.2 rounded-full bg-slate-800 text-[10px] text-slate-300">
+              {messages.length}개 기록됨
+            </span>
           </div>
-        )}
+          {messages.length > 0 && (
+            <span className="text-[10px] text-slate-500">최신순 정렬</span>
+          )}
+        </div>
 
-        {messages.length === 0 && !interimText && (
-          <div className="h-full flex flex-col items-center justify-center text-center p-6 space-y-4">
-            <div className="w-12 h-12 rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-center text-amber-400 shadow-xl">
-              <Languages className="w-6 h-6" />
+        {messages.length === 0 && (
+          <div className="h-44 flex flex-col items-center justify-center text-center p-6 space-y-3">
+            <div className="w-10 h-10 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-amber-400 shadow-md">
+              <Languages className="w-5 h-5" />
             </div>
             <div className="max-w-md">
-              <h3 className="text-[11pt] font-bold text-slate-200">
-                영국 현지 건축가와의 실시간 통역 준비
+              <h3 className="text-[10pt] font-bold text-slate-300">
+                대화 백업 로그가 비어 있습니다
               </h3>
-              <p className="text-[10pt] text-slate-400 mt-1 leading-relaxed">
-                하단의 <strong className="text-amber-400">🇬🇧 영국 마이크 켜기</strong>를 누르면 <strong>[왼쪽: 영문 12pt] | [오른쪽: 한글 번역 10pt]</strong>로 실시간 나란히 표시됩니다.
+              <p className="text-[9pt] text-slate-500 mt-0.5 leading-relaxed">
+                상단 중심의 실시간 통역 무대에서 발화가 완료되면, 이곳에 이전 대화가 자동으로 차곡차곡 백업됩니다.
               </p>
             </div>
           </div>
         )}
 
-        {/* Message Cards (Newest on Top & Dual Column: Left English 12pt | Right Korean 10pt) */}
+        {/* Previous Message Backup Cards (Left English 12pt | Right Korean 10pt) */}
         {messages.map((msg) => {
           const isUK = msg.lang === 'en-GB' || msg.lang?.startsWith('en');
           const intent = msg.intent || {
@@ -584,20 +587,20 @@ export default function LiveInterpreter({
 
           return (
             <div key={msg.id} className="w-full transition-all">
-              <div className={`w-full rounded-2xl p-3.5 shadow-xl border ${intent.borderLeft} bg-slate-900/95 border-slate-800 space-y-2.5`}>
+              <div className={`w-full rounded-2xl p-3.5 shadow-md border ${intent.borderLeft} bg-slate-950/80 border-slate-800/80 space-y-2.5`}>
                 
-                {/* 1. Card Top Bar */}
-                <div className="flex flex-wrap items-center justify-between pb-1.5 border-b border-slate-800/80 gap-2">
+                {/* 1. Backup Card Top Bar */}
+                <div className="flex flex-wrap items-center justify-between pb-1.5 border-b border-slate-800/60 gap-2">
                   <div className="flex items-center space-x-2">
                     <span className="text-sm">{isUK ? '🇬🇧' : '🇰🇷'}</span>
-                    <span className="text-[10pt] font-bold text-slate-200">{msg.speaker}</span>
-                    <span className={`text-[8.5pt] font-bold px-2 py-0.5 rounded-full border ${intent.color}`}>
+                    <span className="text-[9.5pt] font-bold text-slate-200">{msg.speaker}</span>
+                    <span className={`text-[8pt] font-bold px-2 py-0.5 rounded-full border ${intent.color}`}>
                       {intent.label}
                     </span>
                   </div>
                   
                   <div className="flex items-center space-x-2 text-slate-400">
-                    <span className="text-[8.5pt] font-mono">{msg.timestamp}</span>
+                    <span className="text-[8pt] font-mono">{msg.timestamp}</span>
                     <button
                       onClick={() => handleCopy(msg.id, `[영문] ${msg.original}\n[한글] ${msg.translation}`)}
                       className="p-1 hover:text-white rounded transition"
@@ -612,15 +615,15 @@ export default function LiveInterpreter({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-stretch">
                   
                   {/* ⬅️ LEFT COLUMN: English Spoken Sentence (Fixed 12pt) */}
-                  <div className="bg-slate-950/80 rounded-xl p-3 border border-slate-800/90 flex flex-col justify-between space-y-2">
+                  <div className="bg-slate-900/90 rounded-xl p-3 border border-slate-800/90 flex flex-col justify-between space-y-2">
                     <div className="space-y-1">
                       <div className="flex items-center justify-between">
-                        <span className="text-[9pt] font-bold text-slate-400 flex items-center gap-1">
+                        <span className="text-[8.5pt] font-bold text-slate-400 flex items-center gap-1">
                           🇬🇧 영문 (English):
                         </span>
                         <button
                           onClick={() => playSpeech(msg.original, msg.lang)}
-                          className="p-1 hover:text-amber-400 text-slate-400 transition flex items-center gap-1 text-[9pt]"
+                          className="p-1 hover:text-amber-400 text-slate-400 transition flex items-center gap-1 text-[8.5pt]"
                           title="영문 원문 다시 듣기"
                         >
                           <Volume2 className="w-3 h-3 text-amber-400" />
@@ -635,14 +638,14 @@ export default function LiveInterpreter({
                     {/* Detected Terms Chips */}
                     {msg.terms && msg.terms.length > 0 && (
                       <div className="pt-1.5 border-t border-slate-800/70 flex flex-wrap items-center gap-1.5">
-                        <span className="text-[8.5pt] font-bold text-slate-500 flex items-center gap-1">
+                        <span className="text-[8pt] font-bold text-slate-500 flex items-center gap-1">
                           <BookOpen className="w-3 h-3 text-amber-400" /> 전문용어:
                         </span>
                         {msg.terms.map((term, i) => (
                           <button
                             key={i}
                             onClick={() => onOpenGlossaryWithTerm(term)}
-                            className="text-[8.5pt] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 border border-amber-500/40 transition flex items-center gap-1"
+                            className="text-[8pt] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 border border-amber-500/40 transition flex items-center gap-1"
                           >
                             {term}
                             <Info className="w-2 h-2 opacity-60" />
@@ -653,15 +656,15 @@ export default function LiveInterpreter({
                   </div>
 
                   {/* ➡️ RIGHT COLUMN: Korean Real-time Translation (Fixed 10pt) */}
-                  <div className="bg-indigo-950/40 rounded-xl p-3 border border-indigo-500/30 flex flex-col justify-between space-y-2">
+                  <div className="bg-indigo-950/30 rounded-xl p-3 border border-indigo-500/30 flex flex-col justify-between space-y-2">
                     <div className="space-y-1">
                       <div className="flex items-center justify-between">
-                        <span className="text-[9pt] font-bold text-sky-300 flex items-center gap-1">
+                        <span className="text-[8.5pt] font-bold text-sky-300 flex items-center gap-1">
                           <Sparkles className="w-3 h-3 text-amber-400" /> 🇰🇷 한글 번역 (Korean):
                         </span>
                         <button
                           onClick={() => playSpeech(msg.translation, isUK ? 'ko-KR' : 'en-GB')}
-                          className="p-1 hover:text-amber-400 text-sky-400 transition flex items-center gap-1 text-[9pt]"
+                          className="p-1 hover:text-amber-400 text-sky-400 transition flex items-center gap-1 text-[8.5pt]"
                           title="한국어 번역 음성 듣기"
                         >
                           <Volume2 className="w-3 h-3 text-sky-400" />
@@ -675,7 +678,7 @@ export default function LiveInterpreter({
                     </div>
 
                     {/* Quick Takeaway Footer */}
-                    <div className="pt-1.5 border-t border-indigo-500/20 text-[9pt] font-medium text-slate-300 flex items-center gap-1.5">
+                    <div className="pt-1.5 border-t border-indigo-500/20 text-[8.5pt] font-medium text-slate-300 flex items-center gap-1.5">
                       <span className="text-slate-400 font-semibold shrink-0">⚡ 1초 요약:</span>
                       <span className="text-amber-200 truncate">{intent.takeaway}</span>
                     </div>
