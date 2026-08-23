@@ -162,59 +162,66 @@ class SpeechService {
     this.recognition = new SpeechRecognition();
     this.recognition.continuous = true;
     this.recognition.interimResults = true;
-    this.recognition.maxAlternatives = 1; // ⚡ Ultra-fast 0% CPU 1-pass extraction
+    this.recognition.maxAlternatives = 1;
     this.recognition.lang = lang;
     this.currentLang = lang;
 
-    let lastCommittedIndex = -1;
-    let pendingInterim = '';
+    let finalAccumulated = '';
+    let currentInterim = '';
 
-    // ⚡ 0.6s Silence Flush (Guarantees no pending sentence is dropped when speaker pauses)
-    const resetSilenceFlush = () => {
+    // ⚡ 0.5s Silence Flush: If speaker pauses, immediately commit all words without losing single token
+    const triggerSilenceFlush = () => {
       if (this.silenceTimer) clearTimeout(this.silenceTimer);
-      if (!pendingInterim.trim()) return;
+      if (!currentInterim.trim()) return;
 
       this.silenceTimer = setTimeout(() => {
-        if (pendingInterim.trim()) {
-          const committed = applyPhoneticCorrections(pendingInterim.trim());
-          pendingInterim = '';
+        if (currentInterim.trim()) {
+          const fullSentence = (finalAccumulated ? finalAccumulated + ' ' : '') + currentInterim.trim();
+          const cleanSentence = applyPhoneticCorrections(fullSentence.trim());
+          finalAccumulated = cleanSentence;
+          currentInterim = '';
           onInterimResult?.('');
-          onResult?.(committed);
+          onResult?.(cleanSentence);
         }
-      }, 600);
+      }, 500);
     };
 
     this.recognition.onresult = (event) => {
-      let interim = '';
+      let interimChunk = '';
+      let newFinals = '';
 
       for (let i = event.resultIndex; i < event.results.length; ++i) {
         const res = event.results[i];
         const text = res[0]?.transcript || '';
 
         if (res.isFinal) {
-          if (i > lastCommittedIndex && text.trim()) {
-            lastCommittedIndex = i;
-            if (this.silenceTimer) clearTimeout(this.silenceTimer);
-            pendingInterim = '';
-            const finalClean = applyPhoneticCorrections(text.trim());
-            onResult?.(finalClean);
-          }
+          newFinals += (newFinals ? ' ' : '') + text.trim();
         } else {
-          interim += text;
+          interimChunk += (interimChunk ? ' ' : '') + text.trim();
         }
       }
 
-      if (interim.trim()) {
-        pendingInterim = interim.trim();
-        const normInterim = applyPhoneticCorrections(pendingInterim);
-        onInterimResult?.(normInterim);
-        resetSilenceFlush();
+      if (newFinals.trim()) {
+        if (this.silenceTimer) clearTimeout(this.silenceTimer);
+        finalAccumulated = (finalAccumulated ? finalAccumulated + ' ' : '') + newFinals.trim();
+        const cleanFinal = applyPhoneticCorrections(finalAccumulated.trim());
+        currentInterim = '';
+        onInterimResult?.('');
+        onResult?.(cleanFinal);
+      }
+
+      if (interimChunk.trim()) {
+        currentInterim = interimChunk.trim();
+        const previewText = (finalAccumulated ? finalAccumulated + ' ' : '') + currentInterim;
+        const normPreview = applyPhoneticCorrections(previewText.trim());
+        onInterimResult?.(normPreview);
+        triggerSilenceFlush();
       }
     };
 
     this.recognition.onerror = (event) => {
       if (event.error === 'no-speech' || event.error === 'network') {
-        return; // Ignore natural silence / network micro-drops
+        return; // Natural pause or network micro-tick
       }
       console.warn('Speech recognition status:', event.error);
       if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
@@ -224,25 +231,29 @@ class SpeechService {
     };
 
     this.recognition.onend = () => {
-      // ⚡ Zero-Drop Guarantee: Flush any pending interim buffer before restarting
-      if (pendingInterim.trim()) {
-        const finalLeftover = applyPhoneticCorrections(pendingInterim.trim());
-        pendingInterim = '';
-        onResult?.(finalLeftover);
+      // ⚡ Unconditional Final Flush: Never drop last words if session ends
+      if (currentInterim.trim()) {
+        const fullFinal = (finalAccumulated ? finalAccumulated + ' ' : '') + currentInterim.trim();
+        const cleanFinal = applyPhoneticCorrections(fullFinal.trim());
+        finalAccumulated = cleanFinal;
+        currentInterim = '';
+        onResult?.(cleanFinal);
       }
 
-      // ⚡ Zero-Lag Instant Reconnect (Maintains unbreakable live listening)
+      // ⚡ Zero-Gap Instant Reconnect (10ms): Unbreakable audio capture loop
       if (this.isListening && this.autoRestart) {
         if (this.restartTimer) clearTimeout(this.restartTimer);
         this.restartTimer = setTimeout(() => {
           if (this.isListening && this.recognition) {
             try {
+              // Reset buffer for fresh new sentence cycle
+              finalAccumulated = '';
               this.recognition.start();
             } catch (e) {
-              // already active or recycled
+              // recycled safely
             }
           }
-        }, 30);
+        }, 10);
       } else {
         this.isListening = false;
         onEnd?.();
