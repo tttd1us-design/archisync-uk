@@ -1122,21 +1122,25 @@ export default function LiveInterpreter({
         isDark ? 'bg-slate-800/90 border-slate-700/90' : 'bg-white border-slate-200 shadow-xl'
       } border rounded-2xl p-3 shadow-2xl backdrop-blur-md transition-colors`}>
         
-        {/* Audio Wave Visualizer */}
+        {/* Audio Wave Visualizer (GPU/CSS Transform Accelerated) */}
         {activeMic && (
           <div className="mb-2 px-2 flex items-center justify-center space-x-1.5 h-3">
-            {[...Array(24)].map((_, i) => (
-              <span 
-                key={i}
-                className={`w-1 rounded-full transition-all duration-75 ${
-                  activeMic === 'en-GB' ? 'bg-amber-500' : 'bg-indigo-500'
-                }`}
-                style={{
-                  height: `${Math.max(4, Math.min(18, (audioLevel * 32 * (1 + Math.sin(i * 0.7)))))}px`,
-                  opacity: 0.4 + audioLevel * 0.6
-                }}
-              />
-            ))}
+            {[...Array(16)].map((_, i) => {
+              const scale = Math.max(0.2, Math.min(1.0, audioLevel * (1 + Math.sin(i * 0.7))));
+              return (
+                <span 
+                  key={i}
+                  className={`w-1 h-3.5 rounded-full transition-transform duration-75 ${
+                    activeMic === 'en-GB' ? 'bg-amber-500' : 'bg-indigo-500'
+                  }`}
+                  style={{
+                    transform: `scaleY(${scale})`,
+                    opacity: 0.35 + scale * 0.65,
+                    willChange: 'transform'
+                  }}
+                />
+              );
+            })}
           </div>
         )}
 

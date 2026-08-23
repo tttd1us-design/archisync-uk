@@ -515,18 +515,33 @@ class SpeechService {
       const dataArray = new Uint8Array(bufferLength);
 
       let animId;
-      const tick = () => {
+      let lastUpdateTime = 0;
+      let lastLevel = 0;
+
+      const tick = (timestamp) => {
         if (!this.analyser) return;
-        this.analyser.getByteFrequencyData(dataArray);
-        let sum = 0;
-        for (let i = 0; i < bufferLength; i++) {
-          sum += dataArray[i];
+
+        // 🚀 CPU Optimization: Throttle state updates to ~12fps (80ms) instead of 60-120fps
+        if (timestamp - lastUpdateTime >= 80) {
+          lastUpdateTime = timestamp;
+          this.analyser.getByteFrequencyData(dataArray);
+          let sum = 0;
+          for (let i = 0; i < bufferLength; i++) {
+            sum += dataArray[i];
+          }
+          const average = sum / bufferLength;
+          const currentLevel = Math.round((average / 128) * 100) / 100; // Quantize level
+
+          // Only trigger state update if there is meaningful audio change
+          if (Math.abs(currentLevel - lastLevel) >= 0.04 || currentLevel === 0) {
+            lastLevel = currentLevel;
+            onAudioLevel(currentLevel);
+          }
         }
-        const average = sum / bufferLength;
-        onAudioLevel(average / 128); // 0.0 to 1.0
+
         animId = requestAnimationFrame(tick);
       };
-      tick();
+      animId = requestAnimationFrame(tick);
 
       return () => {
         if (animId) cancelAnimationFrame(animId);

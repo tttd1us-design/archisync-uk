@@ -230,6 +230,20 @@ export default defineConfig({
     port: 5173,
     host: true,
     open: false
+  },
+  build: {
+    target: 'esnext',
+    minify: 'esbuild',
+    cssMinify: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom'],
+          'vendor-pdf': ['html2canvas', 'jspdf', 'dompurify'],
+          'vendor-icons': ['lucide-react']
+        }
+      }
+    }
   }
 })
 
