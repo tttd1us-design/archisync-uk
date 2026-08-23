@@ -190,7 +190,7 @@ class SpeechService {
         onInterimResult?.(cleanFull);
       }
 
-      // ⚡ 0.6s Silence Flush on pause: Emit finalized sentence cleanly
+      // ⚡ 1.0s Silence Flush on pause: Emit finalized sentence cleanly without premature micro-commits
       if (this.silenceTimer) clearTimeout(this.silenceTimer);
       if (cleanFull && cleanFull !== lastEmittedFinal) {
         this.silenceTimer = setTimeout(() => {
@@ -198,7 +198,7 @@ class SpeechService {
             lastEmittedFinal = cleanFull;
             onResult?.(cleanFull);
           }
-        }, 600);
+        }, 1000);
       }
     };
 

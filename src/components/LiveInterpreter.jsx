@@ -538,13 +538,26 @@ export default function LiveInterpreter({
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
           };
 
-          // ⚡ Insert exactly 1 clean completed card into archive
+          // ⚡ Intelligent In-Place Replacement: Never spawn multiple cards for the same continuous speech
           setMessages(prev => {
             if (prev.length > 0) {
               const last = prev[0];
               const cleanCurrent = fullSentence.toLowerCase().trim();
               const cleanLast = last.original.toLowerCase().trim();
+
+              // 1. Identical text => skip
               if (cleanCurrent === cleanLast) return prev;
+
+              // 2. Continuous expanding utterance => update in-place without creating new card
+              if (cleanCurrent.startsWith(cleanLast) || cleanCurrent.includes(cleanLast) || cleanLast.startsWith(cleanCurrent) || cleanLast.includes(cleanCurrent)) {
+                const updated = {
+                  ...last,
+                  original: fullSentence.length >= last.original.length ? fullSentence : last.original,
+                  translation: translated.length >= last.translation.length ? translated : last.translation,
+                  timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+                };
+                return [updated, ...prev.slice(1)];
+              }
             }
             return [newMessage, ...prev];
           });
