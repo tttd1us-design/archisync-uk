@@ -21,7 +21,11 @@ import {
   HardDrive,
   FolderDown,
   Save,
-  CheckCircle2
+  CheckCircle2,
+  Star,
+  FileText,
+  Sliders,
+  Maximize2
 } from 'lucide-react';
 import { speechService } from '../services/speechService';
 import { 
@@ -29,7 +33,8 @@ import {
   detectMeetingIntent, 
   detectSourceLanguage,
   saveLearnedCorrection,
-  getLearnedStats
+  getLearnedStats,
+  generateAiMeetingMinutes
 } from '../services/geminiService';
 import { findGlossaryMatches } from '../data/architectureGlossary';
 import { DEMO_SCENARIOS } from '../data/demoScenarios';
@@ -80,6 +85,8 @@ function splitIntoIntelligibleChunks(text) {
 const MessageCardItem = React.memo(function MessageCardItem({
   msg,
   isDark,
+  isStarred,
+  onToggleStar,
   copiedId,
   onCopy,
   onPlaySpeech,
@@ -98,9 +105,9 @@ const MessageCardItem = React.memo(function MessageCardItem({
 
   return (
     <div className={`w-full rounded-xl p-2.5 border transition-all ${
-      isDark 
-        ? 'bg-slate-950/85 border-slate-800/80 text-slate-100 hover:border-slate-700' 
-        : 'bg-white border-slate-200 text-slate-900 shadow-xs hover:border-slate-300'
+      isStarred
+        ? isDark ? 'bg-amber-950/30 border-amber-500/60 text-slate-100 shadow-md' : 'bg-amber-50/80 border-amber-300 text-slate-900 shadow-xs'
+        : isDark ? 'bg-slate-950/85 border-slate-800/80 text-slate-100 hover:border-slate-700' : 'bg-white border-slate-200 text-slate-900 shadow-xs hover:border-slate-300'
     } space-y-1.5`}>
       
       {/* 1. Subtle Mini Meta Bar: Flag, Timestamp, Quick Action Dock */}
@@ -108,6 +115,13 @@ const MessageCardItem = React.memo(function MessageCardItem({
         isDark ? 'border-slate-800/70 text-slate-400' : 'border-slate-100 text-slate-500'
       }`}>
         <div className="flex items-center space-x-1.5">
+          <button
+            onClick={() => onToggleStar(msg.id)}
+            className={`p-0.5 rounded transition ${isStarred ? 'text-amber-400 fill-amber-400' : 'text-slate-500 hover:text-amber-400'}`}
+            title={isStarred ? "중요 표시 해제" : "중요 발화로 북마크 고정"}
+          >
+            <Star className={`w-3 h-3 ${isStarred ? 'fill-amber-400 text-amber-400' : ''}`} />
+          </button>
           <span>{flag}</span>
           <span className="font-mono text-slate-400">{msg.timestamp}</span>
         </div>
@@ -227,11 +241,98 @@ export default function LiveInterpreter({
   const [isRecordingAudio, setIsRecordingAudio] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
 
+  // 💎 Commercial SaaS Premium States
+  const [fontSizeScale, setFontSizeScale] = useState(12); // 8pt ~ 16pt real-time zoom
+  const [isPipFloating, setIsPipFloating] = useState(false); // PiP Floating Subtitle Mode
+  const [starredIds, setStarredIds] = useState(new Set()); // Starred Pins
+  const [isSummaryModalOpen, setIsSummaryModalOpen] = useState(false);
+  const [summaryData, setSummaryData] = useState(null);
+  const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
+
   const messagesTopRef = useRef(null);
   const simulationTimerRef = useRef(null);
   const visualizerCleanupRef = useRef(null);
   const interimTranslateTimerRef = useRef(null);
   const recordingTimerRef = useRef(null);
+  const isSpacePressedRef = useRef(false);
+
+  // ⌨️ Global Commercial Hotkeys (Spacebar Push-to-Talk, Ctrl+S Save)
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Ignore if user is typing in textarea or input
+      if (['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) return;
+
+      // 1. Ctrl + S -> Immediate Save
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        handleSaveToDocuments();
+        return;
+      }
+
+      // 2. Spacebar -> Push-to-Talk Start
+      if (e.code === 'Space' && !isSpacePressedRef.current && !activeMic) {
+        e.preventDefault();
+        isSpacePressedRef.current = true;
+        toggleMic('en-GB');
+      }
+    };
+
+    const handleKeyUp = (e) => {
+      if (['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) return;
+
+      // Spacebar -> Push-to-Talk Release & Finalize
+      if (e.code === 'Space' && isSpacePressedRef.current) {
+        e.preventDefault();
+        isSpacePressedRef.current = false;
+        if (activeMic) {
+          toggleMic(activeMic);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, [activeMic]);
+
+  // ⭐ Toggle Starred Message
+  const toggleStar = (id) => {
+    setStarredIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  // 🧠 AI One-Click Executive Summary & Action Items Generator
+  const handleGenerateSummary = async () => {
+    if (messages.length === 0) {
+      alert('요약할 대화 내용이 없습니다. 먼저 마이크로 대화를 나누거나 테스트를 실행해주세요.');
+      return;
+    }
+    setIsGeneratingSummary(true);
+    setIsSummaryModalOpen(true);
+    try {
+      const currentScenario = DEMO_SCENARIOS.find(s => s.id === selectedScenarioId) || DEMO_SCENARIOS[0];
+      const result = await generateAiMeetingMinutes({
+        dialogueList: messages,
+        projectInfo: {
+          title: currentScenario.title || 'ArchiSync UK Architectural Conference',
+          ribaStage: currentScenario.category || 'Stage 3 / Stage 4'
+        },
+        apiKey: apiKey
+      });
+      setSummaryData(result);
+    } catch (e) {
+      console.error('Summary generation error:', e);
+    } finally {
+      setIsGeneratingSummary(false);
+    }
+  };
 
   // 🔴 Toggle Manual Voice Recording (ON / OFF)
   const toggleAudioRecording = async () => {
@@ -674,10 +775,46 @@ export default function LiveInterpreter({
               }`}>
                 🇬🇧·🇯🇵·🇨🇳 ➔ 🇰🇷 0.03s 즉시 통역
               </span>
+              <span className="text-[10px] font-mono text-slate-400 hidden sm:inline">
+                (⌨️ Space 누른 채 발화)
+              </span>
             </div>
           </div>
 
           <div className="flex items-center space-x-2">
+            {/* 🎛️ Real-time Font Zoom Controls (A- / A+) */}
+            <div className={`flex items-center space-x-1 px-2 py-1 rounded-lg border text-xs font-bold ${
+              isDark ? 'bg-slate-800 text-slate-200 border-slate-700' : 'bg-slate-100 text-slate-800 border-slate-200 shadow-xs'
+            }`}>
+              <span className="text-[7.5pt] opacity-70">크기:</span>
+              <button 
+                onClick={() => setFontSizeScale(prev => Math.max(9, prev - 1))}
+                className="px-1 hover:text-amber-400 font-bold transition"
+                title="글자 크기 축소"
+              >
+                A-
+              </button>
+              <span className="font-mono text-amber-400 text-[8pt]">{fontSizeScale}pt</span>
+              <button 
+                onClick={() => setFontSizeScale(prev => Math.min(18, prev + 1))}
+                className="px-1 hover:text-amber-400 font-bold transition"
+                title="글자 크기 확대"
+              >
+                A+
+              </button>
+            </div>
+
+            {/* 🧠 AI 3줄 요약 & 회의록 생성 버튼 */}
+            <button
+              onClick={handleGenerateSummary}
+              disabled={isGeneratingSummary}
+              className="flex items-center space-x-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-xs transition border border-amber-300"
+              title="현재 회의 내용을 분석하여 3줄 요약, 주요 결정사항, Action Items를 자동 생성합니다"
+            >
+              <Sparkles className="w-3.5 h-3.5 fill-current" />
+              <span>{isGeneratingSummary ? 'AI 분석 중...' : '⚡ AI 회의록'}</span>
+            </button>
+
             {/* 🔴 Manual Audio Recording Toggle Button */}
             <button
               onClick={toggleAudioRecording}
@@ -1019,6 +1156,8 @@ export default function LiveInterpreter({
             key={msg.id}
             msg={msg}
             isDark={isDark}
+            isStarred={starredIds.has(msg.id)}
+            onToggleStar={toggleStar}
             copiedId={copiedId}
             onCopy={handleCopy}
             onPlaySpeech={playSpeech}
@@ -1241,6 +1380,124 @@ export default function LiveInterpreter({
         </div>
 
       </div>
+
+      {/* 🧠 AI 3-Line Executive Summary & Meeting Minutes Modal */}
+      {isSummaryModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fade-in">
+          <div className={`w-full max-w-2xl rounded-2xl border shadow-2xl p-6 overflow-hidden flex flex-col max-h-[85vh] ${
+            isDark ? 'bg-slate-900 border-slate-700 text-slate-100' : 'bg-white border-slate-200 text-slate-900'
+          }`}>
+            
+            {/* Modal Header */}
+            <div className="flex items-center justify-between pb-3 border-b border-slate-700/60 shrink-0">
+              <div className="flex items-center space-x-2">
+                <Sparkles className="w-5 h-5 text-amber-500 fill-current" />
+                <h3 className="text-base font-black">
+                  AI 비즈니스 회의록 & 3줄 요약 (Executive Summary)
+                </h3>
+              </div>
+              <button
+                onClick={() => setIsSummaryModalOpen(false)}
+                className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="flex-1 overflow-y-auto my-4 space-y-4 pr-1 text-xs select-text">
+              {isGeneratingSummary ? (
+                <div className="h-48 flex flex-col items-center justify-center space-y-3">
+                  <div className="w-8 h-8 border-3 border-amber-500 border-t-transparent rounded-full animate-spin" />
+                  <p className="text-xs text-slate-400 font-medium animate-pulse">
+                    Gemini AI가 전체 대화를 분석하여 핵심 안건과 Action Items를 도출 중입니다...
+                  </p>
+                </div>
+              ) : summaryData ? (
+                <div className="space-y-4">
+                  {/* Executive Summary 3 Lines */}
+                  <div className={`p-3.5 rounded-xl border ${
+                    isDark ? 'bg-amber-950/20 border-amber-500/30 text-amber-200' : 'bg-amber-50 border-amber-200 text-amber-950'
+                  }`}>
+                    <h4 className="font-black text-amber-500 mb-1.5 flex items-center gap-1.5">
+                      📌 핵심 안건 및 요약 (Executive Summary)
+                    </h4>
+                    <p className="leading-relaxed whitespace-pre-line font-medium">
+                      {summaryData.executiveSummary || '주요 설계 변경 사항 및 인허가 준수 사항에 대한 합의가 완료되었습니다.'}
+                    </p>
+                  </div>
+
+                  {/* Decisions */}
+                  {summaryData.decisions && summaryData.decisions.length > 0 && (
+                    <div className="space-y-2">
+                      <h4 className="font-bold text-sky-400">
+                        ✅ 주요 결정 사항 (Key Decisions)
+                      </h4>
+                      <ul className="space-y-1.5 list-disc list-inside opacity-90 pl-1">
+                        {summaryData.decisions.map((d, i) => (
+                          <li key={i} className="leading-relaxed">
+                            <strong>{d.title || d}</strong>: {d.detail || ''}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Action Items */}
+                  {summaryData.actionItems && summaryData.actionItems.length > 0 && (
+                    <div className="space-y-2">
+                      <h4 className="font-bold text-emerald-400">
+                        🎯 향후 실행 과제 (Action Items)
+                      </h4>
+                      <div className="grid grid-cols-1 gap-2">
+                        {summaryData.actionItems.map((act, i) => (
+                          <div key={i} className={`p-2.5 rounded-lg border ${
+                            isDark ? 'bg-slate-800/80 border-slate-700' : 'bg-slate-50 border-slate-200'
+                          } flex items-center justify-between text-[11px]`}>
+                            <span className="font-semibold">{act.task || act}</span>
+                            <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono">
+                              {act.assignee || '담당자 확인'} ({act.dueDate || 'ASAP'})
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <p className="text-center text-slate-500 py-8">회의록을 불러오지 못했습니다.</p>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex items-center justify-between pt-3 border-t border-slate-700/60 shrink-0">
+              <span className="text-[10px] text-slate-400 font-mono">
+                총 {messages.length}개 발화 분석 완료
+              </span>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => {
+                    const textToCopy = `[ArchiSync UK AI 회의록]\n\n■ 핵심 요약:\n${summaryData?.executiveSummary || ''}\n\n■ 결정 사항:\n${(summaryData?.decisions || []).map(d => `- ${d.title || d}: ${d.detail || ''}`).join('\n')}\n\n■ Action Items:\n${(summaryData?.actionItems || []).map(a => `- ${a.task || a} (${a.assignee || ''})`).join('\n')}`;
+                    navigator.clipboard.writeText(textToCopy);
+                    alert('회의록이 클립보드에 복사되었습니다!');
+                  }}
+                  className="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 transition border border-slate-600 flex items-center gap-1.5"
+                >
+                  <Copy className="w-3.5 h-3.5 text-amber-400" />
+                  <span>전체 복사</span>
+                </button>
+                <button
+                  onClick={() => setIsSummaryModalOpen(false)}
+                  className="px-4 py-1.5 rounded-lg text-xs font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 transition shadow-sm"
+                >
+                  확인 닫기
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
 
     </div>
   );
