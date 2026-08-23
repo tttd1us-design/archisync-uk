@@ -463,105 +463,35 @@ class SpeechService {
     }
   }
 
-  // Real-time audio waveform visualizer & DSP Hardware Filtered recording stream
-  async startAudioVisualizer(onAudioLevel) {
+  // 🚀 Zero-CPU Stream Initializer: Initializes mic stream ONLY when manual recording is active
+  async prepareMediaStream() {
     try {
+      if (this.mediaStream && this.mediaStream.active) return this.mediaStream;
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return null;
       
       this.mediaStream = await navigator.mediaDevices.getUserMedia({ 
         audio: { 
           echoCancellation: true, 
           noiseSuppression: true, 
-          autoGainControl: true,
-          channelCount: 1,
-          sampleRate: 48000
+          autoGainControl: true
         } 
       });
-
-      this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-      const source = this.audioContext.createMediaStreamSource(this.mediaStream);
-
-      // 🎙️ DSP Filter Chain for Speech Intelligibility & Consonant Boost
-      // 1. High-Pass Filter: Cuts sub-85Hz low rumbling noise, desk bumps & HVAC hum
-      const highPass = this.audioContext.createBiquadFilter();
-      highPass.type = 'highpass';
-      highPass.frequency.setValueAtTime(85, this.audioContext.currentTime);
-
-      // 2. Peaking Filter: Boosts 3.2kHz (+5.0dB) for English consonant clarity (t, p, s, f, k, th)
-      const speechClarityFilter = this.audioContext.createBiquadFilter();
-      speechClarityFilter.type = 'peaking';
-      speechClarityFilter.frequency.setValueAtTime(3200, this.audioContext.currentTime);
-      speechClarityFilter.Q.setValueAtTime(1.2, this.audioContext.currentTime);
-      speechClarityFilter.gain.setValueAtTime(5.0, this.audioContext.currentTime);
-
-      // 3. Dynamics Compressor: Auto-levels quiet voice and prevents clipping distortion
-      const compressor = this.audioContext.createDynamicsCompressor();
-      compressor.threshold.setValueAtTime(-24, this.audioContext.currentTime);
-      compressor.knee.setValueAtTime(30, this.audioContext.currentTime);
-      compressor.ratio.setValueAtTime(12, this.audioContext.currentTime);
-      compressor.attack.setValueAtTime(0.003, this.audioContext.currentTime);
-      compressor.release.setValueAtTime(0.25, this.audioContext.currentTime);
-
-      this.analyser = this.audioContext.createAnalyser();
-      this.analyser.fftSize = 64;
-
-      // Connect DSP chain: Source -> HighPass -> ClarityFilter -> Compressor -> Analyser
-      source.connect(highPass);
-      highPass.connect(speechClarityFilter);
-      speechClarityFilter.connect(compressor);
-      compressor.connect(this.analyser);
-
-      const bufferLength = this.analyser.frequencyBinCount;
-      const dataArray = new Uint8Array(bufferLength);
-
-      let animId;
-      let lastUpdateTime = 0;
-      let lastLevel = 0;
-
-      const tick = (timestamp) => {
-        if (!this.analyser) return;
-
-        // 🚀 CPU Optimization: Throttle state updates to ~12fps (80ms) instead of 60-120fps
-        if (timestamp - lastUpdateTime >= 80) {
-          lastUpdateTime = timestamp;
-          this.analyser.getByteFrequencyData(dataArray);
-          let sum = 0;
-          for (let i = 0; i < bufferLength; i++) {
-            sum += dataArray[i];
-          }
-          const average = sum / bufferLength;
-          const currentLevel = Math.round((average / 128) * 100) / 100; // Quantize level
-
-          // Only trigger state update if there is meaningful audio change
-          if (Math.abs(currentLevel - lastLevel) >= 0.04 || currentLevel === 0) {
-            lastLevel = currentLevel;
-            onAudioLevel(currentLevel);
-          }
-        }
-
-        animId = requestAnimationFrame(tick);
-      };
-      animId = requestAnimationFrame(tick);
-
-      return () => {
-        if (animId) cancelAnimationFrame(animId);
-        this.stopAudioVisualizer();
-      };
+      return this.mediaStream;
     } catch (e) {
-      console.warn('Audio visualizer mic access notice:', e);
+      console.warn('Mic access notice:', e);
       return null;
     }
+  }
+
+  // Ultra-light stub for visualizer (0% CPU, no Web Audio API overhead)
+  async startAudioVisualizer(onAudioLevel) {
+    return () => {};
   }
 
   stopAudioVisualizer() {
     if (this.mediaStream) {
       this.mediaStream.getTracks().forEach(t => t.stop());
       this.mediaStream = null;
-    }
-    if (this.audioContext) {
-      this.audioContext.close().catch(() => {});
-      this.audioContext = null;
-      this.analyser = null;
     }
   }
 }
