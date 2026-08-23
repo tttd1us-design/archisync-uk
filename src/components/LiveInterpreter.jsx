@@ -209,8 +209,9 @@ export default function LiveInterpreter({
   const isDark = theme === 'dark';
   const [activeMic, setActiveMic] = useState(null); // 'en-GB' | 'en-US' | 'ko-KR' | null
   const [selectedEnglishAccent, setSelectedEnglishAccent] = useState('en-GB'); // 'en-GB' | 'en-US'
-  const [interimText, setInterimText] = useState('');
-  const [liveStreamingTranslation, setLiveStreamingTranslation] = useState('');
+  const [currentLiveOriginal, setCurrentLiveOriginal] = useState('');
+  const [currentLiveTranslation, setCurrentLiveTranslation] = useState('');
+  const [isLiveSpeaking, setIsLiveSpeaking] = useState(false);
   const [customInput, setCustomInput] = useState('');
   const [inputLang, setInputLang] = useState('en-GB');
   const [isSimulating, setIsSimulating] = useState(false);
@@ -370,15 +371,12 @@ export default function LiveInterpreter({
 
       speechService.stopRecognition();
       setActiveMic(null);
-      setInterimText('');
-      setLiveStreamingTranslation('');
+      setIsLiveSpeaking(false);
     } else {
       if (interimTranslateTimerRef.current) clearTimeout(interimTranslateTimerRef.current);
       speechService.stopRecognition();
       setActiveMic(lang);
       setInputLang(lang);
-      setInterimText('');
-      setLiveStreamingTranslation('');
       
       const targetLang = 'ko-KR'; // Always translate to Korean for right HUD
       const sttLang = lang === 'auto' ? 'en-GB' : lang;
@@ -387,11 +385,12 @@ export default function LiveInterpreter({
         lang: sttLang,
         continuous: true,
         onInterimResult: (streamText) => {
-          setInterimText(streamText);
+          setIsLiveSpeaking(true);
+          setCurrentLiveOriginal(streamText);
           
-          // 🚀 Smooth 120ms predictive streaming translation (Prevents network congestion & CPU spike)
+          // 🚀 Smooth debounced translation preview (250ms) without CPU congestion
           if (interimTranslateTimerRef.current) clearTimeout(interimTranslateTimerRef.current);
-          if (streamText.length > 1) {
+          if (streamText.length > 2) {
             interimTranslateTimerRef.current = setTimeout(async () => {
               const detected = (lang === 'auto') ? detectSourceLanguage(streamText) : lang;
               const streamTrans = await translateArchitectureText({
@@ -400,80 +399,64 @@ export default function LiveInterpreter({
                 targetLang: targetLang,
                 apiKey: apiKey
               });
-              setLiveStreamingTranslation(streamTrans);
-            }, 120);
+              setCurrentLiveTranslation(streamTrans);
+            }, 250);
           }
         },
         onResult: async (finalText) => {
           if (!finalText.trim()) return;
           if (interimTranslateTimerRef.current) clearTimeout(interimTranslateTimerRef.current);
 
-          // 🏛️ Split stream into intelligible, human-readable clause chunks (5-9 words)
-          const chunks = splitIntoIntelligibleChunks(finalText);
+          setIsLiveSpeaking(false);
+          const fullSentence = finalText.trim();
+          setCurrentLiveOriginal(fullSentence);
 
-          for (const chunk of chunks) {
-            if (!chunk.trim()) continue;
+          const detectedLang = (lang === 'auto') ? detectSourceLanguage(fullSentence) : lang;
 
-            const detectedLang = (lang === 'auto') ? detectSourceLanguage(chunk) : lang;
+          const translated = await translateArchitectureText({
+            text: fullSentence,
+            sourceLang: detectedLang,
+            targetLang: targetLang,
+            apiKey: apiKey
+          });
 
-            const translated = await translateArchitectureText({
-              text: chunk,
-              sourceLang: detectedLang,
-              targetLang: targetLang,
-              apiKey: apiKey
-            });
+          setCurrentLiveTranslation(translated);
 
-            const isZH = detectedLang.startsWith('zh');
-            const isJP = detectedLang.startsWith('ja');
-            const isEN = detectedLang.startsWith('en');
+          const isZH = detectedLang.startsWith('zh');
+          const isJP = detectedLang.startsWith('ja');
+          const isEN = detectedLang.startsWith('en');
 
-            const newMessage = {
-              id: Date.now() + Math.random(),
-              speaker: isZH ? 'Shanghai Lead Architect' : isJP ? 'Tokyo Lead Architect' : isEN ? 'UK Lead Architect' : 'Seoul Design Lead',
-              speakerRole: isZH ? 'CN Architect' : isJP ? 'JP Architect' : isEN ? 'UK Architect' : 'KR Director',
-              lang: detectedLang,
-              accent: isZH ? 'Chinese (Mandarin)' : isJP ? 'Japanese (Tokyo)' : detectedLang === 'en-GB' ? 'UK (London RP)' : detectedLang === 'en-US' ? 'US (General)' : 'Korean',
-              original: chunk,
-              translation: translated,
-              timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-            };
+          const newMessage = {
+            id: Date.now() + Math.random(),
+            speaker: isZH ? 'Shanghai Lead Architect' : isJP ? 'Tokyo Lead Architect' : isEN ? 'UK Lead Architect' : 'Seoul Design Lead',
+            speakerRole: isZH ? 'CN Architect' : isJP ? 'JP Architect' : isEN ? 'UK Architect' : 'KR Director',
+            lang: detectedLang,
+            accent: isZH ? 'Chinese (Mandarin)' : isJP ? 'Japanese (Tokyo)' : detectedLang === 'en-GB' ? 'UK (London RP)' : detectedLang === 'en-US' ? 'US (General)' : 'Korean',
+            original: fullSentence,
+            translation: translated,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+          };
 
-            // ⚡ Intelligent In-Place Deduplication & Merging on clause level
-            setMessages(prev => {
-              if (prev.length > 0) {
-                const last = prev[0];
-                const cleanCurrent = chunk.toLowerCase().trim();
-                const cleanLast = last.original.toLowerCase().trim();
-
-                // 1. Identical text => skip
-                if (cleanCurrent === cleanLast) return prev;
-
-                // 2. Incremental clause expansion => update in-place
-                if (cleanCurrent.startsWith(cleanLast) || cleanLast.startsWith(cleanCurrent)) {
-                  const updated = {
-                    ...last,
-                    original: chunk.length >= last.original.length ? chunk : last.original,
-                    translation: translated.length >= last.translation.length ? translated : last.translation,
-                    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-                  };
-                  return [updated, ...prev.slice(1)];
-                }
-              }
-              return [newMessage, ...prev];
-            });
-
-            // Auto speak translation if enabled
-            if (autoSpeakKorean && targetLang === 'ko-KR') {
-              speechService.speak(translated, 'ko-KR');
+          // ⚡ Insert exactly 1 clean completed card into archive
+          setMessages(prev => {
+            if (prev.length > 0) {
+              const last = prev[0];
+              const cleanCurrent = fullSentence.toLowerCase().trim();
+              const cleanLast = last.original.toLowerCase().trim();
+              if (cleanCurrent === cleanLast) return prev;
             }
-          }
+            return [newMessage, ...prev];
+          });
 
-          setInterimText('');
-          setLiveStreamingTranslation('');
+          // Auto speak translation if enabled
+          if (autoSpeakKorean && targetLang === 'ko-KR') {
+            speechService.speak(translated, 'ko-KR');
+          }
         },
         onError: (error) => {
           console.warn('Speech Recognition error:', error);
           setActiveMic(null);
+          setIsLiveSpeaking(false);
         }
       });
     }
@@ -556,6 +539,8 @@ export default function LiveInterpreter({
     speechService.speak(item.original, item.lang, {
       onEnd: () => {
         const itemIntent = detectMeetingIntent(item.original, item.translation);
+        setCurrentLiveOriginal(item.original);
+        setCurrentLiveTranslation(item.translation);
         setMessages(prev => [{
           ...item,
           id: Date.now() + idx,
@@ -587,6 +572,7 @@ export default function LiveInterpreter({
   const runVoiceTest = async (testSentence, lang = 'en-GB') => {
     // 1. Speak in native voice (UK English / Japanese / Chinese)
     speechService.speak(testSentence, lang);
+    setCurrentLiveOriginal(testSentence);
 
     // 2. Immediately translate to Korean (Always Korean for right HUD!)
     const targetLang = 'ko-KR';
@@ -597,6 +583,7 @@ export default function LiveInterpreter({
       apiKey: apiKey
     });
 
+    setCurrentLiveTranslation(translated);
     const matchedTerms = findGlossaryMatches(testSentence);
     const intent = detectMeetingIntent(testSentence, translated);
 
@@ -782,18 +769,10 @@ export default function LiveInterpreter({
               <div className={`text-[12pt] font-semibold leading-relaxed font-sans break-keep-all ${
                 isDark ? 'text-slate-100' : 'text-slate-900'
               }`}>
-                {interimText ? (
-                  <div className="space-y-2">
-                    {splitIntoIntelligibleChunks(interimText).map((chunk, idx) => (
-                      <p key={idx} className={`${isDark ? 'text-white' : 'text-slate-950 font-bold'} drop-shadow-sm leading-relaxed`}>
-                        "{chunk}"
-                      </p>
-                    ))}
-                  </div>
-                ) : messages[0]?.original ? (
+                {currentLiveOriginal ? (
                   <div className="space-y-2.5">
-                    {splitIntoIntelligibleChunks(messages[0].original).map((chunk, idx) => (
-                      <p key={idx} className="font-semibold leading-relaxed">
+                    {splitIntoIntelligibleChunks(currentLiveOriginal).map((chunk, idx) => (
+                      <p key={idx} className={`font-semibold leading-relaxed ${isLiveSpeaking ? 'text-white drop-shadow-sm' : ''}`}>
                         "{chunk}"
                       </p>
                     ))}
@@ -812,7 +791,7 @@ export default function LiveInterpreter({
                 <span className={`w-2.5 h-2.5 rounded-full ${activeMic ? 'bg-amber-500 animate-ping' : isDark ? 'bg-slate-600' : 'bg-slate-300'}`} />
                 <span className="truncate">원문 12pt 고정 · 🔒 510px 1.5배 대형 중심 무대</span>
               </span>
-              {interimText && (
+              {isLiveSpeaking && (
                 <span className="text-amber-500 font-mono text-[8pt] shrink-0 animate-pulse">Live Transcribing...</span>
               )}
             </div>
@@ -846,17 +825,9 @@ export default function LiveInterpreter({
               <div className={`text-[12pt] font-bold leading-relaxed break-keep-all ${
                 isDark ? 'text-amber-300' : 'text-indigo-950'
               }`}>
-                {liveStreamingTranslation ? (
-                  <div className="space-y-2">
-                    {splitIntoIntelligibleChunks(liveStreamingTranslation).map((chunk, idx) => (
-                      <p key={idx} className="leading-relaxed">
-                        {chunk}
-                      </p>
-                    ))}
-                  </div>
-                ) : messages[0]?.translation ? (
+                {currentLiveTranslation ? (
                   <div className="space-y-2.5">
-                    {splitIntoIntelligibleChunks(messages[0].translation).map((chunk, idx) => (
+                    {splitIntoIntelligibleChunks(currentLiveTranslation).map((chunk, idx) => (
                       <p key={idx} className="font-extrabold leading-relaxed text-amber-300">
                         {chunk}
                       </p>
