@@ -226,7 +226,7 @@ const MessageCardItem = React.memo(function MessageCardItem({
           </div>
         ) : (
           (() => {
-            // 1. If message has pre-aligned pairs, render them directly (100% Guaranteed 1:1 Match)
+            // 1. If message has pre-aligned pairs, render them directly (100% Guaranteed 1:1 Match at Strict 8pt)
             if (msg.pairs && Array.isArray(msg.pairs) && msg.pairs.length > 0) {
               return msg.pairs.map((pair, idx) => (
                 <div 
@@ -239,13 +239,13 @@ const MessageCardItem = React.memo(function MessageCardItem({
                 >
                   <div className="flex items-start gap-1.5 font-medium select-text">
                     <span className="font-mono text-[7pt] text-amber-500/80 font-bold shrink-0 mt-0.5">[{idx + 1}]</span>
-                    <p className={`break-keep-all ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
+                    <p style={{ fontSize: '8pt' }} className={`text-[8pt] leading-relaxed break-keep-all ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
                       {pair.orig}
                     </p>
                   </div>
                   <div className="flex items-start gap-1.5 font-bold select-text">
                     <span className="font-mono text-[7pt] text-indigo-400 font-bold shrink-0 mt-0.5">[{idx + 1}]</span>
-                    <p className={`break-keep-all ${isDark ? 'text-amber-300' : 'text-indigo-950'}`}>
+                    <p style={{ fontSize: '8pt' }} className={`text-[8pt] leading-relaxed break-keep-all ${isDark ? 'text-amber-300' : 'text-indigo-950'}`}>
                       {pair.trans}
                     </p>
                   </div>
@@ -253,11 +253,11 @@ const MessageCardItem = React.memo(function MessageCardItem({
               ));
             }
 
-            // 2. Fallback Alignment for legacy messages or external text
+            // 2. Fallback Alignment for legacy messages or external text (Strict 8pt)
             const originalSentences = splitIntoSentences(msg.original || '');
             const translationSentences = splitIntoSentences(msg.translation || '');
 
-            // If sentence counts match, display 1:1
+            // If sentence counts match, display 1:1 at strict 8pt
             if (originalSentences.length === translationSentences.length) {
               return originalSentences.map((orig, idx) => (
                 <div 
@@ -270,13 +270,13 @@ const MessageCardItem = React.memo(function MessageCardItem({
                 >
                   <div className="flex items-start gap-1.5 font-medium select-text">
                     <span className="font-mono text-[7pt] text-amber-500/80 font-bold shrink-0 mt-0.5">[{idx + 1}]</span>
-                    <p className={`break-keep-all ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
+                    <p style={{ fontSize: '8pt' }} className={`text-[8pt] leading-relaxed break-keep-all ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
                       {orig}
                     </p>
                   </div>
                   <div className="flex items-start gap-1.5 font-bold select-text">
                     <span className="font-mono text-[7pt] text-indigo-400 font-bold shrink-0 mt-0.5">[{idx + 1}]</span>
-                    <p className={`break-keep-all ${isDark ? 'text-amber-300' : 'text-indigo-950'}`}>
+                    <p style={{ fontSize: '8pt' }} className={`text-[8pt] leading-relaxed break-keep-all ${isDark ? 'text-amber-300' : 'text-indigo-950'}`}>
                       {translationSentences[idx]}
                     </p>
                   </div>
@@ -284,7 +284,7 @@ const MessageCardItem = React.memo(function MessageCardItem({
               ));
             }
 
-            // If sentence counts differ, display as single cohesive matching block to prevent empty rows
+            // If sentence counts differ, display as single cohesive matching block at strict 8pt
             return (
               <div 
                 className={`grid grid-cols-1 md:grid-cols-2 gap-2.5 p-2 rounded-lg border transition ${
@@ -295,13 +295,13 @@ const MessageCardItem = React.memo(function MessageCardItem({
               >
                 <div className="flex items-start gap-1.5 font-medium select-text">
                   <span className="font-mono text-[7pt] text-amber-500/80 font-bold shrink-0 mt-0.5">[1]</span>
-                  <p className={`break-keep-all ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
+                  <p style={{ fontSize: '8pt' }} className={`text-[8pt] leading-relaxed break-keep-all ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
                     {msg.original}
                   </p>
                 </div>
                 <div className="flex items-start gap-1.5 font-bold select-text">
                   <span className="font-mono text-[7pt] text-indigo-400 font-bold shrink-0 mt-0.5">[1]</span>
-                  <p className={`break-keep-all ${isDark ? 'text-amber-300' : 'text-indigo-950'}`}>
+                  <p style={{ fontSize: '8pt' }} className={`text-[8pt] leading-relaxed break-keep-all ${isDark ? 'text-amber-300' : 'text-indigo-950'}`}>
                     {msg.translation}
                   </p>
                 </div>
