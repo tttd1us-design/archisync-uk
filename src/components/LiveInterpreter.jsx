@@ -138,12 +138,20 @@ const MessageCardItem = React.memo(function MessageCardItem({
   onStartEdit,
   onCancelEdit,
   onChangeEditText,
-  onSaveEdit
+  onSaveEdit,
+  splitRatio = 50
 }) {
   const isUK = msg.lang === 'en-GB' || msg.lang?.startsWith('en');
   const isZH = msg.lang?.startsWith('zh');
   const isJP = msg.lang?.startsWith('ja');
   const flag = isZH ? '🇨🇳' : isJP ? '🇯🇵' : isUK ? '🇬🇧' : '🇰🇷';
+
+  // Dynamic grid column template matching the live stage split ratio
+  const gridStyle = {
+    display: 'grid',
+    gridTemplateColumns: `minmax(0, ${splitRatio}fr) minmax(0, ${100 - splitRatio}fr)`,
+    gap: '0.625rem'
+  };
 
   return (
     <div className={`w-full rounded-xl p-2.5 border transition-all ${
@@ -202,7 +210,7 @@ const MessageCardItem = React.memo(function MessageCardItem({
         </div>
       </div>
 
-      {/* 2. Dual Column 1:1 Sentence-by-Sentence Parallel Comparison (8pt Professional Layout) */}
+      {/* 2. Dual Column 1:1 Sentence-by-Sentence Parallel Comparison (8pt Professional Layout with Dynamic Split Ratio) */}
       <div className="space-y-1.5 text-[8pt] leading-relaxed">
         {editingId === msg.id ? (
           <div className="p-2.5 rounded-lg border bg-slate-900 border-amber-500/50 space-y-2">
@@ -231,19 +239,20 @@ const MessageCardItem = React.memo(function MessageCardItem({
               return msg.pairs.map((pair, idx) => (
                 <div 
                   key={idx} 
-                  className={`grid grid-cols-1 md:grid-cols-2 gap-2.5 p-2 rounded-lg border transition ${
+                  style={gridStyle}
+                  className={`p-2 rounded-lg border transition ${
                     isDark 
                       ? 'bg-slate-900/60 border-slate-800/80 hover:border-slate-700' 
                       : 'bg-slate-50 border-slate-200 hover:border-slate-300'
                   }`}
                 >
-                  <div className="flex items-start gap-1.5 font-medium select-text">
+                  <div className="flex items-start gap-1.5 font-medium select-text min-w-0">
                     <span className="font-mono text-[7pt] text-amber-500/80 font-bold shrink-0 mt-0.5">[{idx + 1}]</span>
                     <p style={{ fontSize: '8pt' }} className={`text-[8pt] leading-relaxed break-keep-all ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
                       {pair.orig}
                     </p>
                   </div>
-                  <div className="flex items-start gap-1.5 font-bold select-text">
+                  <div className="flex items-start gap-1.5 font-bold select-text min-w-0">
                     <span className="font-mono text-[7pt] text-indigo-400 font-bold shrink-0 mt-0.5">[{idx + 1}]</span>
                     <p style={{ fontSize: '8pt' }} className={`text-[8pt] leading-relaxed break-keep-all ${isDark ? 'text-amber-300' : 'text-indigo-950'}`}>
                       {pair.trans}
@@ -262,19 +271,20 @@ const MessageCardItem = React.memo(function MessageCardItem({
               return originalSentences.map((orig, idx) => (
                 <div 
                   key={idx} 
-                  className={`grid grid-cols-1 md:grid-cols-2 gap-2.5 p-2 rounded-lg border transition ${
+                  style={gridStyle}
+                  className={`p-2 rounded-lg border transition ${
                     isDark 
                       ? 'bg-slate-900/60 border-slate-800/80 hover:border-slate-700' 
                       : 'bg-slate-50 border-slate-200 hover:border-slate-300'
                   }`}
                 >
-                  <div className="flex items-start gap-1.5 font-medium select-text">
+                  <div className="flex items-start gap-1.5 font-medium select-text min-w-0">
                     <span className="font-mono text-[7pt] text-amber-500/80 font-bold shrink-0 mt-0.5">[{idx + 1}]</span>
                     <p style={{ fontSize: '8pt' }} className={`text-[8pt] leading-relaxed break-keep-all ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
                       {orig}
                     </p>
                   </div>
-                  <div className="flex items-start gap-1.5 font-bold select-text">
+                  <div className="flex items-start gap-1.5 font-bold select-text min-w-0">
                     <span className="font-mono text-[7pt] text-indigo-400 font-bold shrink-0 mt-0.5">[{idx + 1}]</span>
                     <p style={{ fontSize: '8pt' }} className={`text-[8pt] leading-relaxed break-keep-all ${isDark ? 'text-amber-300' : 'text-indigo-950'}`}>
                       {translationSentences[idx]}
@@ -287,19 +297,20 @@ const MessageCardItem = React.memo(function MessageCardItem({
             // If sentence counts differ, display as single cohesive matching block at strict 8pt
             return (
               <div 
-                className={`grid grid-cols-1 md:grid-cols-2 gap-2.5 p-2 rounded-lg border transition ${
+                style={gridStyle}
+                className={`p-2 rounded-lg border transition ${
                   isDark 
                     ? 'bg-slate-900/60 border-slate-800/80 hover:border-slate-700' 
                     : 'bg-slate-50 border-slate-200 hover:border-slate-300'
                 }`}
               >
-                <div className="flex items-start gap-1.5 font-medium select-text">
+                <div className="flex items-start gap-1.5 font-medium select-text min-w-0">
                   <span className="font-mono text-[7pt] text-amber-500/80 font-bold shrink-0 mt-0.5">[1]</span>
                   <p style={{ fontSize: '8pt' }} className={`text-[8pt] leading-relaxed break-keep-all ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
                     {msg.original}
                   </p>
                 </div>
-                <div className="flex items-start gap-1.5 font-bold select-text">
+                <div className="flex items-start gap-1.5 font-bold select-text min-w-0">
                   <span className="font-mono text-[7pt] text-indigo-400 font-bold shrink-0 mt-0.5">[1]</span>
                   <p style={{ fontSize: '8pt' }} className={`text-[8pt] leading-relaxed break-keep-all ${isDark ? 'text-amber-300' : 'text-indigo-950'}`}>
                     {msg.translation}
@@ -354,6 +365,29 @@ export default function LiveInterpreter({
   const [summaryData, setSummaryData] = useState(null);
   const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
 
+  // 🎛️ Dynamic Resizing & Split Ratio States (사용자 칸 크기 조절 상태)
+  const [splitRatio, setSplitRatio] = useState(() => {
+    try {
+      const saved = localStorage.getItem('archisync_split_ratio');
+      return saved ? Math.min(80, Math.max(20, Number(saved))) : 50;
+    } catch {
+      return 50;
+    }
+  });
+
+  const [stageHeight, setStageHeight] = useState(() => {
+    try {
+      const saved = localStorage.getItem('archisync_stage_height');
+      return saved ? Math.min(850, Math.max(280, Number(saved))) : 510;
+    } catch {
+      return 510;
+    }
+  });
+
+  const [isDraggingSplit, setIsDraggingSplit] = useState(false);
+  const [isDraggingHeight, setIsDraggingHeight] = useState(false);
+  const stageContainerRef = useRef(null);
+
   const messagesBottomRef = useRef(null);
   const liveLeftViewportRef = useRef(null);
   const liveRightViewportRef = useRef(null);
@@ -362,6 +396,69 @@ export default function LiveInterpreter({
   const interimTranslateTimerRef = useRef(null);
   const recordingTimerRef = useRef(null);
   const isSpacePressedRef = useRef(false);
+
+  // 📐 Horizontal Split Drag Handler (좌우 칸 너비 마우스 드래그 조절)
+  const handleSplitDragStart = (e) => {
+    e.preventDefault();
+    setIsDraggingSplit(true);
+
+    const onMouseMove = (moveEvent) => {
+      if (!stageContainerRef.current) return;
+      const rect = stageContainerRef.current.getBoundingClientRect();
+      const clientX = moveEvent.clientX;
+      const ratio = ((clientX - rect.left) / rect.width) * 100;
+      const clampedRatio = Math.min(80, Math.max(20, Math.round(ratio)));
+      setSplitRatio(clampedRatio);
+      try {
+        localStorage.setItem('archisync_split_ratio', clampedRatio);
+      } catch {}
+    };
+
+    const onMouseUp = () => {
+      setIsDraggingSplit(false);
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+    };
+
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+  };
+
+  // ↕️ Vertical Height Drag Handler (상단 무대 높이 마우스 드래그 조절)
+  const handleHeightDragStart = (e) => {
+    e.preventDefault();
+    setIsDraggingHeight(true);
+    const startY = e.clientY;
+    const startHeight = stageHeight;
+
+    const onMouseMove = (moveEvent) => {
+      const deltaY = moveEvent.clientY - startY;
+      const newHeight = Math.min(850, Math.max(280, Math.round(startHeight + deltaY)));
+      setStageHeight(newHeight);
+      try {
+        localStorage.setItem('archisync_stage_height', newHeight);
+      } catch {}
+    };
+
+    const onMouseUp = () => {
+      setIsDraggingHeight(false);
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+    };
+
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+  };
+
+  // 🔄 Reset Sizes to Default (기본 크기로 원터치 리셋)
+  const handleResetSizes = () => {
+    setSplitRatio(50);
+    setStageHeight(510);
+    try {
+      localStorage.setItem('archisync_split_ratio', 50);
+      localStorage.setItem('archisync_stage_height', 510);
+    } catch {}
+  };
 
   // 🔒 Auto-Scroll Viewports on Live Speech Stream (Keeps newest speech in view without overflowing box)
   useEffect(() => {
@@ -997,12 +1094,12 @@ export default function LiveInterpreter({
             </div>
           </div>
 
-          <div className="flex items-center space-x-2">
+          <div className="flex flex-wrap items-center gap-1.5">
             {/* 🎛️ Real-time Font Zoom Controls (A- / A+) */}
             <div className={`flex items-center space-x-1 px-2 py-1 rounded-lg border text-xs font-bold ${
               isDark ? 'bg-slate-800 text-slate-200 border-slate-700' : 'bg-slate-100 text-slate-800 border-slate-200 shadow-xs'
             }`}>
-              <span className="text-[7.5pt] opacity-70">크기:</span>
+              <span className="text-[7.5pt] opacity-70">글자:</span>
               <button 
                 onClick={() => setFontSizeScale(prev => Math.max(9, prev - 1))}
                 className="px-1 hover:text-amber-400 font-bold transition"
@@ -1017,6 +1114,56 @@ export default function LiveInterpreter({
                 title="글자 크기 확대"
               >
                 A+
+              </button>
+            </div>
+
+            {/* 📐 Dynamic Split Ratio & Height Presets (칸 사이즈 조절 독) */}
+            <div className={`flex items-center space-x-1 px-2 py-1 rounded-lg border text-xs font-bold ${
+              isDark ? 'bg-slate-800 text-slate-200 border-slate-700' : 'bg-slate-100 text-slate-800 border-slate-200 shadow-xs'
+            }`}>
+              <span className="text-[7.5pt] opacity-70">📐칸:</span>
+              <button
+                onClick={() => { setSplitRatio(50); try { localStorage.setItem('archisync_split_ratio', 50); } catch {} }}
+                className={`px-1.5 py-0.5 rounded text-[7.5pt] font-mono transition ${splitRatio === 50 ? 'bg-amber-500 text-slate-950 font-bold' : 'hover:text-amber-400'}`}
+                title="5:5 균등 분할"
+              >
+                5:5
+              </button>
+              <button
+                onClick={() => { setSplitRatio(40); try { localStorage.setItem('archisync_split_ratio', 40); } catch {} }}
+                className={`px-1.5 py-0.5 rounded text-[7.5pt] font-mono transition ${splitRatio === 40 ? 'bg-amber-500 text-slate-950 font-bold' : 'hover:text-amber-400'}`}
+                title="4:6 (한글 통역 확대)"
+              >
+                4:6
+              </button>
+              <button
+                onClick={() => { setSplitRatio(60); try { localStorage.setItem('archisync_split_ratio', 60); } catch {} }}
+                className={`px-1.5 py-0.5 rounded text-[7.5pt] font-mono transition ${splitRatio === 60 ? 'bg-amber-500 text-slate-950 font-bold' : 'hover:text-amber-400'}`}
+                title="6:4 (원문 발화 확대)"
+              >
+                6:4
+              </button>
+              <span className="text-slate-600 dark:text-slate-700">|</span>
+              <button
+                onClick={() => { setStageHeight(380); try { localStorage.setItem('archisync_stage_height', 380); } catch {} }}
+                className={`px-1.5 py-0.5 rounded text-[7.5pt] font-mono transition ${stageHeight === 380 ? 'bg-amber-500 text-slate-950 font-bold' : 'hover:text-amber-400'}`}
+                title="무대 높이 축소 (380px)"
+              >
+                ↕S
+              </button>
+              <button
+                onClick={() => { setStageHeight(510); try { localStorage.setItem('archisync_stage_height', 510); } catch {} }}
+                className={`px-1.5 py-0.5 rounded text-[7.5pt] font-mono transition ${stageHeight === 510 ? 'bg-amber-500 text-slate-950 font-bold' : 'hover:text-amber-400'}`}
+                title="무대 높이 표준 (510px)"
+              >
+                ↕M
+              </button>
+              <button
+                onClick={() => { setStageHeight(650); try { localStorage.setItem('archisync_stage_height', 650); } catch {} }}
+                className={`px-1.5 py-0.5 rounded text-[7.5pt] font-mono transition ${stageHeight === 650 ? 'bg-amber-500 text-slate-950 font-bold' : 'hover:text-amber-400'}`}
+                title="무대 높이 확대 (650px)"
+              >
+                ↕L
               </button>
             </div>
 
@@ -1069,15 +1216,26 @@ export default function LiveInterpreter({
           </div>
         </div>
 
-        {/* 🌟 CENTRAL LIVE REAL-TIME STAGE (Fixed 1.5X Grand 510px Viewport: Strict 12pt Typography) */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 items-stretch">
+        {/* 🌟 CENTRAL LIVE REAL-TIME STAGE (Dynamic Split & Height Resizable Viewport) */}
+        <div 
+          ref={stageContainerRef}
+          style={{ minHeight: `${stageHeight}px` }}
+          className="flex flex-col md:flex-row items-stretch relative transition-all"
+        >
           
-          {/* ⬅️ LEFT SCREEN: Live Spoken Foreign Speech (Fixed Height 510px - Strict 12pt) */}
-          <div className={`${
-            isDark 
-              ? 'bg-slate-950/90 border border-slate-800 text-slate-100' 
-              : 'bg-slate-50 border border-slate-200 text-slate-900 shadow-xs'
-          } p-4 rounded-xl flex flex-col justify-between h-[510px] max-h-[510px] transition-all relative overflow-hidden`}>
+          {/* ⬅️ LEFT SCREEN: Live Spoken Foreign Speech (Dynamic Resizable Width & Height) */}
+          <div 
+            style={{ 
+              width: window.innerWidth >= 768 ? `calc(${splitRatio}% - 6px)` : '100%',
+              height: `${stageHeight}px`, 
+              maxHeight: `${stageHeight}px` 
+            }}
+            className={`${
+              isDark 
+                ? 'bg-slate-950/90 border border-slate-800 text-slate-100' 
+                : 'bg-slate-50 border border-slate-200 text-slate-900 shadow-xs'
+            } p-4 rounded-xl flex flex-col justify-between transition-all relative overflow-hidden shrink-0 min-w-0`}
+          >
             
             {/* Header: Fixed Height (h-8) */}
             <div className={`flex items-center justify-between pb-2.5 border-b shrink-0 h-8 ${
@@ -1117,7 +1275,7 @@ export default function LiveInterpreter({
               </span>
             </div>
             
-            {/* Scrollable Fixed Text Viewport (h-[405px] overflow-y-auto - Strict 12pt View) */}
+            {/* Scrollable Fixed Text Viewport (overflow-y-auto) */}
             <div 
               ref={liveLeftViewportRef}
               className="flex-1 my-3 overflow-y-auto pr-2 select-text scrollbar-thin scrollbar-thumb-slate-700 space-y-3"
@@ -1151,7 +1309,7 @@ export default function LiveInterpreter({
             <div className={`pt-2 border-t shrink-0 h-7 ${isDark ? 'border-slate-800/80 text-slate-400' : 'border-slate-100 text-slate-500'} text-[8.5pt] font-medium flex items-center justify-between`}>
               <span className="flex items-center gap-2">
                 <span className={`w-2.5 h-2.5 rounded-full ${activeMic ? 'bg-amber-500 animate-ping' : isDark ? 'bg-slate-600' : 'bg-slate-300'}`} />
-                <span className="truncate">원문 {fontSizeScale}pt · 🔒 510px 1.5배 대형 중심 무대</span>
+                <span className="truncate">원문 {fontSizeScale}pt · 너비 {splitRatio}% · 높이 {stageHeight}px</span>
               </span>
               {isLiveSpeaking && (
                 <span className="text-amber-500 font-mono text-[8pt] shrink-0 animate-pulse">Live Transcribing...</span>
@@ -1159,12 +1317,35 @@ export default function LiveInterpreter({
             </div>
           </div>
 
-          {/* ➡️ RIGHT SCREEN: Live Instant Korean Translation (Fixed Height 510px - Strict 12pt) */}
-          <div className={`${
-            isDark 
-              ? 'bg-indigo-950/40 border border-indigo-500/30 text-amber-300' 
-              : 'bg-indigo-50/70 border border-indigo-200 text-indigo-950 shadow-xs'
-          } p-4 rounded-xl flex flex-col justify-between h-[510px] max-h-[510px] transition-all relative overflow-hidden`}>
+          {/* ↔️ Central Horizontal Split Resizer Handle (마우스 좌우 드래그 바) */}
+          <div
+            onMouseDown={handleSplitDragStart}
+            onDoubleClick={handleResetSizes}
+            className={`hidden md:flex w-3 mx-0.5 my-auto h-[94%] rounded-full cursor-col-resize items-center justify-center transition-all group shrink-0 select-none ${
+              isDraggingSplit 
+                ? 'bg-amber-500 shadow-md shadow-amber-500/50 scale-110' 
+                : isDark ? 'hover:bg-slate-700/80 bg-transparent' : 'hover:bg-slate-300/80 bg-transparent'
+            }`}
+            title="좌우로 드래그하여 칸 너비를 조절하세요 (더블클릭 시 5:5 리셋)"
+          >
+            <div className={`w-1 h-8 rounded-full transition-all ${
+              isDraggingSplit ? 'bg-slate-950 h-12' : isDark ? 'bg-slate-700 group-hover:bg-amber-400 group-hover:h-12' : 'bg-slate-300 group-hover:bg-amber-500 group-hover:h-12'
+            }`} />
+          </div>
+
+          {/* ➡️ RIGHT SCREEN: Live Instant Korean Translation (Dynamic Resizable Width & Height) */}
+          <div 
+            style={{ 
+              width: window.innerWidth >= 768 ? `calc(${100 - splitRatio}% - 6px)` : '100%',
+              height: `${stageHeight}px`, 
+              maxHeight: `${stageHeight}px` 
+            }}
+            className={`${
+              isDark 
+                ? 'bg-indigo-950/40 border border-indigo-500/30 text-amber-300' 
+                : 'bg-indigo-50/70 border border-indigo-200 text-indigo-950 shadow-xs'
+            } p-4 rounded-xl flex flex-col justify-between transition-all relative overflow-hidden shrink-0 min-w-0`}
+          >
             
             {/* Header: Fixed Height (h-8) */}
             <div className={`flex items-center justify-between pb-2.5 border-b shrink-0 h-8 ${
@@ -1182,7 +1363,7 @@ export default function LiveInterpreter({
               </span>
             </div>
 
-            {/* Scrollable Fixed Text Viewport (h-[405px] overflow-y-auto - Strict 12pt View) */}
+            {/* Scrollable Fixed Text Viewport (overflow-y-auto) */}
             <div 
               ref={liveRightViewportRef}
               className="flex-1 my-3 overflow-y-auto pr-2 select-text scrollbar-thin scrollbar-thumb-indigo-700 space-y-3"
@@ -1214,11 +1395,27 @@ export default function LiveInterpreter({
 
             {/* Footer: Fixed Height (h-7) */}
             <div className={`pt-2 border-t shrink-0 h-7 ${isDark ? 'border-indigo-500/30 text-indigo-300/80' : 'border-indigo-100 text-indigo-700'} text-[8.5pt] font-medium flex items-center justify-between`}>
-              <span className="truncate">한글 12pt 고정 · 🔒 510px 1.5배 대형 중심 무대</span>
+              <span className="truncate">한글 12pt 고정 · 너비 {100 - splitRatio}% · 높이 {stageHeight}px</span>
               <span className="font-bold text-amber-400 shrink-0">100% 무조건 한글 출력</span>
             </div>
           </div>
 
+        </div>
+
+        {/* ↕️ Bottom Vertical Height Resizer Handle (마우스 상하 드래그 바) */}
+        <div
+          onMouseDown={handleHeightDragStart}
+          onDoubleClick={handleResetSizes}
+          className={`w-full h-3 mt-1 rounded-lg cursor-row-resize flex items-center justify-center transition-all group select-none ${
+            isDraggingHeight 
+              ? 'bg-amber-500/30 ring-1 ring-amber-400' 
+              : isDark ? 'hover:bg-slate-800/80' : 'hover:bg-slate-100'
+          }`}
+          title="위아래로 드래그하여 무대 높이를 조절하세요 (더블클릭 시 510px 리셋)"
+        >
+          <div className={`w-16 h-1 rounded-full transition-all ${
+            isDraggingHeight ? 'bg-amber-400 w-24' : isDark ? 'bg-slate-700 group-hover:bg-amber-400 group-hover:w-24' : 'bg-slate-300 group-hover:bg-amber-500 group-hover:w-24'
+          }`} />
         </div>
       </div>
 
@@ -1411,6 +1608,7 @@ export default function LiveInterpreter({
             onCancelEdit={() => setEditingId(null)}
             onChangeEditText={setEditTranslationText}
             onSaveEdit={handleSaveCorrection}
+            splitRatio={splitRatio}
           />
         ))}
         <div ref={messagesBottomRef} />
