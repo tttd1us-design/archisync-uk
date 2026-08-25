@@ -230,6 +230,7 @@ function localVoiceStoragePlugin() {
 }
 
 export default defineConfig({
+  base: './',
   plugins: [react(), localVoiceStoragePlugin()],
   server: {
     port: 5173,
