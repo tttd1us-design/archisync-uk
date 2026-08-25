@@ -165,7 +165,7 @@ const MessageCardItem = React.memo(function MessageCardItem({
   };
 
   return (
-    <div className={`w-full rounded-xl p-2.5 border transition-all ${
+    <div className={`w-full rounded-xl p-2.5 border transition-all render-optimized gpu-accelerated ${
       isStarred
         ? isDark ? 'bg-amber-950/30 border-amber-500/60 text-slate-100 shadow-md' : 'bg-amber-50/80 border-amber-300 text-slate-900 shadow-xs'
         : isDark ? 'bg-slate-950/85 border-slate-800/80 text-slate-100 hover:border-slate-700' : 'bg-white border-slate-200 text-slate-900 shadow-xs hover:border-slate-300'
@@ -1648,7 +1648,7 @@ export default function LiveInterpreter({
               isDark 
                 ? 'bg-slate-950/90 border border-slate-800 text-slate-100' 
                 : 'bg-slate-50 border border-slate-200 text-slate-900 shadow-xs'
-            } p-4 rounded-xl flex flex-col justify-between transition-all relative overflow-hidden shrink-0 min-w-0 group/left`}
+            } p-4 rounded-xl flex flex-col justify-between transition-all relative overflow-hidden shrink-0 min-w-0 group/left gpu-accelerated`}
           >
             
             {/* Header: Fixed Height (h-8) with Left Font Size & Quick Height Expander */}
@@ -1831,7 +1831,7 @@ export default function LiveInterpreter({
               isDark 
                 ? 'bg-indigo-950/40 border border-indigo-500/30 text-amber-300' 
                 : 'bg-indigo-50/70 border border-indigo-200 text-indigo-950 shadow-xs'
-            } p-4 rounded-xl flex flex-col justify-between transition-all relative overflow-hidden shrink-0 min-w-0 group/right`}
+            } p-4 rounded-xl flex flex-col justify-between transition-all relative overflow-hidden shrink-0 min-w-0 group/right gpu-accelerated`}
           >
             
             {/* Header: Fixed Height (h-8) with Dedicated Right Font Size & Height Expander */}
