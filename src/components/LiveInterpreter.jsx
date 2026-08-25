@@ -348,10 +348,12 @@ export default function LiveInterpreter({
   theme = 'dark'
 }) {
   const isDark = theme === 'dark';
-  const [activeMic, setActiveMic] = useState(null); // 'en-GB' | 'en-US' | 'ko-KR' | null
+  const [activeMic, setActiveMic] = useState(null); // 'en-GB' | 'en-US' | 'ko-KR' | 'auto' | null
   const [selectedEnglishAccent, setSelectedEnglishAccent] = useState('en-GB'); // 'en-GB' | 'en-US'
   const [currentLiveOriginal, setCurrentLiveOriginal] = useState('');
   const [currentLiveTranslation, setCurrentLiveTranslation] = useState('');
+  const [interimText, setInterimText] = useState('');
+  const [liveStreamingTranslation, setLiveStreamingTranslation] = useState('');
   const [isLiveSpeaking, setIsLiveSpeaking] = useState(false);
   const [customInput, setCustomInput] = useState('');
   const [inputLang, setInputLang] = useState('en-GB');
@@ -1010,6 +1012,7 @@ export default function LiveInterpreter({
         continuous: true,
         onInterimResult: (streamText) => {
           setIsLiveSpeaking(true);
+          setInterimText(streamText);
           setCurrentLiveOriginal(streamText);
           
           // 🚀 Smooth debounced translation preview (250ms) without CPU congestion
@@ -1024,6 +1027,7 @@ export default function LiveInterpreter({
                 apiKey: apiKey
               });
               setCurrentLiveTranslation(streamTrans);
+              setLiveStreamingTranslation(streamTrans);
             }, 250);
           }
         },
@@ -1032,6 +1036,7 @@ export default function LiveInterpreter({
           if (interimTranslateTimerRef.current) clearTimeout(interimTranslateTimerRef.current);
 
           setIsLiveSpeaking(false);
+          setInterimText('');
           const fullSentence = finalText.trim();
           setCurrentLiveOriginal(fullSentence);
 
