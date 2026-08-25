@@ -59,7 +59,7 @@ namespace ArchiSync
                 }
 
                 string url = "http://localhost:5173";
-                string gpuFlags = "--enable-gpu-rasterization --enable-zero-copy --ignore-gpu-blocklist --enable-features=VaapiVideoDecoder";
+                string gpuFlags = "--enable-gpu-rasterization --enable-zero-copy --ignore-gpu-blocklist --enable-features=VaapiVideoDecoder --disable-background-timer-throttling --disable-backgrounding-occluded-windows --disable-renderer-backgrounding";
 
                 if (File.Exists(chromePath))
                 {

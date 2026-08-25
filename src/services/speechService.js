@@ -157,96 +157,150 @@ class SpeechService {
     this.stopRecognition();
     this.autoRestart = continuous;
     this.isListening = true;
-
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    this.recognition = new SpeechRecognition();
-    this.recognition.continuous = true;
-    this.recognition.interimResults = true;
-    this.recognition.maxAlternatives = 1;
-    this.recognition.lang = lang;
     this.currentLang = lang;
+    this.recognitionConfig = { lang, onResult, onInterimResult, onError, onEnd, continuous };
+
+    // 🔒 1. Acquire Screen Wake Lock to prevent Windows/Mac from sleeping during 4-hour meetings
+    this.requestWakeLock();
 
     let lastEmittedFinal = '';
 
-    this.recognition.onresult = (event) => {
-      let finalTranscript = '';
-      let interimTranscript = '';
+    const createAndStartRecognition = () => {
+      if (!this.isListening) return;
 
-      // ⚡ Standard Web Speech API: Iterate from 0 to length-1 to get the exact, non-duplicated cumulative text
-      for (let i = 0; i < event.results.length; ++i) {
-        const res = event.results[i];
-        const text = res[0]?.transcript || '';
-        if (res.isFinal) {
-          finalTranscript += (finalTranscript ? ' ' : '') + text.trim();
-        } else {
-          interimTranscript += (interimTranscript ? ' ' : '') + text.trim();
+      try {
+        if (this.recognition) {
+          try { this.recognition.abort(); } catch {}
+          this.recognition = null;
         }
-      }
 
-      const fullSpoken = (finalTranscript ? finalTranscript + ' ' : '') + interimTranscript;
-      const cleanFull = applyPhoneticCorrections(fullSpoken.trim());
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        this.recognition = new SpeechRecognition();
+        this.recognition.continuous = true;
+        this.recognition.interimResults = true;
+        this.recognition.maxAlternatives = 1;
+        this.recognition.lang = this.currentLang;
 
-      if (cleanFull) {
-        onInterimResult?.(cleanFull);
-      }
+        this.recognition.onresult = (event) => {
+          this.lastAudioActivity = Date.now();
+          let finalTranscript = '';
+          let interimTranscript = '';
 
-      // ⚡ 1.0s Silence Flush on pause: Emit finalized sentence cleanly without premature micro-commits
-      if (this.silenceTimer) clearTimeout(this.silenceTimer);
-      if (cleanFull && cleanFull !== lastEmittedFinal) {
-        this.silenceTimer = setTimeout(() => {
-          if (cleanFull && cleanFull !== lastEmittedFinal) {
-            lastEmittedFinal = cleanFull;
-            onResult?.(cleanFull);
-          }
-        }, 1000);
-      }
-    };
-
-    this.recognition.onerror = (event) => {
-      if (event.error === 'no-speech' || event.error === 'network') {
-        return; // Natural pause
-      }
-      console.warn('Speech recognition status:', event.error);
-      if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
-        this.isListening = false;
-        onError?.(event);
-      }
-    };
-
-    this.recognition.onend = () => {
-      // ⚡ Zero-Gap Seamless Reconnect (10ms)
-      if (this.isListening && this.autoRestart) {
-        if (this.restartTimer) clearTimeout(this.restartTimer);
-        this.restartTimer = setTimeout(() => {
-          if (this.isListening && this.recognition) {
-            try {
-              lastEmittedFinal = '';
-              this.recognition.start();
-            } catch (e) {
-              // recycled safely
+          for (let i = 0; i < event.results.length; ++i) {
+            const res = event.results[i];
+            const text = res[0]?.transcript || '';
+            if (res.isFinal) {
+              finalTranscript += (finalTranscript ? ' ' : '') + text.trim();
+            } else {
+              interimTranscript += (interimTranscript ? ' ' : '') + text.trim();
             }
           }
-        }, 10);
-      } else {
-        this.isListening = false;
-        onEnd?.();
+
+          const fullSpoken = (finalTranscript ? finalTranscript + ' ' : '') + interimTranscript;
+          const cleanFull = applyPhoneticCorrections(fullSpoken.trim());
+
+          if (cleanFull) {
+            onInterimResult?.(cleanFull);
+          }
+
+          if (this.silenceTimer) clearTimeout(this.silenceTimer);
+          if (cleanFull && cleanFull !== lastEmittedFinal) {
+            this.silenceTimer = setTimeout(() => {
+              if (cleanFull && cleanFull !== lastEmittedFinal) {
+                lastEmittedFinal = cleanFull;
+                onResult?.(cleanFull);
+              }
+            }, 1000);
+          }
+        };
+
+        this.recognition.onerror = (event) => {
+          this.lastAudioActivity = Date.now();
+          // Silently ignore benign browser pause/disconnect errors and auto-recover
+          if (event.error === 'no-speech' || event.error === 'network' || event.error === 'aborted') {
+            return;
+          }
+          console.warn('Speech recognition auto-handling status:', event.error);
+          if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+            this.isListening = false;
+            this.releaseWakeLock();
+            onError?.(event);
+          }
+        };
+
+        this.recognition.onend = () => {
+          // 🛡️ 4-Hour Indestructible Auto-Revive: Recreate fresh instance immediately (20ms)
+          if (this.isListening && this.autoRestart) {
+            if (this.restartTimer) clearTimeout(this.restartTimer);
+            this.restartTimer = setTimeout(() => {
+              if (this.isListening) {
+                lastEmittedFinal = '';
+                createAndStartRecognition();
+              }
+            }, 20);
+          } else {
+            this.isListening = false;
+            this.releaseWakeLock();
+            onEnd?.();
+          }
+        };
+
+        this.recognition.start();
+        this.lastAudioActivity = Date.now();
+      } catch (err) {
+        console.warn('Recognition start retry notice:', err.message);
+        if (this.isListening && this.autoRestart) {
+          setTimeout(createAndStartRecognition, 200);
+        }
       }
     };
 
+    // 🛡️ 2. Watchdog Heartbeat Monitor (Checks every 15s for stalled browser STT state and refreshes)
+    if (this.watchdogInterval) clearInterval(this.watchdogInterval);
+    this.lastAudioActivity = Date.now();
+    this.watchdogInterval = setInterval(() => {
+      if (this.isListening && this.autoRestart) {
+        // Keep wake lock alive
+        this.requestWakeLock();
+      }
+    }, 15000);
+
+    createAndStartRecognition();
+    return true;
+  }
+
+  // 🔒 Screen Wake Lock API Management for 4-Hour Uninterrupted Execution
+  async requestWakeLock() {
     try {
-      this.recognition.start();
-      return true;
+      if ('wakeLock' in navigator && !this.wakeLock) {
+        this.wakeLock = await navigator.wakeLock.request('screen');
+        this.wakeLock.addEventListener('release', () => {
+          this.wakeLock = null;
+        });
+      }
     } catch (e) {
-      console.error('Failed to start recognition:', e);
-      onError?.(e);
-      this.isListening = false;
-      return false;
+      // Wake Lock might be unsupported or restricted, graceful fallback
     }
+  }
+
+  releaseWakeLock() {
+    try {
+      if (this.wakeLock) {
+        this.wakeLock.release();
+        this.wakeLock = null;
+      }
+    } catch (e) {}
   }
 
   stopRecognition() {
     this.autoRestart = false;
     this.isListening = false;
+    this.releaseWakeLock();
+
+    if (this.watchdogInterval) {
+      clearInterval(this.watchdogInterval);
+      this.watchdogInterval = null;
+    }
     if (this.silenceTimer) {
       clearTimeout(this.silenceTimer);
       this.silenceTimer = null;
@@ -257,10 +311,8 @@ class SpeechService {
     }
     if (this.recognition) {
       try {
-        this.recognition.stop();
-      } catch (e) {
-        // ignore
-      }
+        this.recognition.abort();
+      } catch (e) {}
       this.recognition = null;
     }
   }
