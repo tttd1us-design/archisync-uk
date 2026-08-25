@@ -423,17 +423,31 @@ export default function LiveInterpreter({
     }
   });
 
-  const [stageHeight, setStageHeight] = useState(() => {
+  // ↕️ Left & Right Independent Box Heights (최대 1800px까지 아래로 넉넉하게 확장 가능)
+  const [leftStageHeight, setLeftStageHeight] = useState(() => {
     try {
-      const saved = localStorage.getItem('archisync_stage_height');
-      return saved ? Math.min(850, Math.max(220, Number(saved))) : 510;
+      const saved = localStorage.getItem('archisync_left_stage_height') || localStorage.getItem('archisync_stage_height');
+      return saved ? Math.min(1800, Math.max(200, Number(saved))) : 510;
     } catch {
       return 510;
     }
   });
 
+  const [rightStageHeight, setRightStageHeight] = useState(() => {
+    try {
+      const saved = localStorage.getItem('archisync_right_stage_height') || localStorage.getItem('archisync_stage_height');
+      return saved ? Math.min(1800, Math.max(200, Number(saved))) : 510;
+    } catch {
+      return 510;
+    }
+  });
+
+  const stageHeight = Math.max(leftStageHeight, rightStageHeight);
+
   const [isDraggingSplit, setIsDraggingSplit] = useState(false);
   const [isDraggingHeight, setIsDraggingHeight] = useState(false);
+  const [isDraggingLeftHeight, setIsDraggingLeftHeight] = useState(false);
+  const [isDraggingRightHeight, setIsDraggingRightHeight] = useState(false);
   const [isDraggingCorner, setIsDraggingCorner] = useState(false);
   const [showSizeSliderModal, setShowSizeSliderModal] = useState(false);
   const stageContainerRef = useRef(null);
@@ -478,20 +492,87 @@ export default function LiveInterpreter({
     window.addEventListener('touchend', onEnd);
   };
 
-  // ↕️ 2. Vertical Height Drag Handler (상하 수직 무대 높이 마우스/터치 드래그)
-  const handleHeightDragStart = (e) => {
+  // ↕️ 2-A. Left Box Specific Height Drag Handler (좌측 영어발화 칸 아래로 내리기)
+  const handleLeftHeightDragStart = (e) => {
     if (e.type === 'mousedown') e.preventDefault();
-    setIsDraggingHeight(true);
+    setIsDraggingLeftHeight(true);
     const startY = e.touches ? e.touches[0].clientY : e.clientY;
-    const startHeight = stageHeight;
+    const startHeight = leftStageHeight;
 
     const getClientY = (ev) => ev.touches ? ev.touches[0].clientY : ev.clientY;
 
     const onMove = (moveEvent) => {
       const deltaY = getClientY(moveEvent) - startY;
-      const newHeight = Math.min(850, Math.max(220, Math.round(startHeight + deltaY)));
-      setStageHeight(newHeight);
-      try { localStorage.setItem('archisync_stage_height', newHeight); } catch {}
+      const newHeight = Math.min(1800, Math.max(200, Math.round(startHeight + deltaY)));
+      setLeftStageHeight(newHeight);
+      try { localStorage.setItem('archisync_left_stage_height', newHeight); } catch {}
+    };
+
+    const onEnd = () => {
+      setIsDraggingLeftHeight(false);
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onEnd);
+      window.removeEventListener('touchmove', onMove);
+      window.removeEventListener('touchend', onEnd);
+    };
+
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onEnd);
+    window.addEventListener('touchmove', onMove, { passive: false });
+    window.addEventListener('touchend', onEnd);
+  };
+
+  // ↕️ 2-B. Right Box Specific Height Drag Handler (우측 한글통역 칸 아래로 내리기)
+  const handleRightHeightDragStart = (e) => {
+    if (e.type === 'mousedown') e.preventDefault();
+    setIsDraggingRightHeight(true);
+    const startY = e.touches ? e.touches[0].clientY : e.clientY;
+    const startHeight = rightStageHeight;
+
+    const getClientY = (ev) => ev.touches ? ev.touches[0].clientY : ev.clientY;
+
+    const onMove = (moveEvent) => {
+      const deltaY = getClientY(moveEvent) - startY;
+      const newHeight = Math.min(1800, Math.max(200, Math.round(startHeight + deltaY)));
+      setRightStageHeight(newHeight);
+      try { localStorage.setItem('archisync_right_stage_height', newHeight); } catch {}
+    };
+
+    const onEnd = () => {
+      setIsDraggingRightHeight(false);
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onEnd);
+      window.removeEventListener('touchmove', onMove);
+      window.removeEventListener('touchend', onEnd);
+    };
+
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onEnd);
+    window.addEventListener('touchmove', onMove, { passive: false });
+    window.addEventListener('touchend', onEnd);
+  };
+
+  // ↕️ 2-C. Global Both Boxes Height Drag Handler (양쪽 칸 동시에 아래로 내리기)
+  const handleHeightDragStart = (e) => {
+    if (e.type === 'mousedown') e.preventDefault();
+    setIsDraggingHeight(true);
+    const startY = e.touches ? e.touches[0].clientY : e.clientY;
+    const startLeft = leftStageHeight;
+    const startRight = rightStageHeight;
+
+    const getClientY = (ev) => ev.touches ? ev.touches[0].clientY : ev.clientY;
+
+    const onMove = (moveEvent) => {
+      const deltaY = getClientY(moveEvent) - startY;
+      const newLeft = Math.min(1800, Math.max(200, Math.round(startLeft + deltaY)));
+      const newRight = Math.min(1800, Math.max(200, Math.round(startRight + deltaY)));
+      setLeftStageHeight(newLeft);
+      setRightStageHeight(newRight);
+      try {
+        localStorage.setItem('archisync_left_stage_height', newLeft);
+        localStorage.setItem('archisync_right_stage_height', newRight);
+        localStorage.setItem('archisync_stage_height', Math.max(newLeft, newRight));
+      } catch {}
     };
 
     const onEnd = () => {
@@ -508,12 +589,12 @@ export default function LiveInterpreter({
     window.addEventListener('touchend', onEnd);
   };
 
-  // ↗️ 3. Free 2D Diagonal Corner Resizer (모서리 대각선 드래그: 가로 너비 & 세로 높이 동시 자유 조절)
-  const handleCornerDragStart = (e) => {
+  // ↗️ 3. Free 2D Diagonal Corner Resizer for Left Box
+  const handleLeftCornerDragStart = (e) => {
     if (e.type === 'mousedown') e.preventDefault();
     setIsDraggingCorner(true);
     const startY = e.touches ? e.touches[0].clientY : e.clientY;
-    const startHeight = stageHeight;
+    const startHeight = leftStageHeight;
 
     const getClient = (ev) => ({
       x: ev.touches ? ev.touches[0].clientX : ev.clientX,
@@ -530,14 +611,61 @@ export default function LiveInterpreter({
       const clampedRatio = Math.min(85, Math.max(15, Math.round(ratio)));
       setSplitRatio(clampedRatio);
 
-      // Height calculation
+      // Left Height calculation
       const deltaY = pos.y - startY;
-      const newHeight = Math.min(850, Math.max(220, Math.round(startHeight + deltaY)));
-      setStageHeight(newHeight);
+      const newHeight = Math.min(1800, Math.max(200, Math.round(startHeight + deltaY)));
+      setLeftStageHeight(newHeight);
 
       try {
         localStorage.setItem('archisync_split_ratio', clampedRatio);
-        localStorage.setItem('archisync_stage_height', newHeight);
+        localStorage.setItem('archisync_left_stage_height', newHeight);
+      } catch {}
+    };
+
+    const onEnd = () => {
+      setIsDraggingCorner(false);
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onEnd);
+      window.removeEventListener('touchmove', onMove);
+      window.removeEventListener('touchend', onEnd);
+    };
+
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onEnd);
+    window.addEventListener('touchmove', onMove, { passive: false });
+    window.addEventListener('touchend', onEnd);
+  };
+
+  // ↗️ 3-B. Free 2D Diagonal Corner Resizer for Right Box
+  const handleRightCornerDragStart = (e) => {
+    if (e.type === 'mousedown') e.preventDefault();
+    setIsDraggingCorner(true);
+    const startY = e.touches ? e.touches[0].clientY : e.clientY;
+    const startHeight = rightStageHeight;
+
+    const getClient = (ev) => ({
+      x: ev.touches ? ev.touches[0].clientX : ev.clientX,
+      y: ev.touches ? ev.touches[0].clientY : ev.clientY
+    });
+
+    const onMove = (moveEvent) => {
+      if (!stageContainerRef.current) return;
+      const rect = stageContainerRef.current.getBoundingClientRect();
+      const pos = getClient(moveEvent);
+
+      // Width calculation
+      const ratio = ((pos.x - rect.left) / rect.width) * 100;
+      const clampedRatio = Math.min(85, Math.max(15, Math.round(ratio)));
+      setSplitRatio(clampedRatio);
+
+      // Right Height calculation
+      const deltaY = pos.y - startY;
+      const newHeight = Math.min(1800, Math.max(200, Math.round(startHeight + deltaY)));
+      setRightStageHeight(newHeight);
+
+      try {
+        localStorage.setItem('archisync_split_ratio', clampedRatio);
+        localStorage.setItem('archisync_right_stage_height', newHeight);
       } catch {}
     };
 
@@ -558,9 +686,12 @@ export default function LiveInterpreter({
   // 🔄 Reset Sizes to Default (기본 크기 원터치 리셋)
   const handleResetSizes = () => {
     setSplitRatio(50);
-    setStageHeight(510);
+    setLeftStageHeight(510);
+    setRightStageHeight(510);
     try {
       localStorage.setItem('archisync_split_ratio', 50);
+      localStorage.setItem('archisync_left_stage_height', 510);
+      localStorage.setItem('archisync_right_stage_height', 510);
       localStorage.setItem('archisync_stage_height', 510);
     } catch {}
   };
@@ -1244,25 +1375,79 @@ export default function LiveInterpreter({
 
               {/* Quick Stage Height Presets */}
               <button
-                onClick={() => { setStageHeight(380); try { localStorage.setItem('archisync_stage_height', 380); } catch {} }}
+                onClick={() => { 
+                  setLeftStageHeight(380); 
+                  setRightStageHeight(380); 
+                  try { 
+                    localStorage.setItem('archisync_left_stage_height', 380); 
+                    localStorage.setItem('archisync_right_stage_height', 380); 
+                    localStorage.setItem('archisync_stage_height', 380); 
+                  } catch {} 
+                }}
                 className={`px-1.5 py-0.5 rounded text-[7.5pt] font-mono transition ${stageHeight === 380 ? 'bg-amber-500 text-slate-950 font-bold' : 'hover:text-amber-400'}`}
                 title="무대 높이 축소 (380px)"
               >
                 ↕S
               </button>
               <button
-                onClick={() => { setStageHeight(510); try { localStorage.setItem('archisync_stage_height', 510); } catch {} }}
+                onClick={() => { 
+                  setLeftStageHeight(510); 
+                  setRightStageHeight(510); 
+                  try { 
+                    localStorage.setItem('archisync_left_stage_height', 510); 
+                    localStorage.setItem('archisync_right_stage_height', 510); 
+                    localStorage.setItem('archisync_stage_height', 510); 
+                  } catch {} 
+                }}
                 className={`px-1.5 py-0.5 rounded text-[7.5pt] font-mono transition ${stageHeight === 510 ? 'bg-amber-500 text-slate-950 font-bold' : 'hover:text-amber-400'}`}
                 title="무대 높이 표준 (510px)"
               >
                 ↕M
               </button>
               <button
-                onClick={() => { setStageHeight(650); try { localStorage.setItem('archisync_stage_height', 650); } catch {} }}
+                onClick={() => { 
+                  setLeftStageHeight(650); 
+                  setRightStageHeight(650); 
+                  try { 
+                    localStorage.setItem('archisync_left_stage_height', 650); 
+                    localStorage.setItem('archisync_right_stage_height', 650); 
+                    localStorage.setItem('archisync_stage_height', 650); 
+                  } catch {} 
+                }}
                 className={`px-1.5 py-0.5 rounded text-[7.5pt] font-mono transition ${stageHeight === 650 ? 'bg-amber-500 text-slate-950 font-bold' : 'hover:text-amber-400'}`}
                 title="무대 높이 확대 (650px)"
               >
                 ↕L
+              </button>
+              <button
+                onClick={() => { 
+                  setLeftStageHeight(850); 
+                  setRightStageHeight(850); 
+                  try { 
+                    localStorage.setItem('archisync_left_stage_height', 850); 
+                    localStorage.setItem('archisync_right_stage_height', 850); 
+                    localStorage.setItem('archisync_stage_height', 850); 
+                  } catch {} 
+                }}
+                className={`px-1.5 py-0.5 rounded text-[7.5pt] font-mono transition ${stageHeight === 850 ? 'bg-amber-500 text-slate-950 font-bold' : 'hover:text-amber-400'}`}
+                title="무대 높이 특대 (850px)"
+              >
+                ↕XL
+              </button>
+              <button
+                onClick={() => { 
+                  setLeftStageHeight(1200); 
+                  setRightStageHeight(1200); 
+                  try { 
+                    localStorage.setItem('archisync_left_stage_height', 1200); 
+                    localStorage.setItem('archisync_right_stage_height', 1200); 
+                    localStorage.setItem('archisync_stage_height', 1200); 
+                  } catch {} 
+                }}
+                className={`px-1.5 py-0.5 rounded text-[7.5pt] font-mono transition ${stageHeight === 1200 ? 'bg-amber-500 text-slate-950 font-bold' : 'hover:text-amber-400'}`}
+                title="무대 높이 최대 확장 (1200px)"
+              >
+                ↕MAX
               </button>
 
               <button
@@ -1274,14 +1459,14 @@ export default function LiveInterpreter({
               </button>
             </div>
 
-            {/* 🎛️ Floating Sliders Popover for Precise Width & Height Control */}
+            {/* 🎛️ Floating Sliders Popover for Precise Width & Independent Heights Control */}
             {showSizeSliderModal && (
-              <div className={`absolute top-full left-0 mt-2 z-50 p-4 rounded-2xl border shadow-2xl space-y-3 w-72 backdrop-blur-xl animate-fadeIn ${
+              <div className={`absolute top-full left-0 mt-2 z-50 p-4 rounded-2xl border shadow-2xl space-y-3.5 w-80 backdrop-blur-xl animate-fadeIn ${
                 isDark ? 'bg-slate-900/95 border-amber-500/40 text-white' : 'bg-white/95 border-amber-400 text-slate-900'
               }`}>
                 <div className="flex items-center justify-between border-b border-slate-700/60 pb-2">
                   <span className="text-xs font-bold text-amber-400 flex items-center gap-1.5">
-                    <Sliders className="w-3.5 h-3.5" /> 칸 사이즈 자유 미세조절
+                    <Sliders className="w-3.5 h-3.5" /> 칸별 수평·수직 자유 미세조절
                   </span>
                   <button onClick={() => setShowSizeSliderModal(false)} className="text-xs text-slate-400 hover:text-white">✕</button>
                 </div>
@@ -1289,7 +1474,7 @@ export default function LiveInterpreter({
                 {/* Horizontal Width Slider */}
                 <div className="space-y-1">
                   <div className="flex justify-between text-[7.5pt] font-bold">
-                    <span className="text-slate-400">수평 분할 (좌 : 우):</span>
+                    <span className="text-slate-400">수평 분할 (원문 : 한글):</span>
                     <span className="text-amber-400 font-mono">{splitRatio}% : {100 - splitRatio}%</span>
                   </div>
                   <input
@@ -1306,29 +1491,63 @@ export default function LiveInterpreter({
                   />
                 </div>
 
-                {/* Vertical Height Slider */}
+                {/* Left Box Height Slider */}
                 <div className="space-y-1">
                   <div className="flex justify-between text-[7.5pt] font-bold">
-                    <span className="text-slate-400">수직 무대 높이:</span>
-                    <span className="text-amber-400 font-mono">{stageHeight}px</span>
+                    <span className="text-slate-400">⬅️ 좌측 원문발화 칸 높이:</span>
+                    <span className="text-amber-400 font-mono">{leftStageHeight}px</span>
                   </div>
                   <input
                     type="range"
-                    min="220"
-                    max="850"
+                    min="200"
+                    max="1800"
                     step="10"
-                    value={stageHeight}
+                    value={leftStageHeight}
                     onChange={(e) => {
                       const val = Number(e.target.value);
-                      setStageHeight(val);
-                      try { localStorage.setItem('archisync_stage_height', val); } catch {}
+                      setLeftStageHeight(val);
+                      try { localStorage.setItem('archisync_left_stage_height', val); } catch {}
                     }}
                     className="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-amber-500"
                   />
                 </div>
 
+                {/* Right Box Height Slider */}
+                <div className="space-y-1">
+                  <div className="flex justify-between text-[7.5pt] font-bold">
+                    <span className="text-slate-400">➡️ 우측 한글통역 칸 높이:</span>
+                    <span className="text-indigo-400 font-mono">{rightStageHeight}px</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="200"
+                    max="1800"
+                    step="10"
+                    value={rightStageHeight}
+                    onChange={(e) => {
+                      const val = Number(e.target.value);
+                      setRightStageHeight(val);
+                      try { localStorage.setItem('archisync_right_stage_height', val); } catch {}
+                    }}
+                    className="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-400"
+                  />
+                </div>
+
                 <div className="pt-2 border-t border-slate-700/60 flex items-center justify-between text-[7.5pt]">
-                  <span className="text-slate-400">마우스 드래그로도 조절 가능</span>
+                  <button
+                    onClick={() => {
+                      const maxH = Math.max(leftStageHeight, rightStageHeight);
+                      setLeftStageHeight(maxH);
+                      setRightStageHeight(maxH);
+                      try {
+                        localStorage.setItem('archisync_left_stage_height', maxH);
+                        localStorage.setItem('archisync_right_stage_height', maxH);
+                      } catch {}
+                    }}
+                    className="text-indigo-400 hover:underline font-bold"
+                  >
+                    양쪽 높이 맞추기
+                  </button>
                   <button
                     onClick={handleResetSizes}
                     className="text-amber-400 hover:underline font-bold"
@@ -1406,19 +1625,19 @@ export default function LiveInterpreter({
           </div>
         </div>
 
-        {/* 🌟 CENTRAL LIVE REAL-TIME STAGE (Dynamic Split & Height Resizable Viewport) */}
+        {/* 🌟 CENTRAL LIVE REAL-TIME STAGE (Dynamic Split & Independent Heights Resizable Viewport) */}
         <div 
           ref={stageContainerRef}
           style={{ minHeight: `${stageHeight}px` }}
           className="flex flex-col md:flex-row items-stretch relative transition-all"
         >
           
-          {/* ⬅️ LEFT SCREEN: Live Spoken Foreign Speech (Dynamic Resizable Width & Height) */}
+          {/* ⬅️ LEFT SCREEN: Live Spoken Foreign Speech (Independent Height up to 1800px) */}
           <div 
             style={{ 
               width: window.innerWidth >= 768 ? `calc(${splitRatio}% - 6px)` : '100%',
-              height: `${stageHeight}px`, 
-              maxHeight: `${stageHeight}px` 
+              height: `${leftStageHeight}px`, 
+              maxHeight: `${leftStageHeight}px` 
             }}
             className={`${
               isDark 
@@ -1427,7 +1646,7 @@ export default function LiveInterpreter({
             } p-4 rounded-xl flex flex-col justify-between transition-all relative overflow-hidden shrink-0 min-w-0 group/left`}
           >
             
-            {/* Header: Fixed Height (h-8) with Dedicated Left Font Size Zoom */}
+            {/* Header: Fixed Height (h-8) with Left Font Size & Quick Height Expander */}
             <div className={`flex items-center justify-between pb-2.5 border-b shrink-0 h-8 ${
               isDark ? 'border-slate-800' : 'border-slate-100'
             }`}>
@@ -1486,6 +1705,21 @@ export default function LiveInterpreter({
                   </button>
                 </div>
 
+                {/* ↕️ Quick Height Add (+100px) */}
+                <button
+                  onClick={() => {
+                    const next = Math.min(1800, leftStageHeight + 100);
+                    setLeftStageHeight(next);
+                    try { localStorage.setItem('archisync_left_stage_height', next); } catch {}
+                  }}
+                  className={`px-1.5 py-0.5 rounded border text-[7.5pt] font-mono font-bold transition ${
+                    isDark ? 'bg-slate-900 hover:bg-slate-800 text-amber-400 border-slate-700' : 'bg-white hover:bg-slate-50 text-amber-600 border-slate-200 shadow-xs'
+                  }`}
+                  title="좌측 칸 아래로 100px 더 내리기"
+                >
+                  ↕+100
+                </button>
+
                 <span className={`text-[8.5pt] font-mono font-bold px-2 py-0.5 rounded-full ${
                   activeMic 
                     ? 'bg-amber-500/20 text-amber-500 border border-amber-500/40 animate-pulse' 
@@ -1532,21 +1766,33 @@ export default function LiveInterpreter({
             <div className={`pt-2 border-t shrink-0 h-7 ${isDark ? 'border-slate-800/80 text-slate-400' : 'border-slate-100 text-slate-500'} text-[8.5pt] font-medium flex items-center justify-between`}>
               <span className="flex items-center gap-2">
                 <span className={`w-2.5 h-2.5 rounded-full ${activeMic ? 'bg-amber-500 animate-ping' : isDark ? 'bg-slate-600' : 'bg-slate-300'}`} />
-                <span className="truncate">원문 {leftFontSize}pt · 너비 {splitRatio}% · 높이 {stageHeight}px</span>
+                <span className="truncate">원문 {leftFontSize}pt · 너비 {splitRatio}% · 높이 {leftStageHeight}px</span>
               </span>
               {isLiveSpeaking && (
                 <span className="text-amber-500 font-mono text-[8pt] shrink-0 animate-pulse">Live Transcribing...</span>
               )}
             </div>
 
-            {/* ↗️ Corner Resizer Handle on Left Box (모서리 대각선 자유 조절) */}
+            {/* ↗️ Left Box Individual Corner Resizer */}
             <div
-              onMouseDown={handleCornerDragStart}
-              onTouchStart={handleCornerDragStart}
+              onMouseDown={handleLeftCornerDragStart}
+              onTouchStart={handleLeftCornerDragStart}
               className="absolute bottom-1 right-1 w-4 h-4 cursor-se-resize flex items-center justify-center opacity-40 hover:opacity-100 transition text-amber-400"
-              title="모서리를 잡고 대각선으로 드래그하여 가로/세로를 한 번에 조절하세요"
+              title="좌측 모서리를 잡고 대각선으로 드래그하여 너비와 높이를 자유 조절하세요"
             >
               <Move className="w-2.5 h-2.5 rotate-45" />
+            </div>
+
+            {/* ↕️ Left Box Individual Height Resizer Bar (좌측 전용 세로 리사이저) */}
+            <div
+              onMouseDown={handleLeftHeightDragStart}
+              onTouchStart={handleLeftHeightDragStart}
+              className={`absolute bottom-0 left-0 right-0 h-2 cursor-row-resize opacity-0 group-hover/left:opacity-100 transition flex items-center justify-center ${
+                isDraggingLeftHeight ? 'bg-amber-500 opacity-100' : 'hover:bg-amber-500/50 bg-amber-500/20'
+              }`}
+              title="좌측 원문발화 칸만 아래로 드래그하여 늘리거나 줄이세요 (최대 1800px)"
+            >
+              <div className="w-8 h-0.5 bg-amber-400 rounded-full" />
             </div>
           </div>
 
@@ -1569,12 +1815,12 @@ export default function LiveInterpreter({
             </div>
           </div>
 
-          {/* ➡️ RIGHT SCREEN: Live Instant Korean Translation (Dynamic Resizable Width & Height) */}
+          {/* ➡️ RIGHT SCREEN: Live Instant Korean Translation (Independent Height up to 1800px) */}
           <div 
             style={{ 
               width: window.innerWidth >= 768 ? `calc(${100 - splitRatio}% - 6px)` : '100%',
-              height: `${stageHeight}px`, 
-              maxHeight: `${stageHeight}px` 
+              height: `${rightStageHeight}px`, 
+              maxHeight: `${rightStageHeight}px` 
             }}
             className={`${
               isDark 
@@ -1583,7 +1829,7 @@ export default function LiveInterpreter({
             } p-4 rounded-xl flex flex-col justify-between transition-all relative overflow-hidden shrink-0 min-w-0 group/right`}
           >
             
-            {/* Header: Fixed Height (h-8) with Dedicated Right Font Size Zoom */}
+            {/* Header: Fixed Height (h-8) with Dedicated Right Font Size & Height Expander */}
             <div className={`flex items-center justify-between pb-2.5 border-b shrink-0 h-8 ${
               isDark ? 'border-indigo-500/30' : 'border-indigo-200'
             }`}>
@@ -1623,6 +1869,21 @@ export default function LiveInterpreter({
                     A+
                   </button>
                 </div>
+
+                {/* ↕️ Quick Height Add (+100px) */}
+                <button
+                  onClick={() => {
+                    const next = Math.min(1800, rightStageHeight + 100);
+                    setRightStageHeight(next);
+                    try { localStorage.setItem('archisync_right_stage_height', next); } catch {}
+                  }}
+                  className={`px-1.5 py-0.5 rounded border text-[7.5pt] font-mono font-bold transition ${
+                    isDark ? 'bg-indigo-950/90 hover:bg-indigo-900 text-sky-300 border-indigo-500/40' : 'bg-white hover:bg-slate-50 text-indigo-600 border-indigo-200 shadow-xs'
+                  }`}
+                  title="우측 칸 아래로 100px 더 내리기"
+                >
+                  ↕+100
+                </button>
 
                 <span className={`text-[8.5pt] font-bold px-2 py-0.5 rounded-full ${
                   isDark ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'bg-amber-100 text-amber-800 border border-amber-200'
@@ -1664,24 +1925,36 @@ export default function LiveInterpreter({
 
             {/* Footer: Fixed Height (h-7) */}
             <div className={`pt-2 border-t shrink-0 h-7 ${isDark ? 'border-indigo-500/30 text-indigo-300/80' : 'border-indigo-100 text-indigo-700'} text-[8.5pt] font-medium flex items-center justify-between`}>
-              <span className="truncate">한글 {rightFontSize}pt · 너비 {100 - splitRatio}% · 높이 {stageHeight}px</span>
+              <span className="truncate">한글 {rightFontSize}pt · 너비 {100 - splitRatio}% · 높이 {rightStageHeight}px</span>
               <span className="font-bold text-amber-400 shrink-0">100% 무조건 한글 출력</span>
             </div>
 
-            {/* ↗️ Corner Resizer Handle on Right Box (모서리 대각선 자유 조절) */}
+            {/* ↗️ Right Box Individual Corner Resizer */}
             <div
-              onMouseDown={handleCornerDragStart}
-              onTouchStart={handleCornerDragStart}
+              onMouseDown={handleRightCornerDragStart}
+              onTouchStart={handleRightCornerDragStart}
               className="absolute bottom-1 right-1 w-4 h-4 cursor-se-resize flex items-center justify-center opacity-40 hover:opacity-100 transition text-indigo-400"
-              title="모서리를 잡고 대각선으로 드래그하여 가로/세로를 한 번에 조절하세요"
+              title="우측 모서리를 잡고 대각선으로 드래그하여 너비와 높이를 자유 조절하세요"
             >
               <Move className="w-2.5 h-2.5 rotate-45" />
+            </div>
+
+            {/* ↕️ Right Box Individual Height Resizer Bar (우측 전용 세로 리사이저) */}
+            <div
+              onMouseDown={handleRightHeightDragStart}
+              onTouchStart={handleRightHeightDragStart}
+              className={`absolute bottom-0 left-0 right-0 h-2 cursor-row-resize opacity-0 group-hover/right:opacity-100 transition flex items-center justify-center ${
+                isDraggingRightHeight ? 'bg-indigo-500 opacity-100' : 'hover:bg-indigo-500/50 bg-indigo-500/20'
+              }`}
+              title="우측 한글통역 칸만 아래로 드래그하여 늘리거나 줄이세요 (최대 1800px)"
+            >
+              <div className="w-8 h-0.5 bg-indigo-400 rounded-full" />
             </div>
           </div>
 
         </div>
 
-        {/* ↕️ Bottom Vertical Height Resizer Handle (마우스/터치 상하 수직 드래그 바) */}
+        {/* ↕️ Bottom Global Vertical Height Resizer Handle (양쪽 칸 동시에 아래로 내리는 마우스/터치 드래그 바) */}
         <div
           onMouseDown={handleHeightDragStart}
           onTouchStart={handleHeightDragStart}
@@ -1691,12 +1964,13 @@ export default function LiveInterpreter({
               ? 'bg-amber-500/40 ring-2 ring-amber-400 shadow-md' 
               : isDark ? 'hover:bg-amber-500/20 bg-slate-800/40' : 'hover:bg-amber-500/20 bg-slate-200/60'
           }`}
-          title="위아래로 드래그하여 무대 높이를 조절하세요 (더블클릭 시 510px 리셋)"
+          title="위아래로 드래그하여 양쪽 칸 높이를 한 번에 아래로 내리세요 (더블클릭 시 510px 리셋)"
         >
           <div className={`flex items-center gap-1 transition-all ${
             isDraggingHeight ? 'text-amber-400' : isDark ? 'text-slate-500 group-hover:text-amber-400' : 'text-slate-400 group-hover:text-amber-600'
           }`}>
             <GripHorizontal className="w-8 h-3" />
+            <span className="text-[7pt] font-mono font-bold opacity-70 group-hover:opacity-100">양쪽 칸 아래로 확장 ({stageHeight}px)</span>
           </div>
         </div>
       </div>
