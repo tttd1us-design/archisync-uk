@@ -3,23 +3,42 @@ import react from '@vitejs/plugin-react'
 import fs from 'fs'
 import path from 'path'
 import os from 'os'
+import { exec } from 'child_process'
 
-// Custom plugin to save voice recordings directly into Documents/음성
+// Custom plugin to save voice recordings & live transcripts directly into Documents/ArchiSync_실시간통역
 function localVoiceStoragePlugin() {
-  const documentsDir = path.join(os.homedir(), 'Documents')
-  const voiceDir = path.join(documentsDir, '음성')
+  const homeDir = os.homedir();
+  const documentsDir = path.join(homeDir, 'Documents');
+  const voiceDir = path.join(documentsDir, 'ArchiSync_실시간통역');
+  const legacyVoiceDir = path.join(documentsDir, '음성');
 
-  if (!fs.existsSync(voiceDir)) {
-    try {
-      fs.mkdirSync(voiceDir, { recursive: true })
-    } catch (e) {
-      console.warn('Could not create voice directory:', e)
-    }
+  try {
+    if (!fs.existsSync(voiceDir)) fs.mkdirSync(voiceDir, { recursive: true });
+    if (!fs.existsSync(legacyVoiceDir)) fs.mkdirSync(legacyVoiceDir, { recursive: true });
+  } catch (e) {
+    console.warn('Could not create storage directory:', e);
   }
 
   return {
     name: 'local-voice-storage',
     configureServer(server) {
+      // 1. API: Open Documents Storage Folder in Windows Explorer
+      server.middlewares.use('/api/open-folder', (req, res, next) => {
+        if (req.method === 'POST' || req.method === 'GET') {
+          try {
+            exec(`explorer.exe "${voiceDir}"`)
+            res.setHeader('Content-Type', 'application/json')
+            res.end(JSON.stringify({ success: true, path: voiceDir }))
+          } catch (e) {
+            res.statusCode = 500
+            res.end(JSON.stringify({ success: false, error: e.message }))
+          }
+        } else {
+          next()
+        }
+      })
+
+      // 2. API: Save Voice Audio (.webm) to Documents/ArchiSync_실시간통역
       server.middlewares.use('/api/save-audio', (req, res, next) => {
         if (req.method === 'POST') {
           const chunks = []
@@ -27,12 +46,15 @@ function localVoiceStoragePlugin() {
           req.on('end', () => {
             try {
               const buffer = Buffer.concat(chunks)
-              const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)
-              const filename = `voice_recording_${timestamp}.webm`
+              const now = new Date()
+              const pad = (n) => n.toString().padStart(2, '0')
+              const dateStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`
+              const timeStr = `${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}`
+              const filename = `음성녹음_${dateStr}_${timeStr}.webm`
               const targetPath = path.join(voiceDir, filename)
 
               fs.writeFileSync(targetPath, buffer)
-              console.log(`[ArchiSync Audio Saved]: ${targetPath}`)
+              console.log(`[ArchiSync Audio Auto-Saved]: ${targetPath}`)
 
               res.setHeader('Content-Type', 'application/json')
               res.end(JSON.stringify({ 
@@ -52,6 +74,7 @@ function localVoiceStoragePlugin() {
         }
       })
 
+      // 3. API: Save Live Transcript (.txt) to Documents/ArchiSync_실시간통역
       server.middlewares.use('/api/save-transcript', (req, res, next) => {
         if (req.method === 'POST') {
           let body = ''
@@ -63,13 +86,13 @@ function localVoiceStoragePlugin() {
               const pad = (n) => n.toString().padStart(2, '0')
               const dateStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`
               const timeStr = `${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}`
-              const projectClean = (data.projectName || '실시간대화록').replace(/[^a-zA-Z0-9가-힣_-]/g, '_')
+              const projectClean = (data.projectName || '실시간통역대본').replace(/[^a-zA-Z0-9가-힣_-]/g, '_')
               
-              const filename = data.filename || `${dateStr}_${timeStr}_${projectClean}.txt`
+              const filename = data.filename || `통역기록_${dateStr}_${projectClean}.txt`
               const targetPath = path.join(voiceDir, filename)
 
               fs.writeFileSync(targetPath, data.content || body, 'utf-8')
-              console.log(`[ArchiSync Auto-Saved Transcript]: ${targetPath}`)
+              console.log(`[ArchiSync Transcript Auto-Saved]: ${targetPath}`)
 
               res.setHeader('Content-Type', 'application/json')
               res.end(JSON.stringify({ 

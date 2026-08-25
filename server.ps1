@@ -35,10 +35,15 @@ $MimeTypes = @{
     ".txt"  = "text/plain; charset=utf-8"
 }
 
-# Ensure Documents\음성 folder exists for offline storage
-$VoiceDir = Join-Path ([System.Environment]::GetFolderPath('MyDocuments')) "음성"
-if (-not (Test-Path $VoiceDir)) {
-    New-Item -ItemType Directory -Path $VoiceDir -Force | Out-Null
+# Ensure Documents\ArchiSync_실시간통역 folder exists for offline storage
+$DocumentsDir = [System.Environment]::GetFolderPath('MyDocuments')
+$VoiceDir = Join-Path $DocumentsDir "ArchiSync_실시간통역"
+$LegacyVoiceDir = Join-Path $DocumentsDir "음성"
+
+foreach ($dir in @($VoiceDir, $LegacyVoiceDir)) {
+    if (-not (Test-Path $dir)) {
+        New-Item -ItemType Directory -Path $dir -Force | Out-Null
+    }
 }
 
 while ($Listener.IsListening) {
@@ -52,10 +57,22 @@ while ($Listener.IsListening) {
             $UrlPath = "index.html"
         }
 
-        # 1. API: Save Audio file to Documents\음성
+        # 0. API: Open Documents Storage Folder in Windows Explorer
+        if ($UrlPath -eq "api/open-folder") {
+            Start-Process "explorer.exe" -ArgumentList "`"$VoiceDir`""
+            $Json = "{`"success`":true,`"path`":`"$($VoiceDir.Replace('\','/'))`"}"
+            $Buffer = [System.Text.Encoding]::UTF8.GetBytes($Json)
+            $Response.ContentType = "application/json; charset=utf-8"
+            $Response.ContentLength64 = $Buffer.Length
+            $Response.OutputStream.Write($Buffer, 0, $Buffer.Length)
+            $Response.Close()
+            continue
+        }
+
+        # 1. API: Save Audio file to Documents\ArchiSync_실시간통역
         if ($Request.HttpMethod -eq "POST" -and $UrlPath -eq "api/save-audio") {
             $Timestamp = (Get-Date).ToString("yyyy-MM-dd_HH-mm-ss")
-            $Filename = "voice_recording_$Timestamp.webm"
+            $Filename = "음성녹음_$Timestamp.webm"
             $FilePath = Join-Path $VoiceDir $Filename
             
             $FileStream = [System.IO.File]::Create($FilePath)
@@ -71,17 +88,18 @@ while ($Listener.IsListening) {
             continue
         }
 
-        # 2. API: Save Transcript to Documents\음성
+        # 2. API: Save Transcript to Documents\ArchiSync_실시간통역
         if ($Request.HttpMethod -eq "POST" -and $UrlPath -eq "api/save-transcript") {
             $Reader = New-Object System.IO.StreamReader($Request.InputStream, [System.Text.Encoding]::UTF8)
             $Body = $Reader.ReadToEnd()
-            $Timestamp = (Get-Date).ToString("yyyy-MM-dd_HH-mm-ss")
-            $Filename = "${Timestamp}_실시간대화록.txt"
+            $DateStr = (Get-Date).ToString("yyyy-MM-dd")
+            $Filename = "통역기록_${DateStr}_실시간대본.txt"
             $FilePath = Join-Path $VoiceDir $Filename
 
             try {
                 $Parsed = ConvertFrom-Json $Body -ErrorAction SilentlyContinue
                 if ($Parsed.content) { $Body = $Parsed.content }
+                if ($Parsed.filename) { $Filename = $Parsed.filename; $FilePath = Join-Path $VoiceDir $Filename }
             } catch {}
 
             [System.IO.File]::WriteAllText($FilePath, $Body, [System.Text.Encoding]::UTF8)

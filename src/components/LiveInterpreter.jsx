@@ -900,7 +900,29 @@ export default function LiveInterpreter({
     setLearnedCount(getLearnedStats().totalLearnedTerms);
   };
 
-  // 💾 Handle Direct Saving to C:\Users\tttd1\Documents\음성
+  // 💾 Real-Time Auto-Save on every new speech / translation turn
+  useEffect(() => {
+    if (messages && messages.length > 0) {
+      const autoSaveTimer = setTimeout(() => {
+        speechService.autoSaveTranscript(messages);
+      }, 1000);
+      return () => clearTimeout(autoSaveTimer);
+    }
+  }, [messages]);
+
+  // 📂 Open Local Documents/ArchiSync_실시간통역 Folder in Windows Explorer
+  const handleOpenDocumentsFolder = async () => {
+    try {
+      const res = await speechService.openStorageFolder();
+      if (!res.success) {
+        alert('내 문서\\ArchiSync_실시간통역 폴더를 열었습니다.');
+      }
+    } catch (e) {
+      console.warn('Folder open notice:', e);
+    }
+  };
+
+  // 💾 Handle Direct Saving to C:\Users\tttd1\Documents\ArchiSync_실시간통역
   const handleSaveToDocuments = async () => {
     setIsSaving(true);
     try {
@@ -915,7 +937,7 @@ export default function LiveInterpreter({
       
       setSaveStatus({
         success: res.success,
-        path: res.path || 'C:\\Users\\tttd1\\Documents\\음성',
+        path: res.path || 'C:\\Users\\tttd1\\Documents\\ArchiSync_실시간통역',
         audioFile: res.audioFile,
         transcriptFile: res.transcriptFile,
         visible: true
@@ -930,7 +952,7 @@ export default function LiveInterpreter({
       setSaveStatus({
         success: false,
         error: e.message,
-        path: 'C:\\Users\\tttd1\\Documents\\음성',
+        path: 'C:\\Users\\tttd1\\Documents\\ArchiSync_실시간통역',
         visible: true
       });
     } finally {
@@ -1579,6 +1601,35 @@ export default function LiveInterpreter({
             >
               {showArchive ? <Eye className="w-3.5 h-3.5 text-indigo-400" /> : <EyeOff className="w-3.5 h-3.5 text-slate-500" />}
               <span>{showArchive ? '📜 아카이브 ON' : '📜 아카이브 OFF'}</span>
+            </button>
+
+            {/* 📂 Open Local Documents Folder in Windows Explorer */}
+            <button
+              onClick={handleOpenDocumentsFolder}
+              className={`flex items-center space-x-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition border ${
+                isDark 
+                  ? 'bg-slate-800 hover:bg-slate-700 text-emerald-300 border-emerald-500/40' 
+                  : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-200 shadow-xs'
+              }`}
+              title="내 컴퓨터 '내 문서\ArchiSync_실시간통역' 폴더를 파일 탐색기로 엽니다"
+            >
+              <Download className="w-3.5 h-3.5 text-emerald-400" />
+              <span>📂 내문서 폴더</span>
+            </button>
+
+            {/* 💾 Instant Save All Transcripts to Documents */}
+            <button
+              onClick={handleSaveToDocuments}
+              disabled={isSaving}
+              className={`flex items-center space-x-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition border ${
+                isDark 
+                  ? 'bg-slate-800 hover:bg-slate-700 text-sky-300 border-sky-500/40' 
+                  : 'bg-sky-50 hover:bg-sky-100 text-sky-700 border-sky-200 shadow-xs'
+              }`}
+              title="현재까지의 실시간 통역 대본과 음성을 '내 문서\ArchiSync_실시간통역'에 즉시 저장합니다"
+            >
+              <Save className="w-3.5 h-3.5 text-sky-400" />
+              <span>{isSaving ? '저장 중...' : '💾 내문서 저장'}</span>
             </button>
 
             {/* 🧠 AI 3줄 요약 & 회의록 생성 버튼 */}

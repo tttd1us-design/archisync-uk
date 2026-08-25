@@ -347,6 +347,53 @@ class SpeechService {
   }
 
   // 💾 Save Audio Blob & Text Transcripts directly to C:\Users\tttd1\Documents\음성
+  async openStorageFolder() {
+    try {
+      const res = await fetch('/api/open-folder', { method: 'POST' });
+      return await res.json();
+    } catch (e) {
+      console.warn('Cannot open storage folder directly via browser:', e);
+      return { success: false };
+    }
+  }
+
+  // 💾 Real-Time Auto-Save Transcript to Documents/ArchiSync_실시간통역 (Triggered on every speech)
+  async autoSaveTranscript(messages = []) {
+    if (!messages || messages.length === 0) return;
+    try {
+      const now = new Date();
+      const pad = (n) => n.toString().padStart(2, '0');
+      const dateStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+
+      const header = `=====================================================\n` +
+                     `🏛️ ARCHISYNC UK - 실시간 통역 대화록 (내문서 자동저장)\n` +
+                     `일시: ${now.toLocaleString('ko-KR')}\n` +
+                     `저장 위치: 내 문서\\ArchiSync_실시간통역\n` +
+                     `총 대화 수: ${messages.length}건\n` +
+                     `=====================================================\n\n`;
+
+      const body = messages.map((m, idx) => {
+        return `[#${messages.length - idx}] ${m.timestamp} - ${m.speaker} (${m.lang})\n` +
+               `  🇬🇧 원문: ${m.original}\n` +
+               `  🇰🇷 통역: ${m.translation}\n` +
+               `  📌 의도: ${m.intent?.label || '일반'} | 1초 요약: ${m.intent?.takeaway || '-'}\n` +
+               (m.terms && m.terms.length > 0 ? `  🏷️ 건축용어: ${m.terms.join(', ')}\n` : '') +
+               `-----------------------------------------------------\n`;
+      }).join('\n');
+
+      await fetch('/api/save-transcript', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          filename: `통역대본_${dateStr}_자동저장.txt`,
+          content: header + body 
+        })
+      });
+    } catch (e) {
+      // Silent auto-save
+    }
+  }
+
   async saveVoiceRecordingToDocuments(audioBlob, messages = []) {
     try {
       const results = {};
@@ -365,16 +412,17 @@ class SpeechService {
 
       // 2. Save Conversation Transcript Text File
       if (messages && messages.length > 0) {
+        const now = new Date();
         const header = `=====================================================\n` +
-                       `🏛️ ARCHISYNC UK - 회의 통역 기록 (음성 백업)\n` +
-                       `일시: ${new Date().toLocaleString('ko-KR')}\n` +
-                       `저장 위치: 내 문서\\음성\n` +
+                       `🏛️ ARCHISYNC UK - 회의 통역 기록 (음성 및 텍스트 백업)\n` +
+                       `일시: ${now.toLocaleString('ko-KR')}\n` +
+                       `저장 위치: 내 문서\\ArchiSync_실시간통역\n` +
                        `=====================================================\n\n`;
 
         const body = messages.map((m, idx) => {
           return `[#${messages.length - idx}] ${m.timestamp} - ${m.speaker} (${m.lang})\n` +
-                 `  🇬🇧 영문: ${m.original}\n` +
-                 `  🇰🇷 한글: ${m.translation}\n` +
+                 `  🇬🇧 원문: ${m.original}\n` +
+                 `  🇰🇷 통역: ${m.translation}\n` +
                  `  📌 의도: ${m.intent?.label || '일반'} | 1초 요약: ${m.intent?.takeaway || '-'}\n` +
                  (m.terms && m.terms.length > 0 ? `  🏷️ 건축용어: ${m.terms.join(', ')}\n` : '') +
                  `-----------------------------------------------------\n`;
@@ -392,19 +440,19 @@ class SpeechService {
 
       return {
         success: true,
-        path: results.audio?.path || results.transcript?.path || 'C:\\Users\\tttd1\\Documents\\음성',
-        directory: results.audio?.directory || 'C:\\Users\\tttd1\\Documents\\음성',
+        path: results.audio?.path || results.transcript?.path || 'C:\\Users\\tttd1\\Documents\\ArchiSync_실시간통역',
+        directory: results.audio?.directory || 'C:\\Users\\tttd1\\Documents\\ArchiSync_실시간통역',
         audioFile: results.audio?.filename,
         transcriptFile: results.transcript?.filename
       };
     } catch (err) {
-      console.error('Failed to save to local Documents/음성:', err);
+      console.error('Failed to save to local Documents/ArchiSync_실시간통역:', err);
       // Fallback: Trigger browser client-side download
       if (audioBlob) {
         const url = URL.createObjectURL(audioBlob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `voice_recording_${Date.now()}.webm`;
+        a.download = `음성녹음_${Date.now()}.webm`;
         a.click();
         URL.revokeObjectURL(url);
       }
