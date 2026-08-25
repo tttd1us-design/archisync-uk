@@ -25,7 +25,13 @@ import {
   Star,
   FileText,
   Sliders,
-  Maximize2
+  Maximize2,
+  GripVertical,
+  GripHorizontal,
+  Move,
+  RotateCcw,
+  Columns,
+  Rows
 } from 'lucide-react';
 import { speechService } from '../services/speechService';
 import { 
@@ -387,11 +393,11 @@ export default function LiveInterpreter({
   const [summaryData, setSummaryData] = useState(null);
   const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
 
-  // 🎛️ Dynamic Resizing & Split Ratio States (사용자 칸 크기 조절 상태)
+  // 🎛️ Dynamic Resizing & Split Ratio States (자유로운 수평/수직/코너 칸 크기 조절 상태)
   const [splitRatio, setSplitRatio] = useState(() => {
     try {
       const saved = localStorage.getItem('archisync_split_ratio');
-      return saved ? Math.min(80, Math.max(20, Number(saved))) : 50;
+      return saved ? Math.min(85, Math.max(15, Number(saved))) : 50;
     } catch {
       return 50;
     }
@@ -400,7 +406,7 @@ export default function LiveInterpreter({
   const [stageHeight, setStageHeight] = useState(() => {
     try {
       const saved = localStorage.getItem('archisync_stage_height');
-      return saved ? Math.min(850, Math.max(280, Number(saved))) : 510;
+      return saved ? Math.min(850, Math.max(220, Number(saved))) : 510;
     } catch {
       return 510;
     }
@@ -408,6 +414,8 @@ export default function LiveInterpreter({
 
   const [isDraggingSplit, setIsDraggingSplit] = useState(false);
   const [isDraggingHeight, setIsDraggingHeight] = useState(false);
+  const [isDraggingCorner, setIsDraggingCorner] = useState(false);
+  const [showSizeSliderModal, setShowSizeSliderModal] = useState(false);
   const stageContainerRef = useRef(null);
 
   const messagesBottomRef = useRef(null);
@@ -419,60 +427,115 @@ export default function LiveInterpreter({
   const recordingTimerRef = useRef(null);
   const isSpacePressedRef = useRef(false);
 
-  // 📐 Horizontal Split Drag Handler (좌우 칸 너비 마우스 드래그 조절)
+  // 📐 1. Horizontal Split Drag Handler (좌우 수평 칸 너비 마우스/터치 드래그)
   const handleSplitDragStart = (e) => {
-    e.preventDefault();
+    if (e.type === 'mousedown') e.preventDefault();
     setIsDraggingSplit(true);
 
-    const onMouseMove = (moveEvent) => {
+    const getClientX = (ev) => ev.touches ? ev.touches[0].clientX : ev.clientX;
+
+    const onMove = (moveEvent) => {
       if (!stageContainerRef.current) return;
       const rect = stageContainerRef.current.getBoundingClientRect();
-      const clientX = moveEvent.clientX;
+      const clientX = getClientX(moveEvent);
       const ratio = ((clientX - rect.left) / rect.width) * 100;
-      const clampedRatio = Math.min(80, Math.max(20, Math.round(ratio)));
+      const clampedRatio = Math.min(85, Math.max(15, Math.round(ratio)));
       setSplitRatio(clampedRatio);
-      try {
-        localStorage.setItem('archisync_split_ratio', clampedRatio);
-      } catch {}
+      try { localStorage.setItem('archisync_split_ratio', clampedRatio); } catch {}
     };
 
-    const onMouseUp = () => {
+    const onEnd = () => {
       setIsDraggingSplit(false);
-      window.removeEventListener('mousemove', onMouseMove);
-      window.removeEventListener('mouseup', onMouseUp);
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onEnd);
+      window.removeEventListener('touchmove', onMove);
+      window.removeEventListener('touchend', onEnd);
     };
 
-    window.addEventListener('mousemove', onMouseMove);
-    window.addEventListener('mouseup', onMouseUp);
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onEnd);
+    window.addEventListener('touchmove', onMove, { passive: false });
+    window.addEventListener('touchend', onEnd);
   };
 
-  // ↕️ Vertical Height Drag Handler (상단 무대 높이 마우스 드래그 조절)
+  // ↕️ 2. Vertical Height Drag Handler (상하 수직 무대 높이 마우스/터치 드래그)
   const handleHeightDragStart = (e) => {
-    e.preventDefault();
+    if (e.type === 'mousedown') e.preventDefault();
     setIsDraggingHeight(true);
-    const startY = e.clientY;
+    const startY = e.touches ? e.touches[0].clientY : e.clientY;
     const startHeight = stageHeight;
 
-    const onMouseMove = (moveEvent) => {
-      const deltaY = moveEvent.clientY - startY;
-      const newHeight = Math.min(850, Math.max(280, Math.round(startHeight + deltaY)));
+    const getClientY = (ev) => ev.touches ? ev.touches[0].clientY : ev.clientY;
+
+    const onMove = (moveEvent) => {
+      const deltaY = getClientY(moveEvent) - startY;
+      const newHeight = Math.min(850, Math.max(220, Math.round(startHeight + deltaY)));
       setStageHeight(newHeight);
+      try { localStorage.setItem('archisync_stage_height', newHeight); } catch {}
+    };
+
+    const onEnd = () => {
+      setIsDraggingHeight(false);
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onEnd);
+      window.removeEventListener('touchmove', onMove);
+      window.removeEventListener('touchend', onEnd);
+    };
+
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onEnd);
+    window.addEventListener('touchmove', onMove, { passive: false });
+    window.addEventListener('touchend', onEnd);
+  };
+
+  // ↗️ 3. Free 2D Diagonal Corner Resizer (모서리 대각선 드래그: 가로 너비 & 세로 높이 동시 자유 조절)
+  const handleCornerDragStart = (e) => {
+    if (e.type === 'mousedown') e.preventDefault();
+    setIsDraggingCorner(true);
+    const startY = e.touches ? e.touches[0].clientY : e.clientY;
+    const startHeight = stageHeight;
+
+    const getClient = (ev) => ({
+      x: ev.touches ? ev.touches[0].clientX : ev.clientX,
+      y: ev.touches ? ev.touches[0].clientY : ev.clientY
+    });
+
+    const onMove = (moveEvent) => {
+      if (!stageContainerRef.current) return;
+      const rect = stageContainerRef.current.getBoundingClientRect();
+      const pos = getClient(moveEvent);
+
+      // Width calculation
+      const ratio = ((pos.x - rect.left) / rect.width) * 100;
+      const clampedRatio = Math.min(85, Math.max(15, Math.round(ratio)));
+      setSplitRatio(clampedRatio);
+
+      // Height calculation
+      const deltaY = pos.y - startY;
+      const newHeight = Math.min(850, Math.max(220, Math.round(startHeight + deltaY)));
+      setStageHeight(newHeight);
+
       try {
+        localStorage.setItem('archisync_split_ratio', clampedRatio);
         localStorage.setItem('archisync_stage_height', newHeight);
       } catch {}
     };
 
-    const onMouseUp = () => {
-      setIsDraggingHeight(false);
-      window.removeEventListener('mousemove', onMouseMove);
-      window.removeEventListener('mouseup', onMouseUp);
+    const onEnd = () => {
+      setIsDraggingCorner(false);
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onEnd);
+      window.removeEventListener('touchmove', onMove);
+      window.removeEventListener('touchend', onEnd);
     };
 
-    window.addEventListener('mousemove', onMouseMove);
-    window.addEventListener('mouseup', onMouseUp);
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onEnd);
+    window.addEventListener('touchmove', onMove, { passive: false });
+    window.addEventListener('touchend', onEnd);
   };
 
-  // 🔄 Reset Sizes to Default (기본 크기로 원터치 리셋)
+  // 🔄 Reset Sizes to Default (기본 크기 원터치 리셋)
   const handleResetSizes = () => {
     setSplitRatio(50);
     setStageHeight(510);
@@ -1116,16 +1179,29 @@ export default function LiveInterpreter({
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-1.5">
-            {/* 🎛️ Dynamic Split Ratio & Height Presets (칸 사이즈 조절 독) */}
+          <div className="flex flex-wrap items-center gap-1.5 relative">
+            {/* 🎛️ Dynamic Split Ratio & Height Presets (칸 사이즈 자유 조절 독) */}
             <div className={`flex items-center space-x-1 px-2 py-1 rounded-lg border text-xs font-bold ${
               isDark ? 'bg-slate-800 text-slate-200 border-slate-700' : 'bg-slate-100 text-slate-800 border-slate-200 shadow-xs'
             }`}>
-              <span className="text-[7.5pt] opacity-70">📐칸:</span>
+              <button
+                onClick={() => setShowSizeSliderModal(prev => !prev)}
+                className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[7.5pt] font-mono transition ${
+                  showSizeSliderModal ? 'bg-amber-500 text-slate-950 font-bold' : 'hover:text-amber-400'
+                }`}
+                title="슬라이더로 수평/수직 크기 미세 조절"
+              >
+                <Sliders className="w-3 h-3 text-amber-400" />
+                <span>📐칸 조절</span>
+              </button>
+
+              <span className="text-slate-600 dark:text-slate-700">|</span>
+
+              {/* Quick Split Ratio Presets */}
               <button
                 onClick={() => { setSplitRatio(50); try { localStorage.setItem('archisync_split_ratio', 50); } catch {} }}
                 className={`px-1.5 py-0.5 rounded text-[7.5pt] font-mono transition ${splitRatio === 50 ? 'bg-amber-500 text-slate-950 font-bold' : 'hover:text-amber-400'}`}
-                title="5:5 균등 분할"
+                title="5:5 균등 너비"
               >
                 5:5
               </button>
@@ -1143,7 +1219,10 @@ export default function LiveInterpreter({
               >
                 6:4
               </button>
+
               <span className="text-slate-600 dark:text-slate-700">|</span>
+
+              {/* Quick Stage Height Presets */}
               <button
                 onClick={() => { setStageHeight(380); try { localStorage.setItem('archisync_stage_height', 380); } catch {} }}
                 className={`px-1.5 py-0.5 rounded text-[7.5pt] font-mono transition ${stageHeight === 380 ? 'bg-amber-500 text-slate-950 font-bold' : 'hover:text-amber-400'}`}
@@ -1165,7 +1244,80 @@ export default function LiveInterpreter({
               >
                 ↕L
               </button>
+
+              <button
+                onClick={handleResetSizes}
+                className="p-1 hover:text-amber-400 text-slate-400 transition"
+                title="기본 크기로 리셋 (5:5 / 510px)"
+              >
+                <RotateCcw className="w-2.5 h-2.5" />
+              </button>
             </div>
+
+            {/* 🎛️ Floating Sliders Popover for Precise Width & Height Control */}
+            {showSizeSliderModal && (
+              <div className={`absolute top-full left-0 mt-2 z-50 p-4 rounded-2xl border shadow-2xl space-y-3 w-72 backdrop-blur-xl animate-fadeIn ${
+                isDark ? 'bg-slate-900/95 border-amber-500/40 text-white' : 'bg-white/95 border-amber-400 text-slate-900'
+              }`}>
+                <div className="flex items-center justify-between border-b border-slate-700/60 pb-2">
+                  <span className="text-xs font-bold text-amber-400 flex items-center gap-1.5">
+                    <Sliders className="w-3.5 h-3.5" /> 칸 사이즈 자유 미세조절
+                  </span>
+                  <button onClick={() => setShowSizeSliderModal(false)} className="text-xs text-slate-400 hover:text-white">✕</button>
+                </div>
+
+                {/* Horizontal Width Slider */}
+                <div className="space-y-1">
+                  <div className="flex justify-between text-[7.5pt] font-bold">
+                    <span className="text-slate-400">수평 분할 (좌 : 우):</span>
+                    <span className="text-amber-400 font-mono">{splitRatio}% : {100 - splitRatio}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="15"
+                    max="85"
+                    value={splitRatio}
+                    onChange={(e) => {
+                      const val = Number(e.target.value);
+                      setSplitRatio(val);
+                      try { localStorage.setItem('archisync_split_ratio', val); } catch {}
+                    }}
+                    className="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-amber-500"
+                  />
+                </div>
+
+                {/* Vertical Height Slider */}
+                <div className="space-y-1">
+                  <div className="flex justify-between text-[7.5pt] font-bold">
+                    <span className="text-slate-400">수직 무대 높이:</span>
+                    <span className="text-amber-400 font-mono">{stageHeight}px</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="220"
+                    max="850"
+                    step="10"
+                    value={stageHeight}
+                    onChange={(e) => {
+                      const val = Number(e.target.value);
+                      setStageHeight(val);
+                      try { localStorage.setItem('archisync_stage_height', val); } catch {}
+                    }}
+                    className="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-amber-500"
+                  />
+                </div>
+
+                <div className="pt-2 border-t border-slate-700/60 flex items-center justify-between text-[7.5pt]">
+                  <span className="text-slate-400">마우스 드래그로도 조절 가능</span>
+                  <button
+                    onClick={handleResetSizes}
+                    className="text-amber-400 hover:underline font-bold"
+                  >
+                    기본값 복원
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* 🧠 AI 3줄 요약 & 회의록 생성 버튼 */}
             <button
@@ -1234,7 +1386,7 @@ export default function LiveInterpreter({
               isDark 
                 ? 'bg-slate-950/90 border border-slate-800 text-slate-100' 
                 : 'bg-slate-50 border border-slate-200 text-slate-900 shadow-xs'
-            } p-4 rounded-xl flex flex-col justify-between transition-all relative overflow-hidden shrink-0 min-w-0`}
+            } p-4 rounded-xl flex flex-col justify-between transition-all relative overflow-hidden shrink-0 min-w-0 group/left`}
           >
             
             {/* Header: Fixed Height (h-8) with Dedicated Left Font Size Zoom */}
@@ -1348,22 +1500,35 @@ export default function LiveInterpreter({
                 <span className="text-amber-500 font-mono text-[8pt] shrink-0 animate-pulse">Live Transcribing...</span>
               )}
             </div>
+
+            {/* ↗️ Corner Resizer Handle on Left Box (모서리 대각선 자유 조절) */}
+            <div
+              onMouseDown={handleCornerDragStart}
+              onTouchStart={handleCornerDragStart}
+              className="absolute bottom-1 right-1 w-4 h-4 cursor-se-resize flex items-center justify-center opacity-40 hover:opacity-100 transition text-amber-400"
+              title="모서리를 잡고 대각선으로 드래그하여 가로/세로를 한 번에 조절하세요"
+            >
+              <Move className="w-2.5 h-2.5 rotate-45" />
+            </div>
           </div>
 
-          {/* ↔️ Central Horizontal Split Resizer Handle (마우스 좌우 드래그 바) */}
+          {/* ↔️ Central Horizontal Split Resizer Handle (마우스/터치 좌우 드래그 바) */}
           <div
             onMouseDown={handleSplitDragStart}
+            onTouchStart={handleSplitDragStart}
             onDoubleClick={handleResetSizes}
-            className={`hidden md:flex w-3 mx-0.5 my-auto h-[94%] rounded-full cursor-col-resize items-center justify-center transition-all group shrink-0 select-none ${
+            className={`hidden md:flex w-4 mx-0.5 my-auto h-[96%] rounded-full cursor-col-resize items-center justify-center transition-all group shrink-0 select-none ${
               isDraggingSplit 
-                ? 'bg-amber-500 shadow-md shadow-amber-500/50 scale-110' 
-                : isDark ? 'hover:bg-slate-700/80 bg-transparent' : 'hover:bg-slate-300/80 bg-transparent'
+                ? 'bg-amber-500 shadow-lg shadow-amber-500/50 scale-110' 
+                : isDark ? 'hover:bg-amber-500/30 bg-slate-800/40' : 'hover:bg-amber-500/30 bg-slate-200/60'
             }`}
             title="좌우로 드래그하여 칸 너비를 조절하세요 (더블클릭 시 5:5 리셋)"
           >
-            <div className={`w-1 h-8 rounded-full transition-all ${
-              isDraggingSplit ? 'bg-slate-950 h-12' : isDark ? 'bg-slate-700 group-hover:bg-amber-400 group-hover:h-12' : 'bg-slate-300 group-hover:bg-amber-500 group-hover:h-12'
-            }`} />
+            <div className={`flex flex-col items-center justify-center gap-1 transition-all ${
+              isDraggingSplit ? 'text-slate-950' : isDark ? 'text-slate-500 group-hover:text-amber-400' : 'text-slate-400 group-hover:text-amber-600'
+            }`}>
+              <GripVertical className="w-3 h-4" />
+            </div>
           </div>
 
           {/* ➡️ RIGHT SCREEN: Live Instant Korean Translation (Dynamic Resizable Width & Height) */}
@@ -1377,7 +1542,7 @@ export default function LiveInterpreter({
               isDark 
                 ? 'bg-indigo-950/40 border border-indigo-500/30 text-amber-300' 
                 : 'bg-indigo-50/70 border border-indigo-200 text-indigo-950 shadow-xs'
-            } p-4 rounded-xl flex flex-col justify-between transition-all relative overflow-hidden shrink-0 min-w-0`}
+            } p-4 rounded-xl flex flex-col justify-between transition-all relative overflow-hidden shrink-0 min-w-0 group/right`}
           >
             
             {/* Header: Fixed Height (h-8) with Dedicated Right Font Size Zoom */}
@@ -1464,24 +1629,37 @@ export default function LiveInterpreter({
               <span className="truncate">한글 {rightFontSize}pt · 너비 {100 - splitRatio}% · 높이 {stageHeight}px</span>
               <span className="font-bold text-amber-400 shrink-0">100% 무조건 한글 출력</span>
             </div>
+
+            {/* ↗️ Corner Resizer Handle on Right Box (모서리 대각선 자유 조절) */}
+            <div
+              onMouseDown={handleCornerDragStart}
+              onTouchStart={handleCornerDragStart}
+              className="absolute bottom-1 right-1 w-4 h-4 cursor-se-resize flex items-center justify-center opacity-40 hover:opacity-100 transition text-indigo-400"
+              title="모서리를 잡고 대각선으로 드래그하여 가로/세로를 한 번에 조절하세요"
+            >
+              <Move className="w-2.5 h-2.5 rotate-45" />
+            </div>
           </div>
 
         </div>
 
-        {/* ↕️ Bottom Vertical Height Resizer Handle (마우스 상하 드래그 바) */}
+        {/* ↕️ Bottom Vertical Height Resizer Handle (마우스/터치 상하 수직 드래그 바) */}
         <div
           onMouseDown={handleHeightDragStart}
+          onTouchStart={handleHeightDragStart}
           onDoubleClick={handleResetSizes}
-          className={`w-full h-3 mt-1 rounded-lg cursor-row-resize flex items-center justify-center transition-all group select-none ${
+          className={`w-full h-4 mt-1 rounded-lg cursor-row-resize flex items-center justify-center transition-all group select-none ${
             isDraggingHeight 
-              ? 'bg-amber-500/30 ring-1 ring-amber-400' 
-              : isDark ? 'hover:bg-slate-800/80' : 'hover:bg-slate-100'
+              ? 'bg-amber-500/40 ring-2 ring-amber-400 shadow-md' 
+              : isDark ? 'hover:bg-amber-500/20 bg-slate-800/40' : 'hover:bg-amber-500/20 bg-slate-200/60'
           }`}
           title="위아래로 드래그하여 무대 높이를 조절하세요 (더블클릭 시 510px 리셋)"
         >
-          <div className={`w-16 h-1 rounded-full transition-all ${
-            isDraggingHeight ? 'bg-amber-400 w-24' : isDark ? 'bg-slate-700 group-hover:bg-amber-400 group-hover:w-24' : 'bg-slate-300 group-hover:bg-amber-500 group-hover:w-24'
-          }`} />
+          <div className={`flex items-center gap-1 transition-all ${
+            isDraggingHeight ? 'text-amber-400' : isDark ? 'text-slate-500 group-hover:text-amber-400' : 'text-slate-400 group-hover:text-amber-600'
+          }`}>
+            <GripHorizontal className="w-8 h-3" />
+          </div>
         </div>
       </div>
 
