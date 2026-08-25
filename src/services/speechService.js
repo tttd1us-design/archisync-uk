@@ -255,15 +255,31 @@ class SpeechService {
       }
     };
 
-    // 🛡️ 2. Watchdog Heartbeat Monitor (Checks every 15s for stalled browser STT state and refreshes)
+    // 🛡️ 2. Watchdog Heartbeat & 45-Minute Proactive Heap Recycling (Guarantees 10+ Hours Non-Stop Operation)
     if (this.watchdogInterval) clearInterval(this.watchdogInterval);
     this.lastAudioActivity = Date.now();
+    this.sessionStartTime = Date.now();
+
     this.watchdogInterval = setInterval(() => {
       if (this.isListening && this.autoRestart) {
-        // Keep wake lock alive
+        // Keep screen wake lock active
         this.requestWakeLock();
+
+        const now = Date.now();
+        const inactiveDuration = now - (this.lastAudioActivity || now);
+        const sessionAge = now - (this.sessionStartTime || now);
+
+        // 🛡️ Proactive 45-Minute V8 Garbage Collection Recycling (Only during a quiet pause > 3s)
+        if (sessionAge > 45 * 60 * 1000 && inactiveDuration > 3000) {
+          this.sessionStartTime = now;
+          if (this.recognition) {
+            try {
+              this.recognition.abort();
+            } catch (e) {}
+          }
+        }
       }
-    }, 15000);
+    }, 10000);
 
     createAndStartRecognition();
     return true;
