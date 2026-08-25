@@ -139,7 +139,8 @@ const MessageCardItem = React.memo(function MessageCardItem({
   onCancelEdit,
   onChangeEditText,
   onSaveEdit,
-  splitRatio = 50
+  splitRatio = 50,
+  archiveFontSize = 8
 }) {
   const isUK = msg.lang === 'en-GB' || msg.lang?.startsWith('en');
   const isZH = msg.lang?.startsWith('zh');
@@ -210,14 +211,15 @@ const MessageCardItem = React.memo(function MessageCardItem({
         </div>
       </div>
 
-      {/* 2. Dual Column 1:1 Sentence-by-Sentence Parallel Comparison (8pt Professional Layout with Dynamic Split Ratio) */}
-      <div className="space-y-1.5 text-[8pt] leading-relaxed">
+      {/* 2. Dual Column 1:1 Sentence-by-Sentence Parallel Comparison with Dynamic Archive Font Size */}
+      <div className="space-y-1.5 leading-relaxed" style={{ fontSize: `${archiveFontSize}pt` }}>
         {editingId === msg.id ? (
           <div className="p-2.5 rounded-lg border bg-slate-900 border-amber-500/50 space-y-2">
             <textarea
               value={editTranslationText}
               onChange={(e) => onChangeEditText(e.target.value)}
-              className="w-full p-2 text-[8pt] rounded border bg-slate-950 border-slate-700 text-slate-100 font-sans"
+              style={{ fontSize: `${archiveFontSize}pt` }}
+              className="w-full p-2 rounded border bg-slate-950 border-slate-700 text-slate-100 font-sans"
               rows={3}
             />
             <div className="flex items-center justify-end space-x-2">
@@ -234,7 +236,7 @@ const MessageCardItem = React.memo(function MessageCardItem({
           </div>
         ) : (
           (() => {
-            // 1. If message has pre-aligned pairs, render them directly (100% Guaranteed 1:1 Match at Strict 8pt)
+            // 1. If message has pre-aligned pairs, render them directly (100% Guaranteed 1:1 Match)
             if (msg.pairs && Array.isArray(msg.pairs) && msg.pairs.length > 0) {
               return msg.pairs.map((pair, idx) => (
                 <div 
@@ -248,13 +250,13 @@ const MessageCardItem = React.memo(function MessageCardItem({
                 >
                   <div className="flex items-start gap-1.5 font-medium select-text min-w-0">
                     <span className="font-mono text-[7pt] text-amber-500/80 font-bold shrink-0 mt-0.5">[{idx + 1}]</span>
-                    <p style={{ fontSize: '8pt' }} className={`text-[8pt] leading-relaxed break-keep-all ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
+                    <p style={{ fontSize: `${archiveFontSize}pt` }} className={`leading-relaxed break-keep-all ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
                       {pair.orig}
                     </p>
                   </div>
                   <div className="flex items-start gap-1.5 font-bold select-text min-w-0">
                     <span className="font-mono text-[7pt] text-indigo-400 font-bold shrink-0 mt-0.5">[{idx + 1}]</span>
-                    <p style={{ fontSize: '8pt' }} className={`text-[8pt] leading-relaxed break-keep-all ${isDark ? 'text-amber-300' : 'text-indigo-950'}`}>
+                    <p style={{ fontSize: `${archiveFontSize}pt` }} className={`leading-relaxed break-keep-all ${isDark ? 'text-amber-300' : 'text-indigo-950'}`}>
                       {pair.trans}
                     </p>
                   </div>
@@ -262,11 +264,11 @@ const MessageCardItem = React.memo(function MessageCardItem({
               ));
             }
 
-            // 2. Fallback Alignment for legacy messages or external text (Strict 8pt)
+            // 2. Fallback Alignment for legacy messages or external text
             const originalSentences = splitIntoSentences(msg.original || '');
             const translationSentences = splitIntoSentences(msg.translation || '');
 
-            // If sentence counts match, display 1:1 at strict 8pt
+            // If sentence counts match, display 1:1
             if (originalSentences.length === translationSentences.length) {
               return originalSentences.map((orig, idx) => (
                 <div 
@@ -280,13 +282,13 @@ const MessageCardItem = React.memo(function MessageCardItem({
                 >
                   <div className="flex items-start gap-1.5 font-medium select-text min-w-0">
                     <span className="font-mono text-[7pt] text-amber-500/80 font-bold shrink-0 mt-0.5">[{idx + 1}]</span>
-                    <p style={{ fontSize: '8pt' }} className={`text-[8pt] leading-relaxed break-keep-all ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
+                    <p style={{ fontSize: `${archiveFontSize}pt` }} className={`leading-relaxed break-keep-all ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
                       {orig}
                     </p>
                   </div>
                   <div className="flex items-start gap-1.5 font-bold select-text min-w-0">
                     <span className="font-mono text-[7pt] text-indigo-400 font-bold shrink-0 mt-0.5">[{idx + 1}]</span>
-                    <p style={{ fontSize: '8pt' }} className={`text-[8pt] leading-relaxed break-keep-all ${isDark ? 'text-amber-300' : 'text-indigo-950'}`}>
+                    <p style={{ fontSize: `${archiveFontSize}pt` }} className={`leading-relaxed break-keep-all ${isDark ? 'text-amber-300' : 'text-indigo-950'}`}>
                       {translationSentences[idx]}
                     </p>
                   </div>
@@ -294,7 +296,7 @@ const MessageCardItem = React.memo(function MessageCardItem({
               ));
             }
 
-            // If sentence counts differ, display as single cohesive matching block at strict 8pt
+            // If sentence counts differ, display as single cohesive matching block
             return (
               <div 
                 style={gridStyle}
@@ -306,13 +308,13 @@ const MessageCardItem = React.memo(function MessageCardItem({
               >
                 <div className="flex items-start gap-1.5 font-medium select-text min-w-0">
                   <span className="font-mono text-[7pt] text-amber-500/80 font-bold shrink-0 mt-0.5">[1]</span>
-                  <p style={{ fontSize: '8pt' }} className={`text-[8pt] leading-relaxed break-keep-all ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
+                  <p style={{ fontSize: `${archiveFontSize}pt` }} className={`leading-relaxed break-keep-all ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
                     {msg.original}
                   </p>
                 </div>
                 <div className="flex items-start gap-1.5 font-bold select-text min-w-0">
                   <span className="font-mono text-[7pt] text-indigo-400 font-bold shrink-0 mt-0.5">[1]</span>
-                  <p style={{ fontSize: '8pt' }} className={`text-[8pt] leading-relaxed break-keep-all ${isDark ? 'text-amber-300' : 'text-indigo-950'}`}>
+                  <p style={{ fontSize: `${archiveFontSize}pt` }} className={`leading-relaxed break-keep-all ${isDark ? 'text-amber-300' : 'text-indigo-950'}`}>
                     {msg.translation}
                   </p>
                 </div>
@@ -357,8 +359,28 @@ export default function LiveInterpreter({
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [testLanguageTab, setTestLanguageTab] = useState('en-GB'); // 'en-GB' | 'ja-JP' | 'zh-CN'
 
-  // 💎 Commercial SaaS Premium States
-  const [fontSizeScale, setFontSizeScale] = useState(12); // 8pt ~ 16pt real-time zoom
+  // 💎 Commercial SaaS Premium States (칸/박스별 독립 글자 크기 조절 상태)
+  const [leftFontSize, setLeftFontSize] = useState(() => {
+    try {
+      const saved = localStorage.getItem('archisync_font_left');
+      return saved ? Math.min(24, Math.max(8, Number(saved))) : 12;
+    } catch { return 12; }
+  });
+
+  const [rightFontSize, setRightFontSize] = useState(() => {
+    try {
+      const saved = localStorage.getItem('archisync_font_right');
+      return saved ? Math.min(24, Math.max(8, Number(saved))) : 12;
+    } catch { return 12; }
+  });
+
+  const [archiveFontSize, setArchiveFontSize] = useState(() => {
+    try {
+      const saved = localStorage.getItem('archisync_font_archive');
+      return saved ? Math.min(16, Math.max(6, Number(saved))) : 8;
+    } catch { return 8; }
+  });
+
   const [isPipFloating, setIsPipFloating] = useState(false); // PiP Floating Subtitle Mode
   const [starredIds, setStarredIds] = useState(new Set()); // Starred Pins
   const [isSummaryModalOpen, setIsSummaryModalOpen] = useState(false);
@@ -1095,29 +1117,7 @@ export default function LiveInterpreter({
           </div>
 
           <div className="flex flex-wrap items-center gap-1.5">
-            {/* 🎛️ Real-time Font Zoom Controls (A- / A+) */}
-            <div className={`flex items-center space-x-1 px-2 py-1 rounded-lg border text-xs font-bold ${
-              isDark ? 'bg-slate-800 text-slate-200 border-slate-700' : 'bg-slate-100 text-slate-800 border-slate-200 shadow-xs'
-            }`}>
-              <span className="text-[7.5pt] opacity-70">글자:</span>
-              <button 
-                onClick={() => setFontSizeScale(prev => Math.max(9, prev - 1))}
-                className="px-1 hover:text-amber-400 font-bold transition"
-                title="글자 크기 축소"
-              >
-                A-
-              </button>
-              <span className="font-mono text-amber-400 text-[8pt]">{fontSizeScale}pt</span>
-              <button 
-                onClick={() => setFontSizeScale(prev => Math.min(18, prev + 1))}
-                className="px-1 hover:text-amber-400 font-bold transition"
-                title="글자 크기 확대"
-              >
-                A+
-              </button>
-            </div>
-
-            {/* 📐 Dynamic Split Ratio & Height Presets (칸 사이즈 조절 독) */}
+            {/* 🎛️ Dynamic Split Ratio & Height Presets (칸 사이즈 조절 독) */}
             <div className={`flex items-center space-x-1 px-2 py-1 rounded-lg border text-xs font-bold ${
               isDark ? 'bg-slate-800 text-slate-200 border-slate-700' : 'bg-slate-100 text-slate-800 border-slate-200 shadow-xs'
             }`}>
@@ -1237,7 +1237,7 @@ export default function LiveInterpreter({
             } p-4 rounded-xl flex flex-col justify-between transition-all relative overflow-hidden shrink-0 min-w-0`}
           >
             
-            {/* Header: Fixed Height (h-8) */}
+            {/* Header: Fixed Height (h-8) with Dedicated Left Font Size Zoom */}
             <div className={`flex items-center justify-between pb-2.5 border-b shrink-0 h-8 ${
               isDark ? 'border-slate-800' : 'border-slate-100'
             }`}>
@@ -1264,24 +1264,57 @@ export default function LiveInterpreter({
                   <>🇬🇧/🇺🇸 실시간 영어 발화 (Live English)</>
                 )}
               </span>
-              <span className={`text-[9pt] font-mono font-bold px-2.5 py-0.5 rounded-full shrink-0 ${
-                activeMic 
-                  ? 'bg-amber-500/20 text-amber-500 border border-amber-500/40 animate-pulse' 
-                  : isDark ? 'bg-slate-800 text-slate-400' : 'bg-slate-100 text-slate-600'
-              }`}>
-                {activeMic === 'auto' 
-                  ? '🎙️ 🌐 전세계 언어 자동 감지' 
-                  : activeMic ? `🎙️ ${activeMic === 'zh-CN' ? '중국어' : activeMic === 'ja-JP' ? '일본어' : activeMic.startsWith('en') ? '영어' : '한국어'} 수신 중` : '마이크 대기 중'}
-              </span>
+
+              <div className="flex items-center space-x-1.5 shrink-0">
+                {/* 🎛️ Left Box Dedicated Font Zoom (A- / A+) */}
+                <div className={`flex items-center space-x-1 px-1.5 py-0.5 rounded border text-[7.5pt] font-mono ${
+                  isDark ? 'bg-slate-900 text-slate-200 border-slate-700' : 'bg-white text-slate-800 border-slate-200 shadow-xs'
+                }`}>
+                  <span className="opacity-70">글자:</span>
+                  <button 
+                    onClick={() => {
+                      const next = Math.max(8, leftFontSize - 1);
+                      setLeftFontSize(next);
+                      try { localStorage.setItem('archisync_font_left', next); } catch {}
+                    }}
+                    className="hover:text-amber-400 font-bold px-0.5"
+                    title="원문 글자 크기 축소"
+                  >
+                    A-
+                  </button>
+                  <span className="font-bold text-amber-400">{leftFontSize}pt</span>
+                  <button 
+                    onClick={() => {
+                      const next = Math.min(24, leftFontSize + 1);
+                      setLeftFontSize(next);
+                      try { localStorage.setItem('archisync_font_left', next); } catch {}
+                    }}
+                    className="hover:text-amber-400 font-bold px-0.5"
+                    title="원문 글자 크기 확대"
+                  >
+                    A+
+                  </button>
+                </div>
+
+                <span className={`text-[8.5pt] font-mono font-bold px-2 py-0.5 rounded-full ${
+                  activeMic 
+                    ? 'bg-amber-500/20 text-amber-500 border border-amber-500/40 animate-pulse' 
+                    : isDark ? 'bg-slate-800 text-slate-400' : 'bg-slate-100 text-slate-600'
+                }`}>
+                  {activeMic === 'auto' 
+                    ? '🎙️ 🌐 자동감지' 
+                    : activeMic ? `🎙️ ${activeMic === 'zh-CN' ? '중국어' : activeMic === 'ja-JP' ? '일본어' : activeMic.startsWith('en') ? '영어' : '한국어'}` : '마이크 대기'}
+                </span>
+              </div>
             </div>
             
-            {/* Scrollable Fixed Text Viewport (overflow-y-auto) */}
+            {/* Scrollable Fixed Text Viewport (overflow-y-auto) with leftFontSize */}
             <div 
               ref={liveLeftViewportRef}
               className="flex-1 my-3 overflow-y-auto pr-2 select-text scrollbar-thin scrollbar-thumb-slate-700 space-y-3"
             >
               <div 
-                style={{ fontSize: `${fontSizeScale}pt` }}
+                style={{ fontSize: `${leftFontSize}pt` }}
                 className={`font-semibold leading-relaxed font-sans break-keep-all ${
                   isDark ? 'text-slate-100' : 'text-slate-900'
                 }`}
@@ -1309,7 +1342,7 @@ export default function LiveInterpreter({
             <div className={`pt-2 border-t shrink-0 h-7 ${isDark ? 'border-slate-800/80 text-slate-400' : 'border-slate-100 text-slate-500'} text-[8.5pt] font-medium flex items-center justify-between`}>
               <span className="flex items-center gap-2">
                 <span className={`w-2.5 h-2.5 rounded-full ${activeMic ? 'bg-amber-500 animate-ping' : isDark ? 'bg-slate-600' : 'bg-slate-300'}`} />
-                <span className="truncate">원문 {fontSizeScale}pt · 너비 {splitRatio}% · 높이 {stageHeight}px</span>
+                <span className="truncate">원문 {leftFontSize}pt · 너비 {splitRatio}% · 높이 {stageHeight}px</span>
               </span>
               {isLiveSpeaking && (
                 <span className="text-amber-500 font-mono text-[8pt] shrink-0 animate-pulse">Live Transcribing...</span>
@@ -1347,7 +1380,7 @@ export default function LiveInterpreter({
             } p-4 rounded-xl flex flex-col justify-between transition-all relative overflow-hidden shrink-0 min-w-0`}
           >
             
-            {/* Header: Fixed Height (h-8) */}
+            {/* Header: Fixed Height (h-8) with Dedicated Right Font Size Zoom */}
             <div className={`flex items-center justify-between pb-2.5 border-b shrink-0 h-8 ${
               isDark ? 'border-indigo-500/30' : 'border-indigo-200'
             }`}>
@@ -1356,20 +1389,53 @@ export default function LiveInterpreter({
               }`}>
                 <Sparkles className="w-4 h-4 text-amber-500 shrink-0" /> 🇰🇷 실시간 한글 통역 (100% 한글)
               </span>
-              <span className={`text-[9pt] font-bold px-2 py-0.5 rounded-full shrink-0 ${
-                isDark ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'bg-amber-100 text-amber-800 border border-amber-200'
-              }`}>
-                ⚡ 0.03s 동기화
-              </span>
+
+              <div className="flex items-center space-x-1.5 shrink-0">
+                {/* 🎛️ Right Box Dedicated Font Zoom (A- / A+) */}
+                <div className={`flex items-center space-x-1 px-1.5 py-0.5 rounded border text-[7.5pt] font-mono ${
+                  isDark ? 'bg-indigo-950/80 text-sky-200 border-indigo-500/40' : 'bg-white text-indigo-900 border-indigo-200 shadow-xs'
+                }`}>
+                  <span className="opacity-70">글자:</span>
+                  <button 
+                    onClick={() => {
+                      const next = Math.max(8, rightFontSize - 1);
+                      setRightFontSize(next);
+                      try { localStorage.setItem('archisync_font_right', next); } catch {}
+                    }}
+                    className="hover:text-amber-300 font-bold px-0.5"
+                    title="한글 통역 글자 크기 축소"
+                  >
+                    A-
+                  </button>
+                  <span className="font-bold text-amber-300">{rightFontSize}pt</span>
+                  <button 
+                    onClick={() => {
+                      const next = Math.min(24, rightFontSize + 1);
+                      setRightFontSize(next);
+                      try { localStorage.setItem('archisync_font_right', next); } catch {}
+                    }}
+                    className="hover:text-amber-300 font-bold px-0.5"
+                    title="한글 통역 글자 크기 확대"
+                  >
+                    A+
+                  </button>
+                </div>
+
+                <span className={`text-[8.5pt] font-bold px-2 py-0.5 rounded-full ${
+                  isDark ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'bg-amber-100 text-amber-800 border border-amber-200'
+                }`}>
+                  ⚡ 0.03s
+                </span>
+              </div>
             </div>
 
-            {/* Scrollable Fixed Text Viewport (overflow-y-auto) */}
+            {/* Scrollable Fixed Text Viewport (overflow-y-auto) with rightFontSize */}
             <div 
               ref={liveRightViewportRef}
               className="flex-1 my-3 overflow-y-auto pr-2 select-text scrollbar-thin scrollbar-thumb-indigo-700 space-y-3"
             >
               <div 
-                style={{ fontSize: `${fontSizeScale}pt` }}
+                style={{ fontSize: `${rightFontSize}pt` }}
                 className={`font-bold leading-relaxed break-keep-all ${
                   isDark ? 'text-amber-300' : 'text-indigo-950'
                 }`}
@@ -1387,7 +1453,7 @@ export default function LiveInterpreter({
                   </div>
                 ) : (
                   <p className={`${isDark ? 'text-slate-400' : 'text-slate-500'} font-normal`}>
-                    외국어(영·일·중)로 말하면 우측에 {fontSizeScale}pt 크기의 한국어 번역이 100% 실시간으로 표시됩니다.
+                    외국어(영·일·중)로 말하면 우측에 {rightFontSize}pt 크기의 한국어 번역이 100% 실시간으로 표시됩니다.
                   </p>
                 )}
               </div>
@@ -1395,7 +1461,7 @@ export default function LiveInterpreter({
 
             {/* Footer: Fixed Height (h-7) */}
             <div className={`pt-2 border-t shrink-0 h-7 ${isDark ? 'border-indigo-500/30 text-indigo-300/80' : 'border-indigo-100 text-indigo-700'} text-[8.5pt] font-medium flex items-center justify-between`}>
-              <span className="truncate">한글 12pt 고정 · 너비 {100 - splitRatio}% · 높이 {stageHeight}px</span>
+              <span className="truncate">한글 {rightFontSize}pt · 너비 {100 - splitRatio}% · 높이 {stageHeight}px</span>
               <span className="font-bold text-amber-400 shrink-0">100% 무조건 한글 출력</span>
             </div>
           </div>
@@ -1563,6 +1629,36 @@ export default function LiveInterpreter({
           </div>
 
           <div className="flex items-center space-x-1.5">
+            {/* 🎛️ Archive Box Dedicated Font Zoom (A- / A+) */}
+            <div className={`flex items-center space-x-1 px-1.5 py-0.5 rounded border text-[7.5pt] font-mono ${
+              isDark ? 'bg-slate-800 text-slate-200 border-slate-700' : 'bg-white text-slate-800 border-slate-300 shadow-xs'
+            }`}>
+              <span className="opacity-70">글자:</span>
+              <button 
+                onClick={() => {
+                  const next = Math.max(6, archiveFontSize - 1);
+                  setArchiveFontSize(next);
+                  try { localStorage.setItem('archisync_font_archive', next); } catch {}
+                }}
+                className="hover:text-amber-400 font-bold px-0.5"
+                title="아카이브 글자 크기 축소"
+              >
+                A-
+              </button>
+              <span className="font-bold text-amber-400">{archiveFontSize}pt</span>
+              <button 
+                onClick={() => {
+                  const next = Math.min(16, archiveFontSize + 1);
+                  setArchiveFontSize(next);
+                  try { localStorage.setItem('archisync_font_archive', next); } catch {}
+                }}
+                className="hover:text-amber-400 font-bold px-0.5"
+                title="아카이브 글자 크기 확대"
+              >
+                A+
+              </button>
+            </div>
+
             <button
               onClick={handleSaveToDocuments}
               className={`text-[8pt] font-bold flex items-center gap-1 px-2 py-0.5 rounded border transition ${
@@ -1582,7 +1678,7 @@ export default function LiveInterpreter({
           <div className="h-16 flex items-center justify-center text-center p-2 space-x-2 text-slate-500">
             <Languages className="w-4 h-4 text-amber-500" />
             <span className="text-[8pt]">
-              발화 완료 시 이곳에 8pt 고밀도로 차곡차곡 백업됩니다.
+              발화 완료 시 이곳에 {archiveFontSize}pt 고밀도로 차곡차곡 백업됩니다.
             </span>
           </div>
         )}
@@ -1609,6 +1705,7 @@ export default function LiveInterpreter({
             onChangeEditText={setEditTranslationText}
             onSaveEdit={handleSaveCorrection}
             splitRatio={splitRatio}
+            archiveFontSize={archiveFontSize}
           />
         ))}
         <div ref={messagesBottomRef} />
